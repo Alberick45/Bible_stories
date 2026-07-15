@@ -495,6 +495,32 @@ export class CainAbelScene {
     this.targetPitch = -0.15;
   }
   
+  checkCollision(newX, newZ) {
+    // 1. Altars
+    const cainAltarDist = Math.sqrt((newX + 2.8) * (newX + 2.8) + newZ * newZ);
+    if (cainAltarDist < 1.35) return true;
+    const abelAltarDist = Math.sqrt((newX - 2.8) * (newX - 2.8) + newZ * newZ);
+    if (abelAltarDist < 1.35) return true;
+    
+    // 2. Shelter
+    const shelterDist = Math.sqrt((newX + 16.0) * (newX + 16.0) + (newZ - 12.0) * (newZ - 12.0));
+    if (shelterDist < 2.8) return true;
+    
+    // 3. Fences
+    const fencePositions = [
+      { x: 12, z: 6 },
+      { x: 18, z: 12 },
+      { x: 24, z: 8 },
+      { x: 15, z: -2 },
+      { x: 22, z: -8 }
+    ];
+    for (const f of fencePositions) {
+      const d = Math.sqrt((newX - f.x) * (newX - f.x) + (newZ - f.z) * (newZ - f.z));
+      if (d < 1.25) return true;
+    }
+    return false;
+  }
+  
   update(time, dt) {
     const elapsed = time;
     
@@ -601,9 +627,15 @@ export class CainAbelScene {
       
       if (move.lengthSq() > 0) {
         move.normalize().multiplyScalar(speed);
-        this.cain.position.add(move);
         
-        this.cain.position.y = this.getTerrainHeight(this.cain.position.x, this.cain.position.z);
+        const newX = this.cain.position.x + move.x;
+        const newZ = this.cain.position.z + move.z;
+        
+        if (!this.checkCollision(newX, newZ)) {
+          this.cain.position.x = newX;
+          this.cain.position.z = newZ;
+          this.cain.position.y = this.getTerrainHeight(this.cain.position.x, this.cain.position.z);
+        }
         
         const targetAngle = Math.atan2(move.x, move.z);
         this.cain.rotation.y = targetAngle;

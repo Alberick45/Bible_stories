@@ -517,6 +517,13 @@ export class EdenScene {
     return h + this.ground.position.y;
   }
   
+  checkCollision(newX, newZ) {
+    // Tree of Knowledge center check
+    const dist = Math.sqrt(newX * newX + newZ * newZ);
+    if (dist < 1.35) return true;
+    return false;
+  }
+  
   onWindowResize() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
@@ -734,9 +741,15 @@ export class EdenScene {
       
       if (move.lengthSq() > 0) {
         move.normalize().multiplyScalar(speed);
-        this.adam.position.add(move);
         
-        this.adam.position.y = this.getTerrainHeight(this.adam.position.x, this.adam.position.z);
+        const newX = this.adam.position.x + move.x;
+        const newZ = this.adam.position.z + move.z;
+        
+        if (!this.checkCollision(newX, newZ)) {
+          this.adam.position.x = newX;
+          this.adam.position.z = newZ;
+          this.adam.position.y = this.getTerrainHeight(this.adam.position.x, this.adam.position.z);
+        }
         
         const targetAngle = Math.atan2(move.x, move.z);
         this.adam.rotation.y = targetAngle;

@@ -1056,7 +1056,7 @@ async function executeCainAbelSequence(seqId) {
   gsap.to(sceneEngine.cainArmL.rotation, { z: 0, duration: 0.8 });
   gsap.to(sceneEngine.cainArmR.rotation, { z: 0, duration: 0.8 });
   
-  sceneEngine.cain.lookAt(sceneEngine.abel.position);
+  sceneEngine.cain.lookAt(sceneEngine.abel.position.x, sceneEngine.cain.position.y, sceneEngine.abel.position.z);
   if (!await stepSpeech('Cain', 'Let us go into the field.', 3200)) return;
 
   // Walk into the field at (0, y, -12)
@@ -1102,7 +1102,7 @@ async function executeCainAbelSequence(seqId) {
 
   // Cain rises up against Abel
   if (seqId !== currentSequenceId) return;
-  sceneEngine.cain.lookAt(sceneEngine.abel.position);
+  sceneEngine.cain.lookAt(sceneEngine.abel.position.x, sceneEngine.cain.position.y, sceneEngine.abel.position.z);
   gsap.to(sceneEngine.cainArmR.rotation, { x: -Math.PI / 1.1, duration: 0.7 });
   if (!await stepDelay(900)) return;
 
