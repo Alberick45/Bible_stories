@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An immersive, interactive biblical experience of Genesis 1 - Creation story. Walk through the days of Creation in 3D.">
+  <title>In the Beginning | The Biblical Experience Engine</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+  <div id="veil"></div>
+  <div id="day-label"></div>
+  <div id="narration"></div>
+  <div id="scripture-label">Genesis 1:1 &mdash; 2:7</div>
+  <div id="continue-hint">click or press space to continue</div>
+  <div id="movement-hint">move &mdash; WASD &nbsp;&nbsp;&nbsp; look &mdash; drag mouse</div>
+  <div id="speech-bubble" class="speech-bubble"></div>
+
+  <!-- Timeline Hub Toggle Button -->
+  <button id="hub-toggle-btn">Timeline Hub</button>
+
+  <!-- Timeline Hub Panel -->
+  <div id="hub-panel">
+    <div id="hub-inner">
+      <h2>Timeline of Ages</h2>
+      <p style="font-size: 14px; margin-bottom: 24px; opacity: 0.8; font-style: italic;">Select an era to witness and participate in the biblical narrative:</p>
+      <div class="era-list">
+        <button class="era-btn active" data-scene="creation">Genesis 1 &mdash; Creation</button>
+        <button class="era-btn" data-scene="eden">Genesis 2-3 &mdash; Eden & The Fall</button>
+        <button class="era-btn" data-scene="cainabel">Genesis 4 &mdash; Cain & Abel</button>
+        <button class="era-btn disabled" disabled>Genesis 6-9 &mdash; Noah's Ark</button>
+        <button class="era-btn disabled" disabled>Genesis 11 &mdash; Tower of Babel</button>
+      </div>
+      <button id="close-hub">close</button>
+    </div>
+  </div>
+
+  <!-- Scripture Scroll Panel -->
+  <div id="scroll-panel">
+    <div id="scroll-inner">
+      <h2 id="scroll-title">Genesis 1:1 &ndash; 2:7 <span style="font-weight:400;opacity:.6">(KJV)</span></h2>
+      <div id="scroll-content">
+        <p><span class="verse-num">1</span>In the beginning God created the heaven and the earth.</p>
+        <p><span class="verse-num">2</span>And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.</p>
+        <p><span class="verse-num">3</span>And God said, Let there be light: and there was light.</p>
+        <p><span class="verse-num">4</span>And God saw the light, that it was good: and God divided the light from the darkness.</p>
+        <p><span class="verse-num">6&ndash;8</span>And God said, Let there be a firmament in the midst of the waters&hellip; And God called the firmament Heaven.</p>
+        <p><span class="verse-num">9&ndash;13</span>And God said, Let the waters under the heaven be gathered together unto one place, and let the dry land appear&hellip; and the earth brought forth grass, and herb yielding seed, and the fruit tree yielding fruit.</p>
+        <p><span class="verse-num">14&ndash;19</span>And God said, Let there be lights in the firmament of the heaven&hellip; the greater light to rule the day, and the lesser light to rule the night: he made the stars also.</p>
+        <p><span class="verse-num">20&ndash;23</span>And God said, Let the waters bring forth abundantly the moving creature that hath life, and fowl that may fly above the earth&hellip;</p>
+        <p><span class="verse-num">24&ndash;25</span>And God said, Let the earth bring forth the living creature after his kind, cattle, and creeping thing, and beast of the earth after his kind: and it was so.</p>
+        <p><span class="verse-num">26&ndash;27</span>And God said, Let us make man in our image, after our likeness&hellip; So God created man in his own image, in the image of God created he him; male and female created he them.</p>
+        <p><span class="verse-num">2:7</span>And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.</p>
+      </div>
+      <button id="close-scroll">close</button>
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
