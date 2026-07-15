@@ -915,7 +915,7 @@ async function executeCainAbelSequence(seqId) {
 
   scriptureLabelEl.classList.remove('show');
   loadScriptureScroll(
-    `Genesis 4:1 &ndash; 16 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    `Genesis 4:1 &ndash; 6:8 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     `
       <p><span class="verse-num">1</span>And Adam knew Eve his wife; and she conceived, and bare Cain, and said, I have gotten a man from the LORD.</p>
       <p><span class="verse-num">2</span>And she again bare his brother Abel. And Abel was a keeper of sheep, but Cain was a tiller of the ground.</p>
@@ -928,6 +928,8 @@ async function executeCainAbelSequence(seqId) {
       <p><span class="verse-num">10&ndash;12</span>And he said, What hast thou done? the voice of thy brother's blood crieth unto me from the ground. And now art thou cursed from the earth... When thou tillest the ground, it shall not henceforth yield unto thee her strength; a fugitive and a vagabond shalt thou be...</p>
       <p><span class="verse-num">13&ndash;14</span>And Cain said unto the LORD, My punishment is greater than I can bear... every one that findeth me shall slay me.</p>
       <p><span class="verse-num">15&ndash;16</span>And the LORD said unto him, Therefore whosoever slayeth Cain, vengeance shall be taken on him sevenfold. And the LORD set a mark upon Cain... And Cain went out from the presence of the LORD, and dwelt in the land of Nod, on the east of Eden.</p>
+      <p><span class="verse-num">25</span>And Adam knew his wife again; and she bare a son, and called his name Seth: For God, said she, hath appointed me another seed instead of Abel, whom Cain slew.</p>
+      <p><span class="verse-num">6:5&ndash;8</span>And GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually... And it repented the LORD that he had made man on the earth... But Noah found grace in the eyes of the LORD.</p>
     `
   );
 
@@ -1002,12 +1004,15 @@ async function executeCainAbelSequence(seqId) {
   sceneEngine.movementEnabled = false;
   movementHintEl.classList.remove('show');
 
-  // Place Cain and Abel precisely at their altars facing inwards
-  gsap.to(sceneEngine.cain.position, { x: -2.8, z: 2.2, duration: 1.0 });
-  sceneEngine.cain.lookAt(-2.8, sceneEngine.cain.position.y, 0);
+  // Place Cain and Abel precisely at their altars facing inwards (aligning Y with terrain)
+  const cainTargetY = sceneEngine.getTerrainHeight(-2.8, 2.2);
+  const abelTargetY = sceneEngine.getTerrainHeight(2.8, 2.2);
   
-  gsap.to(sceneEngine.abel.position, { x: 2.8, z: 2.2, duration: 1.0 });
-  sceneEngine.abel.lookAt(2.8, sceneEngine.abel.position.y, 0);
+  gsap.to(sceneEngine.cain.position, { x: -2.8, y: cainTargetY, z: 2.2, duration: 1.0 });
+  sceneEngine.cain.lookAt(-2.8, cainTargetY, 0);
+  
+  gsap.to(sceneEngine.abel.position, { x: 2.8, y: abelTargetY, z: 2.2, duration: 1.0 });
+  sceneEngine.abel.lookAt(2.8, abelTargetY, 0);
 
   // Position camera for sacrifice wide shot
   gsap.to(camPos, {
@@ -1178,6 +1183,83 @@ async function executeCainAbelSequence(seqId) {
   clearInterval(walkAwayInterval);
 
   if (!await stepText('And Cain went out from the presence of the LORD, and dwelt in the land of Nod, on the east of Eden.', 6200, 'Narrator')) return;
+
+  clearNarration();
+  if (seqId !== currentSequenceId) return;
+
+  // --- Transition to Birth of Seth (Gen 4:25) ---
+  // Hide Cain & Abel, make Seth visible
+  sceneEngine.cain.visible = false;
+  sceneEngine.abel.visible = false;
+  sceneEngine.seth.visible = true;
+
+  // Reset Adam & Eve posture/rotation
+  sceneEngine.adam.position.set(-14.5, sceneEngine.getTerrainHeight(-14.5, 10.0), 10.0);
+  sceneEngine.adam.lookAt(-15.0, sceneEngine.adam.position.y, 11.5);
+  sceneEngine.eve.position.set(-15.5, sceneEngine.getTerrainHeight(-15.5, 10.0), 10.0);
+  sceneEngine.eve.lookAt(-15.0, sceneEngine.eve.position.y, 11.5);
+
+  // Position camera on the family shelter
+  camPos.set(-11, 2.5, 14);
+  sceneEngine.camera.lookAt(-15.0, 1.3, 11.5);
+
+  // Fade back in
+  veilEl.style.transition = 'background 1.5s ease';
+  veilEl.style.background = 'rgba(0,0,0,0)';
+  if (!await stepDelay(1800)) return;
+
+  if (!await stepText('And Adam knew his wife again; and she bare a son, and called his name Seth...', 4200, 'Narrator')) return;
+  if (!await stepSpeech('Eve', 'For God hath appointed me another seed instead of Abel, whom Cain slew.', 4200)) return;
+
+  // --- Transition to Wickedness of Man (Gen 6:1-6) ---
+  if (seqId !== currentSequenceId) return;
+  veilEl.style.transition = 'background 1.5s ease';
+  veilEl.style.background = '#000000';
+  if (!await stepDelay(1600)) return;
+
+  // Hide family shelter characters, show wicked carousing bystanders
+  sceneEngine.adam.visible = false;
+  sceneEngine.eve.visible = false;
+  sceneEngine.seth.visible = false;
+  sceneEngine.shelterGroup.visible = false;
+  sceneEngine.wickedPeople.visible = true;
+
+  // Move camera to tilled fields where the wicked are
+  camPos.set(-5.0, 2.0, -6.5);
+  sceneEngine.camera.lookAt(-5.0, 1.3, -11.0);
+
+  // Fade in
+  veilEl.style.transition = 'background 1.5s ease';
+  veilEl.style.background = 'rgba(0,0,0,0)';
+  if (!await stepDelay(1800)) return;
+
+  if (!await stepText('And it came to pass, as men multiplied on the face of the earth...', 3600, 'Narrator')) return;
+
+  // Camera pans slightly as they carouse
+  gsap.to(camPos, {
+    x: -3.0,
+    duration: 5.0,
+    onUpdate: () => {
+      if (sceneEngine && sceneEngine.camera) {
+        sceneEngine.camera.lookAt(-4.5, 1.3, -11.0);
+      }
+    }
+  });
+
+  if (!await stepText('GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually.', 5200, 'Narrator')) return;
+  
+  if (!await stepText('And the earth was corrupt before God, and filled with violence.', 4200, 'Narrator')) return;
+
+  // God's voice expressing grief
+  if (!await stepText('"It repenteth me that I have made man on the earth, and it grieveth me at my heart."', 5200, 'God')) return;
+
+  // Fade to black
+  if (seqId !== currentSequenceId) return;
+  veilEl.style.transition = 'background 3.5s ease';
+  veilEl.style.background = '#000000';
+  if (!await stepDelay(3800)) return;
+
+  if (!await stepText('But Noah found grace in the eyes of the LORD.', 4500, 'Narrator')) return;
 
   clearNarration();
   if (seqId !== currentSequenceId) return;
