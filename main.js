@@ -1287,7 +1287,38 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollPanelEl.classList.add('show');
   });
   
-  startAmbientSoundLoops();
-  
-  loadScene('creation');
+  const beginBtn = document.getElementById('begin-btn');
+  const titleScreen = document.getElementById('title-screen');
+  const loadingScreen = document.getElementById('loading-screen');
+  const progressBarFill = document.getElementById('progress-bar-fill');
+  const loadingText = document.getElementById('loading-text');
+
+  beginBtn.addEventListener('click', () => {
+    // Hide Title Screen
+    titleScreen.style.opacity = 0;
+    setTimeout(() => {
+      titleScreen.style.visibility = 'hidden';
+    }, 1000);
+
+    // Show Loading Screen
+    loadingScreen.classList.add('show');
+
+    // Simulate Asset Loading with Progress Bar
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += Math.floor(Math.random() * 12) + 4;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(progressInterval);
+
+        setTimeout(() => {
+          loadingScreen.classList.remove('show');
+          startAmbientSoundLoops();
+          loadScene('creation');
+        }, 500);
+      }
+      progressBarFill.style.width = `${progress}%`;
+      loadingText.textContent = `Loading Assets... ${progress}%`;
+    }, 100);
+  });
 });
