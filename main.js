@@ -1,6 +1,7 @@
 import { CreationScene } from './creation-scene.js';
 import { EdenScene } from './eden-scene.js';
 import { CainAbelScene } from './cain-abel-scene.js';
+import { NoahScene } from './noah-scene.js';
 import { gsap } from 'gsap';
 import * as THREE from 'three';
 
@@ -1266,6 +1267,189 @@ async function executeCainAbelSequence(seqId) {
   scriptureLabelEl.classList.add('show');
 }
 
+// NOAH'S ARK SEQUENCE (Genesis 6-9)
+async function executeNoahSequence(seqId) {
+  const stepText = async (txt, hold, ttsName = 'Narrator') => {
+    if (seqId !== currentSequenceId) return false;
+    await showTextLine(txt, hold, ttsName);
+    return seqId === currentSequenceId;
+  };
+  
+  const stepDelay = async (ms) => {
+    if (seqId !== currentSequenceId) return false;
+    await delay(ms);
+    return seqId === currentSequenceId;
+  };
+
+  const stepSpeech = async (char, txt, hold) => {
+    if (seqId !== currentSequenceId) return false;
+    await showSpeechBubble(char, txt, hold);
+    return seqId === currentSequenceId;
+  };
+
+  scriptureLabelEl.classList.remove('show');
+  loadScriptureScroll(
+    `Genesis 6:13 &ndash; 9:13 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    `
+      <p><span class="verse-num">6:13&ndash;14</span>And God said unto Noah, The end of all flesh is come before me... Make thee an ark of gopher wood; rooms shalt thou make in the ark...</p>
+      <p><span class="verse-num">7:1</span>And the LORD said unto Noah, Come thou and all thy house into the ark; for thee have I seen righteous before me in this generation.</p>
+      <p><span class="verse-num">7:2&ndash;3</span>Of every clean beast thou shalt take to thee by sevens, the male and his female... of fowls also of the air by sevens...</p>
+      <p><span class="verse-num">7:7</span>And Noah went in, and his sons, and his wife, and his sons' wives with him, into the ark, because of the waters of the flood.</p>
+      <p><span class="verse-num">7:11&ndash;12</span>...the same day were all the fountains of the great deep broken up, and the windows of heaven were opened. And the rain was upon the earth forty days and forty nights.</p>
+      <p><span class="verse-num">7:17&ndash;18</span>And the flood was forty days upon the earth... and the waters increased, and bare up the ark, and it was lift up above the earth.</p>
+      <p><span class="verse-num">8:1&ndash;3</span>And God remembered Noah, and every living thing... and the rain from heaven was restrained; And the waters returned from off the earth...</p>
+      <p><span class="verse-num">9:13</span>I do set my bow in the cloud, and it shall be for a token of a covenant between me and the earth.</p>
+    `
+  );
+
+  if (seqId !== currentSequenceId) return;
+  veilEl.style.transition = 'background 1.5s ease';
+  veilEl.style.background = 'rgba(0,0,0,0)';
+
+  // Gen 6:13-14 - God's Command
+  const camPos = sceneEngine.camera.position;
+  camPos.set(-10, 3.5, 18);
+  sceneEngine.camera.lookAt(0, 2.0, 0);
+
+  if (!await stepText('And God said unto Noah, "The end of all flesh is come before me; for the earth is filled with violence through them..."', 4800, 'God')) return;
+  if (!await stepText('"Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."', 5200, 'God')) return;
+
+  if (!await stepSpeech('Noah', 'I will build it according to all that the LORD has commanded me.', 3600)) return;
+
+  // Gen 7:1-7 - Interactive Gathering
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.unlockControls();
+  movementHintEl.classList.add('show');
+
+  if (!await stepText('Guide Noah to the animal pairs near the Ark entrance.', 4200, 'Narrator')) return;
+  clearNarration();
+
+  // Wait for Noah to approach the animal queue at (22, 0.0)
+  let proximityCheck = true;
+  while (proximityCheck) {
+    if (!await stepDelay(150)) return;
+    if (seqId !== currentSequenceId) return;
+    if (sceneEngine && sceneEngine.noah) {
+      const nPos = sceneEngine.noah.position;
+      const dist = Math.sqrt((nPos.x - 13.5) * (nPos.x - 13.5) + nPos.z * nPos.z);
+      if (dist < 4.2) {
+        proximityCheck = false;
+      }
+    } else {
+      proximityCheck = false;
+    }
+  }
+
+  // Lock controls for cinematic boarding
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.movementEnabled = false;
+  movementHintEl.classList.remove('show');
+
+  if (!await stepText('And Noah went in, and his wife with him, and the beasts after their kind into the ark.', 4200, 'Narrator')) return;
+
+  // Position camera for boarding wide shot
+  gsap.to(camPos, {
+    x: 12.0,
+    y: 4.0,
+    z: 11.5,
+    duration: 2.2,
+    onUpdate: () => {
+      if (sceneEngine && sceneEngine.camera) {
+        sceneEngine.camera.lookAt(5.5, 2.2, 0.0);
+      }
+    }
+  });
+
+  // Animate Animals entering the Ark
+  if (seqId !== currentSequenceId) return;
+  for (let i = 0; i < sceneEngine.pairInstances.length; i++) {
+    const animal = sceneEngine.pairInstances[i];
+    gsap.to(animal.position, {
+      x: 6.2,
+      z: 0.0,
+      duration: 1.2,
+      delay: i * 0.25,
+      ease: 'power1.inOut',
+      onComplete: () => {
+        animal.visible = false;
+      }
+    });
+  }
+  if (!await stepDelay(3000)) return;
+
+  // Noah and Wife walk inside
+  gsap.to(sceneEngine.noah.position, { x: 7.2, z: 0.0, duration: 1.2 });
+  gsap.to(sceneEngine.wife.position, { x: 7.2, z: 0.0, duration: 1.2 });
+  if (!await stepDelay(1400)) return;
+
+  sceneEngine.noah.visible = false;
+  sceneEngine.wife.visible = false;
+
+  // Close the Ark Door
+  gsap.to(sceneEngine.doorGroup.rotation, { y: -Math.PI / 2.0, duration: 1.5 });
+  if (!await stepDelay(1000)) return;
+  sceneEngine.ramp.visible = false;
+  if (!await stepDelay(600)) return;
+
+  // Gen 7:11-12 - The Rain Begins
+  sceneEngine.rainActive = true;
+  adjustWindIntensity(0.12, 100, 10.0); // Procedural storm wind
+  gsap.to(sceneEngine.sunLight, { intensity: 0.1, duration: 3.0 });
+  gsap.to(sceneEngine.hemiLight, { intensity: 0.15, duration: 3.0 });
+
+  if (!await stepText('...the same day were all the fountains of the great deep broken up, and the windows of heaven were opened.', 4500, 'Narrator')) return;
+  if (!await stepText('And the rain was upon the earth forty days and forty nights.', 4200, 'Narrator')) return;
+
+  // Gen 7:17-18 - The Flood & Floating
+  sceneEngine.waterRising = true;
+
+  // Pull camera out to wide flooded view
+  gsap.to(camPos, {
+    x: -30.0,
+    y: 22.0,
+    z: 42.0,
+    duration: 8.0,
+    onUpdate: () => {
+      if (sceneEngine && sceneEngine.camera) {
+        sceneEngine.camera.lookAt(sceneEngine.ark.position);
+      }
+    }
+  });
+
+  if (!await stepText('And the flood was forty days upon the earth; and the waters increased, and bare up the ark...', 4500, 'Narrator')) return;
+  if (!await stepText('And it was lift up above the earth, and the ark went upon the face of the waters.', 4500, 'Narrator')) return;
+
+  // Wait for water to reach peak height
+  let waterCheck = true;
+  while (waterCheck) {
+    if (!await stepDelay(150)) return;
+    if (seqId !== currentSequenceId) return;
+    if (sceneEngine && sceneEngine.waterHeight >= 4.5) {
+      waterCheck = false;
+    }
+  }
+
+  // Fade out to Ararat Epilogue
+  if (seqId !== currentSequenceId) return;
+  veilEl.style.transition = 'background 3.0s ease';
+  veilEl.style.background = '#000000';
+  if (!await stepDelay(3200)) return;
+
+  // Disable rain/rising water
+  sceneEngine.rainActive = false;
+  sceneEngine.waterRising = false;
+
+  if (!await stepText('And God remembered Noah, and every living thing, and all the cattle that was with him in the ark...', 4500, 'Narrator')) return;
+  if (!await stepText('And the rain from heaven was restrained; And the waters returned from off the earth continually.', 4500, 'Narrator')) return;
+
+  // Rainbow Covenant (Gen 9:13)
+  if (!await stepText('And God said, "I do set my bow in the cloud, and it shall be for a token of a covenant between me and the earth."', 5200, 'God')) return;
+
+  clearNarration();
+  if (seqId !== currentSequenceId) return;
+  scriptureLabelEl.classList.add('show');
+}
+
 // --- 5. Scene Swap Loader ---
 function loadScene(sceneName) {
   currentSequenceId++;
@@ -1335,11 +1519,102 @@ function loadScene(sceneName) {
     sceneEngine = new CainAbelScene(canvasWrap);
     requestAnimationFrame(tick);
     executeCainAbelSequence(thisSeqId);
+  } else if (sceneName === 'noah') {
+    sceneEngine = new NoahScene(canvasWrap);
+    requestAnimationFrame(tick);
+    executeNoahSequence(thisSeqId);
   }
+}
+
+// Mobile Virtual Joystick Touch Helper
+function initTouchControls() {
+  const joystickZone = document.getElementById('joystick-zone');
+  const joystickBase = document.getElementById('joystick-base');
+  const joystickKnob = document.getElementById('joystick-knob');
+  
+  if (!joystickZone) return;
+  
+  let joystickActive = false;
+  let joystickStartPos = { x: 0, y: 0 };
+  
+  joystickZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const rect = joystickBase.getBoundingClientRect();
+    joystickStartPos = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    };
+    joystickActive = true;
+  });
+  
+  joystickZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!joystickActive || !sceneEngine) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - joystickStartPos.x;
+    const dy = touch.clientY - joystickStartPos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxRadius = 35;
+    
+    let moveX = dx;
+    let moveY = dy;
+    
+    if (dist > maxRadius) {
+      moveX = (dx / dist) * maxRadius;
+      moveY = (dy / dist) * maxRadius;
+    }
+    
+    joystickKnob.style.transform = `translate(${moveX}px, ${moveY}px)`;
+    
+    if (sceneEngine.joystickVector) {
+      sceneEngine.joystickVector.x = moveX / maxRadius;
+      sceneEngine.joystickVector.y = -moveY / maxRadius; // Invert Y for forwardWebGL
+    }
+  });
+  
+  joystickZone.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    joystickActive = false;
+    joystickKnob.style.transform = 'translate(0px, 0px)';
+    if (sceneEngine && sceneEngine.joystickVector) {
+      sceneEngine.joystickVector.set(0, 0);
+    }
+  });
+  
+  // Right-screen swipe look controls
+  let swipeStart = { x: 0, y: 0 };
+  let isSwiping = false;
+  
+  window.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    if (touch.clientX > window.innerWidth / 2) {
+      swipeStart = { x: touch.clientX, y: touch.clientY };
+      isSwiping = true;
+    }
+  }, { passive: true });
+  
+  window.addEventListener('touchmove', (e) => {
+    if (!isSwiping || !sceneEngine || !sceneEngine.movementEnabled) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - swipeStart.x;
+    const dy = touch.clientY - swipeStart.y;
+    
+    sceneEngine.targetYaw -= dx * 0.007;
+    sceneEngine.targetPitch -= dy * 0.007;
+    sceneEngine.targetPitch = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, sceneEngine.targetPitch));
+    
+    swipeStart = { x: touch.clientX, y: touch.clientY };
+  }, { passive: true });
+  
+  window.addEventListener('touchend', () => {
+    isSwiping = false;
+  }, { passive: true });
 }
 
 // --- 6. DOM Initialization Hooks ---
 document.addEventListener('DOMContentLoaded', () => {
+  initTouchControls();
+
   hubToggleBtn.addEventListener('click', () => {
     hubPanelEl.classList.add('show');
   });

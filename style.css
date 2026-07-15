@@ -586,3 +586,67 @@ canvas {
   box-shadow: 0 0 8px rgba(201, 185, 138, 0.8);
 }
 
+/* Mobile Virtual Joystick Overlay */
+#joystick-zone {
+  position: fixed;
+  left: 30px;
+  bottom: 30px;
+  width: 100px;
+  height: 100px;
+  z-index: 100;
+  display: none;
+  touch-action: none;
+  user-select: none;
+}
+
+#joystick-base {
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(201, 185, 138, 0.35);
+  border-radius: 50%;
+  position: relative;
+  backdrop-filter: blur(4px);
+}
+
+#joystick-knob {
+  width: 38px;
+  height: 38px;
+  background: var(--color-gold);
+  border-radius: 50%;
+  position: absolute;
+  left: 31px;
+  top: 31px;
+  box-shadow: 0 0 10px rgba(201, 185, 138, 0.6);
+  pointer-events: none;
+}
+
+/* Mobile Responsiveness Media Queries */
+@media (max-width: 768px) {
+  #movement-hint {
+    display: none !important;
+  }
+  
+  #scripture-label {
+    bottom: 18%;
+  }
+
+  #continue-hint {
+    bottom: 12%;
+  }
+
+  #narration {
+    width: 92%;
+    padding: 20px 24px;
+  }
+
+  .title-frame {
+    padding: 40px 24px;
+  }
+
+  #joystick-zone {
+    display: block; /* Show virtual joystick on mobile viewports */
+  }
+}
+
+
