@@ -5,10 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="An immersive, interactive biblical experience of Genesis 1 - Creation story. Walk through the days of Creation in 3D.">
   <title>In the Beginning | The Biblical Experience Engine</title>
-  <script type="module" crossorigin src="/assets/index-VsDxA7Zm.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-Bz289fx9.css">
+  <script type="module" crossorigin src="/assets/index-DQxbESFK.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-F0Ube2My.css">
 </head>
 <body>
+  <!-- Title Screen / Title Page -->
+  <div id="title-screen">
+    <div class="title-frame">
+      <h1>The Biblical Experience</h1>
+      <p>An interactive, immersive journey through the Holy Scriptures</p>
+      <button class="begin-btn" id="begin-btn">Begin Journey</button>
+    </div>
+  </div>
+
+  <!-- Gear Loading Screen -->
+  <div id="loading-screen">
+    <div class="gear-container">
+      <!-- Large Gear -->
+      <svg class="gear gear-large" viewBox="0 0 100 100">
+        <path d="M50 35c-8.3 0-15 6.7-15 15s6.7 15 15 15 15-6.7 15-15-6.7-15-15-15zm0 22c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7zm0-42c-2.2 0-4 1.8-4 4v4.5c-2.7.5-5.2 1.5-7.5 3l-3.2-3.2c-1.6-1.6-4.1-1.6-5.7 0l-5.7 5.7c-1.6 1.6-1.6 4.1 0 5.7l3.2 3.2c-1.5 2.3-2.5 4.8-3 7.5H20c-2.2 0-4 1.8-4 4v8c0 2.2 1.8 4 4 4h4.5c.5 2.7 1.5 5.2 3 7.5l-3.2 3.2c-1.6 1.6-1.6 4.1 0 5.7l5.7 5.7c1.6 1.6 4.1 1.6 5.7 0l3.2-3.2c2.3 1.5 4.8 2.5 7.5 3V80c0 2.2 1.8 4 4 4h8c2.2 0 4-1.8 4-4v-4.5c2.7-.5 5.2-1.5 7.5-3l3.2 3.2c1.6 1.6 4.1 1.6 5.7 0l5.7-5.7c1.6-1.6 1.6-4.1 0-5.7l-3.2-3.2c1.5-2.3 2.5-4.8 3-7.5H80c2.2 0 4-1.8 4-4v-8c0-2.2-1.8-4-4-4h-4.5c-.5-2.7-1.5-5.2-3-7.5l3.2-3.2c1.6-1.6 1.6-4.1 0-5.7l-5.7-5.7c-1.6-1.6-4.1-1.6-5.7 0l-3.2 3.2c-2.3-1.5-4.8-2.5-7.5-3V20c0-2.2-1.8-4-4-4h-8z"/>
+      </svg>
+      <!-- Small Gear -->
+      <svg class="gear gear-small" viewBox="0 0 100 100">
+        <path d="M50 35c-8.3 0-15 6.7-15 15s6.7 15 15 15 15-6.7 15-15-6.7-15-15-15zm0 22c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7zm0-42c-2.2 0-4 1.8-4 4v4.5c-2.7.5-5.2 1.5-7.5 3l-3.2-3.2c-1.6-1.6-4.1-1.6-5.7 0l-5.7 5.7c-1.6 1.6-1.6 4.1 0 5.7l3.2 3.2c-1.5 2.3-2.5 4.8-3 7.5H20c-2.2 0-4 1.8-4 4v8c0 2.2 1.8 4 4 4h4.5c.5 2.7 1.5 5.2 3 7.5l-3.2 3.2c-1.6 1.6-1.6 4.1 0 5.7l5.7 5.7c1.6 1.6 4.1 1.6 5.7 0l3.2-3.2c2.3 1.5 4.8 2.5 7.5 3V80c0 2.2 1.8 4 4 4h8c2.2 0 4-1.8 4-4v-4.5c2.7-.5 5.2-1.5 7.5-3l3.2 3.2c1.6 1.6 4.1 1.6 5.7 0l5.7-5.7c1.6-1.6 1.6-4.1 0-5.7l-3.2-3.2c1.5-2.3 2.5-4.8 3-7.5H80c2.2 0 4-1.8 4-4v-8c0-2.2-1.8-4-4-4h-4.5c-.5-2.7-1.5-5.2-3-7.5l3.2-3.2c1.6-1.6 1.6-4.1 0-5.7l-5.7-5.7c-1.6-1.6-4.1-1.6-5.7 0l-3.2 3.2c-2.3-1.5-4.8-2.5-7.5-3V20c0-2.2-1.8-4-4-4h-8z"/>
+      </svg>
+    </div>
+    <div class="loading-text" id="loading-text">Loading Assets... 0%</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progress-bar-fill"></div>
+    </div>
+  </div>
+
   <div id="canvas-wrap"></div>
   <div id="veil"></div>
   <div id="day-label"></div>
