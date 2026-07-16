@@ -1591,7 +1591,6 @@ async function executeNoahSequence(seqId) {
   if (seqId !== currentSequenceId) return;
   scriptureLabelEl.classList.add('show');
 }
-}
 
 // --- 5. Scene Swap Loader ---
 function loadScene(sceneName) {
