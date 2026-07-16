@@ -1308,31 +1308,76 @@ async function executeNoahSequence(seqId) {
 
   // Gen 6:13-14 - God's Command
   const camPos = sceneEngine.camera.position;
-  camPos.set(-10, 3.5, 18);
+  camPos.set(-10, 4.5, 20);
   sceneEngine.camera.lookAt(0, 2.0, 0);
 
-  if (!await stepText('And God said unto Noah, "The end of all flesh is come before me; for the earth is filled with violence through them..."', 4800, 'God')) return;
-  if (!await stepText('"Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."', 5200, 'God')) return;
+  if (!await stepText('And God said unto Noah, "The end of all flesh is come before me; for the earth is filled with violence through them..."', 5200, 'God')) return;
+  if (!await stepText('"Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."', 5600, 'God')) return;
 
-  if (!await stepSpeech('Noah', 'I will build it according to all that the LORD has commanded me.', 3600)) return;
+  if (!await stepSpeech('Noah', 'I will build it according to all that the LORD has commanded me.', 4000)) return;
+
+  // Visual Timelapse Building Phase
+  if (seqId !== currentSequenceId) return;
+  // Noah runs to the building site
+  gsap.to(sceneEngine.noah.position, { x: 7.2, y: sceneEngine.getTerrainHeight(7.2, 6.0), z: 6.0, duration: 1.5 });
+  gsap.to(sceneEngine.noah.rotation, { y: -Math.PI / 2, duration: 1.5 });
+  
+  // Camera pans to show construction
+  gsap.to(camPos, {
+    x: -8.0,
+    y: 3.5,
+    z: 14.0,
+    duration: 2.0,
+    onUpdate: () => {
+      if (sceneEngine && sceneEngine.camera) {
+        sceneEngine.camera.lookAt(0.0, 2.5, 0.0);
+      }
+    }
+  });
+  if (!await stepDelay(1800)) return;
+
+  if (!await stepText('Thus did Noah; according to all that God commanded him, so did he.', 4500, 'Narrator')) return;
+
+  // Hammer swing loop animation
+  const swingTimeline = gsap.timeline({ repeat: 8 });
+  swingTimeline.to(sceneEngine.noahArmR.rotation, { x: -Math.PI / 2.2, duration: 0.22, ease: 'power1.in' })
+               .to(sceneEngine.noahArmR.rotation, { x: 0, duration: 0.18, ease: 'power1.out' });
+  
+  if (!await stepDelay(3000)) {
+    swingTimeline.kill();
+    return;
+  }
+  swingTimeline.kill();
+
+  // Complete the Ark structure (timelapse complete)
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.completeArk();
+
+  // God calls Noah to enter
+  if (!await stepText('And the LORD said unto Noah, "Come thou and all thy house into the ark; for thee have I seen righteous before me in this generation."', 5600, 'God')) return;
+
+  // Move Noah back to start position to guide animals
+  gsap.to(sceneEngine.noah.position, { x: 13.5, y: sceneEngine.getTerrainHeight(13.5, 4.0), z: 4.0, duration: 1.5 });
+  gsap.to(sceneEngine.noah.rotation, { y: Math.PI, duration: 1.5 });
+  if (!await stepDelay(1600)) return;
 
   // Gen 7:1-7 - Interactive Gathering
   if (seqId !== currentSequenceId) return;
   sceneEngine.unlockControls();
   movementHintEl.classList.add('show');
 
-  if (!await stepText('Guide Noah to the animal pairs near the Ark entrance.', 4200, 'Narrator')) return;
+  if (!await stepText('Guide Noah closer to the marching animal pairs to bring them inside.', 4800, 'Narrator')) return;
   clearNarration();
 
-  // Wait for Noah to approach the animal queue at (22, 0.0)
+  // Wait for Noah to approach the animal queue at (10.0, z)
   let proximityCheck = true;
   while (proximityCheck) {
     if (!await stepDelay(150)) return;
     if (seqId !== currentSequenceId) return;
     if (sceneEngine && sceneEngine.noah) {
       const nPos = sceneEngine.noah.position;
-      const dist = Math.sqrt((nPos.x - 13.5) * (nPos.x - 13.5) + nPos.z * nPos.z);
-      if (dist < 4.2) {
+      const dist = Math.sqrt((nPos.x - 10.0) * (nPos.x - 10.0) + nPos.z * nPos.z);
+      if (dist < 4.8) {
         proximityCheck = false;
       }
     } else {
@@ -1345,12 +1390,12 @@ async function executeNoahSequence(seqId) {
   sceneEngine.movementEnabled = false;
   movementHintEl.classList.remove('show');
 
-  if (!await stepText('And Noah went in, and his wife with him, and the beasts after their kind into the ark.', 4200, 'Narrator')) return;
+  if (!await stepText('And Noah went in, and his wife with him, and the beasts after their kind into the ark.', 4800, 'Narrator')) return;
 
   // Position camera for boarding wide shot
   gsap.to(camPos, {
-    x: 12.0,
-    y: 4.0,
+    x: 14.5,
+    y: 5.0,
     z: 11.5,
     duration: 2.2,
     onUpdate: () => {
@@ -1367,27 +1412,38 @@ async function executeNoahSequence(seqId) {
     gsap.to(animal.position, {
       x: 6.2,
       z: 0.0,
-      duration: 1.2,
-      delay: i * 0.25,
+      duration: 1.5,
+      delay: i * 0.16,
       ease: 'power1.inOut',
       onComplete: () => {
         animal.visible = false;
       }
     });
   }
-  if (!await stepDelay(3000)) return;
+  // Wait for animal queue to enter
+  if (!await stepDelay(5200)) return;
 
   // Noah and Wife walk inside
-  gsap.to(sceneEngine.noah.position, { x: 7.2, z: 0.0, duration: 1.2 });
-  gsap.to(sceneEngine.wife.position, { x: 7.2, z: 0.0, duration: 1.2 });
-  if (!await stepDelay(1400)) return;
+  gsap.to(sceneEngine.noah.position, { x: 7.2, z: 0.0, duration: 1.5 });
+  gsap.to(sceneEngine.wife.position, { x: 7.2, z: 0.0, duration: 1.5 });
+  if (!await stepDelay(1800)) return;
 
   sceneEngine.noah.visible = false;
   sceneEngine.wife.visible = false;
 
   // Close the Ark Door
-  gsap.to(sceneEngine.doorGroup.rotation, { y: -Math.PI / 2.0, duration: 1.5 });
-  if (!await stepDelay(1000)) return;
+  gsap.to(sceneEngine.doorGroup.rotation, { y: -Math.PI / 2.0, duration: 1.8 });
+  if (!await stepDelay(1200)) return;
+
+  // Golden Divine Glow effect when closing
+  if (seqId !== currentSequenceId) return;
+  veilEl.style.transition = 'background 0.3s ease';
+  veilEl.style.background = 'rgba(255, 220, 150, 0.65)'; // Golden flash
+  if (!await stepDelay(300)) return;
+  veilEl.style.background = 'rgba(0,0,0,0)';
+  
+  if (!await stepText('...and the LORD shut him in.', 4500, 'Narrator')) return;
+
   sceneEngine.ramp.visible = false;
   if (!await stepDelay(600)) return;
 

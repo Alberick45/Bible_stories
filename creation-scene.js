@@ -24,6 +24,216 @@ export class CreationScene {
     this.init();
   }
   
+  createProceduralFlora(index, x, z) {
+    const plantNames = [
+      "Oak", "Pine", "Maple", "Birch", "Willow", "Cedar", "Redwood", "Cypress", "Spruce", "Fir", 
+      "Elm", "Ash", "Beech", "Walnut", "Chestnut", "Poplar", "Magnolia", "Dogwood", "Cherry", "Apple", 
+      "Fig", "Olive", "Palm", "Banana", "Eucalyptus", "Bamboo", "Acacia", "Baobab", "Banyan", "Joshua",
+      "Rose", "Lily", "Tulip", "Daisy", "Sunflower", "Orchid", "Lavender", "Fern", "Moss", "Ivy",
+      "Dandelion", "Violet", "Jasmine", "Hibiscus", "Lotus", "Marigold", "Clover", "Bamboo Grass", "Cactus", "Aloe",
+      "Sage", "Mint", "Basil", "Oregano", "Thyme", "Wheat", "Barley", "Rice", "Cotton", "Flax"
+    ];
+    const name = plantNames[index % plantNames.length];
+    const grp = new THREE.Group();
+    grp.name = name;
+
+    const leavesColors = [0x2e5c1e, 0x3d702b, 0x487d35, 0x568a41, 0x224c16, 0x356324, 0x1d3c0f, 0x2a501a, 0x416d2b, 0x4f7f36, 0x446830, 0x4a7e37];
+    const flowerColors = [0xff4500, 0xffd700, 0xda70d6, 0xba55d3, 0xff69b4, 0xff1493, 0x00bfff, 0x4169e1, 0x32cd32, 0xffa500];
+
+    const isTree = (index % plantNames.length) < 30;
+    const isFlower = (index % plantNames.length) >= 30 && (index % plantNames.length) < 48;
+    const isDesert = (index % plantNames.length) === 48 || (index % plantNames.length) === 49;
+    const isHerbOrCrop = (index % plantNames.length) >= 50;
+
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x4d3926, roughness: 0.9, flatShading: true });
+
+    if (isTree) {
+      // Trunk
+      const th = 1.6 + (index % 5) * 0.4;
+      const tr = 0.12 + (index % 4) * 0.04;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(tr*0.8, tr, th, 5), woodMat);
+      trunk.position.y = th / 2;
+      trunk.castShadow = true;
+      grp.add(trunk);
+
+      // Leaves
+      const leafyMat = new THREE.MeshStandardMaterial({ 
+        color: leavesColors[index % leavesColors.length], 
+        roughness: 0.9, 
+        flatShading: true 
+      });
+      const lh = 1.2 + (index % 3) * 0.5;
+      let leavesMesh;
+      if (index % 3 === 0) {
+        leavesMesh = new THREE.Mesh(new THREE.ConeGeometry(lh * 0.9, lh * 2.2, 5), leafyMat);
+        leavesMesh.position.y = th + lh * 0.8;
+      } else if (index % 3 === 1) {
+        leavesMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(lh, 1), leafyMat);
+        leavesMesh.position.y = th + lh * 0.7;
+      } else {
+        leavesMesh = new THREE.Mesh(new THREE.BoxGeometry(lh * 1.5, lh * 1.5, lh * 1.5), leafyMat);
+        leavesMesh.position.y = th + lh * 0.75;
+      }
+      leavesMesh.castShadow = true;
+      grp.add(leavesMesh);
+
+      // Fruits
+      if (index % 2 === 1) {
+        const fruitColor = (index % 3 === 0) ? 0xdd2200 : 0xddb400;
+        const fruitMat = new THREE.MeshStandardMaterial({ color: fruitColor, roughness: 0.4 });
+        for (let f = 0; f < 3; f++) {
+          const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), fruitMat);
+          fruit.position.set(
+            (Math.random() - 0.5) * lh * 0.8,
+            th + lh * 0.4 + Math.random() * lh * 0.4,
+            (Math.random() - 0.5) * lh * 0.8
+          );
+          grp.add(fruit);
+        }
+      }
+      grp.userData = { originalScale: 1.0 };
+    } else if (isFlower) {
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 4), new THREE.MeshStandardMaterial({ color: 0x3d7a22 }));
+      stem.position.y = 0.25;
+      grp.add(stem);
+
+      const petalMat = new THREE.MeshStandardMaterial({ color: flowerColors[index % flowerColors.length], roughness: 0.7, flatShading: true });
+      const petals = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), petalMat);
+      petals.position.y = 0.55;
+      petals.castShadow = true;
+      grp.add(petals);
+      grp.userData = { originalScale: 0.8 + (index % 3) * 0.2 };
+    } else if (isDesert) {
+      const cMat = new THREE.MeshStandardMaterial({ color: 0x3d702b, roughness: 0.8, flatShading: true });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.9, 5), cMat);
+      body.position.y = 0.45;
+      body.castShadow = true;
+      grp.add(body);
+      for (let side = -1; side <= 1; side += 2) {
+        if (index % 2 === 0 && side === 1) continue;
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.4, 4), cMat);
+        arm.position.set(side * 0.16, 0.6, 0);
+        arm.rotation.z = side * 0.5;
+        grp.add(arm);
+      }
+      grp.userData = { originalScale: 0.9 + (index % 4) * 0.15 };
+    } else {
+      const cropMat = new THREE.MeshStandardMaterial({ color: 0x8f8c35, roughness: 0.9, flatShading: true });
+      for (let j = 0; j < 3; j++) {
+        const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.7, 0.05), cropMat);
+        stalk.position.set((j - 1) * 0.1, 0.35, 0);
+        stalk.rotation.z = (j - 1) * 0.15;
+        stalk.castShadow = true;
+        grp.add(stalk);
+      }
+      grp.userData = { originalScale: 0.8 + (index % 3) * 0.2 };
+    }
+
+    grp.position.set(x, this.getTerrainHeight(x, z), z);
+    return grp;
+  }
+
+  createProceduralFauna(index, x, z) {
+    const animalNames = [
+      "Lion", "Tiger", "Bear", "Elephant", "Giraffe", "Zebra", "Horse", "Sheep", "Goat", "Cow", 
+      "Deer", "Wolf", "Fox", "Rabbit", "Squirrel", "Kangaroo", "Panda", "Koala", "Camel", "Hippo", 
+      "Rhino", "Leopard", "Cheetah", "Hyena", "Otter", "Badger", "Monkey", "Gorilla", "Chimpanzee", "Elk",
+      "Eagle", "Hawk", "Falcon", "Owl", "Parrot", "Penguin", "Flamingo", "Peacock", "Swan", "Duck", 
+      "Goose", "Sparrow", "Robin", "Bluejay", "Cardinal", "Crow", "Raven", "Seagull", "Dove", "Pigeon",
+      "Snake", "Lizard", "Turtle", "Frog", "Crocodile", "Alligator", "Chameleon", "Gecko", "Iguana", "Snail"
+    ];
+    const name = animalNames[index % animalNames.length];
+    const grp = new THREE.Group();
+    grp.name = name;
+
+    const skinColorTable = [
+      0xcc9a41, 0xea761e, 0x5a483a, 0x8a9296, 0xefdeaa, 0x1f1f1f, 0x5a483a, 0xf6f6f6, 0xdfdfdf, 0xc2a68a,
+      0x8f6a45, 0x7c858a, 0xa66d3f, 0xc7c5bc, 0xb8860b, 0xa0522d, 0xffffff, 0xc0c0c0, 0xb87333, 0x556b2f,
+      0x808080, 0xe0a96d, 0xe3a857, 0x8b5a2b, 0x4a5d4e, 0x3d3d3d, 0x3b2d19, 0x222222, 0x3a3028, 0x6e563a
+    ];
+    const birdColorTable = [
+      0x4682b4, 0x8b0000, 0x2e8b57, 0x556b2f, 0xff8c00, 0xffd700, 0xff69b4, 0x00bfff, 0xffffff, 0xdcdcdc,
+      0x708090, 0x483d8b, 0x008080, 0x000080, 0xcd853f, 0x800080, 0xbc8f8f, 0xf5deb3, 0xe6e6fa, 0xfff0f5
+    ];
+
+    const skinMat = new THREE.MeshStandardMaterial({ 
+      color: index % 60 < 30 ? skinColorTable[index % 30] : (index % 60 < 50 ? birdColorTable[index % 20] : 0x3d5c22), 
+      roughness: 0.9, 
+      flatShading: true 
+    });
+
+    const isMammal = (index % 60) < 30;
+    const isBird = (index % 60) >= 30 && (index % 60) < 50;
+    const isCreeping = (index % 60) >= 50;
+
+    if (isMammal) {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 0.8), skinMat);
+      body.position.y = 0.5;
+      body.castShadow = true;
+      grp.add(body);
+
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), skinMat);
+      head.position.set(0, 0.8, 0.35);
+      head.castShadow = true;
+      grp.add(head);
+
+      for (let xOff of [-0.18, 0.18]) {
+        for (let zOff of [-0.28, 0.28]) {
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.32, 0.1), skinMat);
+          leg.position.set(xOff, 0.16, zOff);
+          leg.castShadow = true;
+          grp.add(leg);
+        }
+      }
+    } else if (isBird) {
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.18, 5, 5), skinMat);
+      body.scale.set(1.4, 1.0, 1.0);
+      body.position.y = 0.42;
+      body.castShadow = true;
+      grp.add(body);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), skinMat);
+      head.position.set(0.18, 0.54, 0);
+      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.1, 4), new THREE.MeshStandardMaterial({ color: 0xffa500 }));
+      beak.position.set(0.24, 0.54, 0);
+      beak.rotation.z = -Math.PI / 2;
+      grp.add(head, beak);
+
+      const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.12, 0.3), skinMat);
+      wingL.position.set(-0.16, 0.44, 0);
+      wingL.rotation.y = 0.25;
+      grp.add(wingL);
+      const wingR = wingL.clone(); wingR.position.x = 0.16; wingR.rotation.y = -0.25;
+      grp.add(wingR);
+
+      const legHeight = (index % 2 === 1) ? 0.38 : 0.08;
+      for (let xOff of [-0.06, 0.06]) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, legHeight, 4), skinMat);
+        leg.position.set(xOff, legHeight / 2, 0);
+        grp.add(leg);
+      }
+      body.position.y = legHeight + 0.1;
+      head.position.y = legHeight + 0.22;
+      beak.position.y = legHeight + 0.22;
+      wingL.position.y = legHeight + 0.12;
+      wingR.position.y = legHeight + 0.12;
+    } else {
+      const segmentsGroup = new THREE.Group();
+      const length = 5 + (index % 4);
+      for (let s = 0; s < length; s++) {
+        const seg = new THREE.Mesh(new THREE.SphereGeometry(0.08 - s * 0.005, 4, 4), skinMat);
+        seg.position.set(-s * 0.09, 0.06, Math.sin(s * 0.8) * 0.06);
+        seg.castShadow = true;
+        segmentsGroup.add(seg);
+      }
+      grp.add(segmentsGroup);
+    }
+
+    grp.position.set(x, this.getTerrainHeight(x, z), z);
+    grp.userData = { wanderAngle: Math.random() * Math.PI * 2, speed: 0.2 + (index % 3) * 0.1 };
+    return grp;
+  }
+
   init() {
     // 1. Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -142,123 +352,14 @@ export class CreationScene {
     // 10. Vegetation / Diverse Trees (Pine, Apple/Fruit, Tall Palm)
     this.treeGroup = new THREE.Group();
     this.treeGroup.visible = false;
-    
-    const pineColors = [0x1c3116, 0x223c1b, 0x182c12];
-    const leafyColors = [0x2c4e1b, 0x376122, 0x3d6c25];
-    const palmColors = [0x3c6418, 0x48761c, 0x315214];
-    const fruitMat = new THREE.MeshStandardMaterial({ color: 0xff1c1c, roughness: 0.6, flatShading: true });
-    
-    for (let i = 0; i < 80; i++) {
-      const treeType = i % 3;
-      const tree = new THREE.Group();
-      
-      if (treeType === 0) {
-        const trunkGeo = new THREE.CylinderGeometry(0.12, 0.22, 2.0, 5);
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2c1e, roughness: 0.9, flatShading: true });
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.y = 1.0;
-        trunk.castShadow = true;
-        
-        const leavesGeo = new THREE.ConeGeometry(1.2, 3.2, 5);
-        const leavesMat = new THREE.MeshStandardMaterial({
-          color: pineColors[Math.floor(Math.random() * pineColors.length)],
-          roughness: 0.9,
-          flatShading: true
-        });
-        const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-        leaves.position.y = 2.8;
-        leaves.castShadow = true;
-        
-        tree.add(trunk);
-        tree.add(leaves);
-      } else if (treeType === 1) {
-        const trunkGeo = new THREE.CylinderGeometry(0.16, 0.26, 1.8, 6);
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4e3624, roughness: 0.9, flatShading: true });
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.y = 0.9;
-        trunk.castShadow = true;
-        
-        const leafGroup = new THREE.Group();
-        const leafMat = new THREE.MeshStandardMaterial({
-          color: leafyColors[Math.floor(Math.random() * leafyColors.length)],
-          roughness: 0.9,
-          flatShading: true
-        });
-        
-        const foliageMain = new THREE.Mesh(new THREE.SphereGeometry(1.0, 6, 6), leafMat);
-        foliageMain.position.y = 2.2;
-        foliageMain.castShadow = true;
-        leafGroup.add(foliageMain);
-        
-        for (let j = 0; j < 4; j++) {
-          const foliageSub = new THREE.Mesh(new THREE.SphereGeometry(0.65, 5, 5), leafMat);
-          foliageSub.position.set(
-            (Math.random() - 0.5) * 0.9,
-            2.0 + Math.random() * 0.7,
-            (Math.random() - 0.5) * 0.9
-          );
-          foliageSub.castShadow = true;
-          leafGroup.add(foliageSub);
-        }
-        
-        for (let j = 0; j < 6; j++) {
-          const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), fruitMat);
-          const fAngle = Math.random() * Math.PI * 2;
-          const fRadius = 0.5 + Math.random() * 0.45;
-          fruit.position.set(
-            Math.cos(fAngle) * fRadius,
-            1.7 + Math.random() * 0.8,
-            Math.sin(fAngle) * fRadius
-          );
-          leafGroup.add(fruit);
-        }
-        
-        tree.add(trunk);
-        tree.add(leafGroup);
-      } else {
-        const trunkGeo = new THREE.CylinderGeometry(0.08, 0.16, 2.8, 5);
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6e5c4a, roughness: 0.9, flatShading: true });
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.y = 1.4;
-        trunk.rotation.z = 0.05 + Math.random() * 0.1;
-        trunk.castShadow = true;
-        
-        const foliageMat = new THREE.MeshStandardMaterial({
-          color: palmColors[Math.floor(Math.random() * palmColors.length)],
-          roughness: 0.8,
-          flatShading: true
-        });
-        
-        const frondGroup = new THREE.Group();
-        frondGroup.position.set(-0.14, 2.7, 0);
-        
-        for (let j = 0; j < 5; j++) {
-          const frond = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.05, 0.22), foliageMat);
-          frond.rotation.y = (j * Math.PI * 2) / 5;
-          frond.rotation.z = -0.3;
-          frond.position.x = 0.5;
-          
-          const pivot = new THREE.Group();
-          pivot.rotation.y = (j * Math.PI * 2) / 5;
-          pivot.add(frond);
-          frondGroup.add(pivot);
-        }
-        
-        tree.add(trunk);
-        tree.add(frondGroup);
-      }
-      
+    for (let i = 0; i < 90; i++) {
       const angle = Math.random() * Math.PI * 2;
       const radius = 18 + Math.random() * 90;
       const tx = Math.cos(angle) * radius;
       const tz = Math.sin(angle) * radius;
-      const ty = this.getTerrainHeight(tx, tz);
-      tree.position.set(tx, ty, tz);
       
-      const scale = 0.7 + Math.random() * 0.9;
-      tree.scale.set(scale, scale, scale);
-      tree.userData = { originalScale: scale };
-      
+      const tree = this.createProceduralFlora(i % 30, tx, tz); // First 30 are trees
+      tree.userData = { originalScale: tree.scale.x || 1.0 };
       this.treeGroup.add(tree);
     }
     this.scene.add(this.treeGroup);
@@ -266,13 +367,12 @@ export class CreationScene {
     // Grass & Shrubs Group (Day 3)
     this.foliageGroup = new THREE.Group();
     this.foliageGroup.visible = false;
-    const grassColor = 0x385c28;
-    const shrubColors = [0x3c6628, 0x487a32, 0x2a4f1a];
     
-    for (let i = 0; i < 180; i++) {
+    // Add simple grass blades
+    const grassColor = 0x385c28;
+    for (let i = 0; i < 120; i++) {
       const grassClump = new THREE.Group();
       const bladeMat = new THREE.MeshStandardMaterial({ color: grassColor, roughness: 0.9, flatShading: true });
-      
       for (let j = 0; j < 3; j++) {
         const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.02), bladeMat);
         blade.rotation.y = (j * Math.PI) / 3;
@@ -280,13 +380,11 @@ export class CreationScene {
         blade.position.y = 0.22;
         grassClump.add(blade);
       }
-      
       const angle = Math.random() * Math.PI * 2;
       const radius = 12 + Math.random() * 100;
       const gx = Math.cos(angle) * radius;
       const gz = Math.sin(angle) * radius;
       const gy = this.getTerrainHeight(gx, gz);
-      
       grassClump.position.set(gx, gy, gz);
       const gs = 0.7 + Math.random() * 0.8;
       grassClump.scale.set(gs, gs, gs);
@@ -294,37 +392,18 @@ export class CreationScene {
       this.foliageGroup.add(grassClump);
     }
     
-    for (let i = 0; i < 60; i++) {
-      const shrub = new THREE.Group();
-      const sMat = new THREE.MeshStandardMaterial({ color: shrubColors[Math.floor(Math.random() * shrubColors.length)], roughness: 0.9, flatShading: true });
-      
-      const main = new THREE.Mesh(new THREE.SphereGeometry(0.45, 4, 4), sMat);
-      main.position.y = 0.45;
-      main.castShadow = true;
-      shrub.add(main);
-      
-      for (let j = 0; j < 3; j++) {
-        const sub = new THREE.Mesh(new THREE.SphereGeometry(0.28, 4, 4), sMat);
-        sub.position.set(
-          (Math.random() - 0.5) * 0.5,
-          0.3 + Math.random() * 0.25,
-          (Math.random() - 0.5) * 0.5
-        );
-        sub.castShadow = true;
-        shrub.add(sub);
-      }
-      
+    // Add flowers, desert, crops (indices 30 to 59)
+    for (let i = 30; i < 90; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 15 + Math.random() * 90;
+      const radius = 15 + Math.random() * 95;
       const sx = Math.cos(angle) * radius;
       const sz = Math.sin(angle) * radius;
-      const sy = this.getTerrainHeight(sx, sz);
       
-      shrub.position.set(sx, sy, sz);
-      const ss = 0.6 + Math.random() * 0.7;
-      shrub.scale.set(ss, ss, ss);
-      shrub.userData = { originalScale: ss, type: 'shrub' };
-      this.foliageGroup.add(shrub);
+      const plant = this.createProceduralFlora(i, sx, sz);
+      const scale = plant.userData.originalScale || 1.0;
+      plant.scale.set(scale, scale, scale);
+      plant.userData = { originalScale: scale, type: 'shrub' };
+      this.foliageGroup.add(plant);
     }
     this.scene.add(this.foliageGroup);
 
@@ -424,118 +503,16 @@ export class CreationScene {
     this.animalGroup = new THREE.Group();
     this.animalGroup.visible = false;
     
-    for (let i = 0; i < 26; i++) {
-      const sheep = new THREE.Group();
-      const sheepMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9, flatShading: true });
-      const skinMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-      
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.48, 5, 5), sheepMat);
-      body.scale.set(1.3, 1.0, 1.0);
-      body.position.y = 0.65;
-      body.castShadow = true;
-      sheep.add(body);
-      
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 5, 5), skinMat);
-      head.position.set(0, 0.9, 0.55);
-      head.castShadow = true;
-      sheep.add(head);
-      
-      for (let xOff of [-0.2, 0.2]) {
-        for (let zOff of [-0.3, 0.3]) {
-          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.45), skinMat);
-          leg.position.set(xOff, 0.225, zOff);
-          leg.castShadow = true;
-          sheep.add(leg);
-        }
-      }
-      
+    for (let i = 0; i < 60; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 6 + Math.random() * 134;
+      const radius = 10 + Math.random() * 110;
       const ax = Math.cos(angle) * radius;
       const az = Math.sin(angle) * radius;
       const ay = this.getTerrainHeight(ax, az);
       
-      sheep.position.set(ax, ay, az);
-      sheep.lookAt(0, ay, 0);
-      sheep.scale.setScalar(0.9 + Math.random() * 0.3);
-      sheep.userData = { type: 'sheep', wanderAngle: Math.random() * Math.PI * 2 };
-      this.animalGroup.add(sheep);
-    }
-    
-    for (let i = 0; i < 14; i++) {
-      const lion = new THREE.Group();
-      const goldMat = new THREE.MeshStandardMaterial({ color: 0xcaa066, roughness: 0.8, flatShading: true });
-      const maneMat = new THREE.MeshStandardMaterial({ color: 0x4a2e1d, roughness: 0.9, flatShading: true });
-      
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 1.2), goldMat);
-      body.position.y = 0.65;
-      body.castShadow = true;
-      lion.add(body);
-      
-      const mane = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.44, 0.5, 6), maneMat);
-      mane.position.set(0, 0.95, 0.45);
-      mane.rotation.x = Math.PI/3;
-      mane.castShadow = true;
-      lion.add(mane);
-      
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), goldMat);
-      head.position.set(0, 1.15, 0.65);
-      head.castShadow = true;
-      lion.add(head);
-      
-      for (let xOff of [-0.22, 0.22]) {
-        for (let zOff of [-0.35, 0.35]) {
-          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.5, 0.14), goldMat);
-          leg.position.set(xOff, 0.25, zOff);
-          leg.castShadow = true;
-          lion.add(leg);
-        }
-      }
-      
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 10 + Math.random() * 150;
-      const ax = Math.cos(angle) * radius;
-      const az = Math.sin(angle) * radius;
-      const ay = this.getTerrainHeight(ax, az);
-      
-      lion.position.set(ax, ay, az);
-      lion.lookAt(0, ay, 0);
-      lion.scale.setScalar(1.0 + Math.random() * 0.3);
-      lion.userData = { type: 'lion', wanderAngle: Math.random() * Math.PI * 2 };
-      this.animalGroup.add(lion);
-    }
-    
-    for (let i = 0; i < 24; i++) {
-      const squirrel = new THREE.Group();
-      const brownMat = new THREE.MeshStandardMaterial({ color: 0x8f5831, roughness: 0.9 });
-      
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.32), brownMat);
-      body.position.y = 0.12;
-      body.castShadow = true;
-      squirrel.add(body);
-      
-      const tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.12), brownMat);
-      tail.position.set(0, 0.22, -0.16);
-      tail.rotation.x = -0.4;
-      tail.castShadow = true;
-      squirrel.add(tail);
-      
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), brownMat);
-      head.position.set(0, 0.24, 0.12);
-      head.castShadow = true;
-      squirrel.add(head);
-      
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 5 + Math.random() * 105;
-      const ax = Math.cos(angle) * radius;
-      const az = Math.sin(angle) * radius;
-      const ay = this.getTerrainHeight(ax, az);
-      
-      squirrel.position.set(ax, ay, az);
-      squirrel.lookAt(0, ay, 0);
-      squirrel.scale.setScalar(0.8 + Math.random() * 0.5);
-      squirrel.userData = { type: 'squirrel', wanderAngle: Math.random() * Math.PI * 2 };
-      this.animalGroup.add(squirrel);
+      const animal = this.createProceduralFauna(i, ax, az);
+      animal.lookAt(0, ay, 0);
+      this.animalGroup.add(animal);
     }
     this.scene.add(this.animalGroup);
     
