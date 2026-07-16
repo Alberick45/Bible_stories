@@ -156,6 +156,34 @@ canvas {
   transform: translate(-50%, 10px);
 }
 
+#day-counter {
+  position: fixed;
+  left: 50%;
+  top: 14%;
+  transform: translateX(-50%);
+  font-family: var(--font-serif-body);
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 10;
+  user-select: none;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 8px 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 185, 138, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+#day-counter.show {
+  opacity: 1;
+}
+
+
 #movement-hint {
   position: fixed;
   left: 50%;

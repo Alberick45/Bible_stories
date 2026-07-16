@@ -57,7 +57,7 @@ export class NoahScene {
     this.sunLight.shadow.mapSize.height = 1024;
     this.scene.add(this.sunLight);
     
-    // Dry Valley Terrain - BARE ground
+    // Dry Valley Terrain with central basin and a towering peak representing Ararat
     const groundGeo = new THREE.PlaneGeometry(450, 450, 60, 60);
     groundGeo.rotateX(-Math.PI / 2);
     
@@ -66,7 +66,15 @@ export class NoahScene {
       const x = posAttr.getX(i);
       const z = posAttr.getZ(i);
       const distFromCenter = Math.sqrt(x*x + z*z);
+      
       let h = Math.sin(x * 0.01) * Math.cos(z * 0.01) * 3.8 + Math.sin(x*0.06)*0.6;
+      
+      // Make a tall Ararat mountain peak on the far side (x: -45, z: -35)
+      const distToPeak = Math.sqrt((x + 45)*(x + 45) + (z + 35)*(z + 35));
+      if (distToPeak < 70) {
+        h += (70 - distToPeak) * 0.4; // Mount Ararat peak
+      }
+      
       if (distFromCenter > 35) {
         h += (distFromCenter - 35) * 0.28;
       }
@@ -84,14 +92,57 @@ export class NoahScene {
     this.ground.receiveShadow = true;
     this.scene.add(this.ground);
     
-    // --- THE WICKED CITY (SCALED UP & PLACED CLOSER) ---
-    // Moved closer: x range -14 to -26, z range -6 to 6
+    // --- TALL MOUNTAINS & HILLSIDE TREES ---
+    // Spawn tall mountains at the edges of the valley
+    const mountainMat = new THREE.MeshStandardMaterial({ color: 0x5a554a, roughness: 0.9, flatShading: true });
+    this.mountains = new THREE.Group();
+    
+    const mountainOffsets = [
+      { x: -90, z: -80, r: 24, h: 28 },
+      { x: 95, z: -95, r: 28, h: 32 },
+      { x: 100, z: 90, r: 26, h: 30 },
+      { x: -110, z: 95, r: 30, h: 35 }
+    ];
+    
+    mountainOffsets.forEach(m => {
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(m.r, m.h, 5), mountainMat);
+      cone.position.set(m.x, this.getTerrainHeight(m.x, m.z) + m.h/2 - 5, m.z);
+      cone.castShadow = true;
+      cone.receiveShadow = true;
+      this.mountains.add(cone);
+    });
+    this.scene.add(this.mountains);
+    
+    // Sparsely place trees strictly on the far hillsides (keeping center valley bare)
+    const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2e5c1e, roughness: 0.9, flatShading: true });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d2c1e, roughness: 0.9, flatShading: true });
+    this.hillsideTrees = new THREE.Group();
+    
+    for (let j = 0; j < 25; j++) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 2.5, 5), woodMat);
+      trunk.position.y = 1.25;
+      trunk.castShadow = true;
+      
+      const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(1.0, 1), leavesMat);
+      leaves.position.y = 2.5;
+      leaves.castShadow = true;
+      tree.add(trunk, leaves);
+      
+      const angle = (j / 25) * Math.PI * 2;
+      const radius = 65 + Math.random() * 40;
+      const tx = Math.cos(angle) * radius;
+      const tz = Math.sin(angle) * radius;
+      tree.position.set(tx, this.getTerrainHeight(tx, tz), tz);
+      this.hillsideTrees.add(tree);
+    }
+    this.scene.add(this.hillsideTrees);
+    
+    // --- WICKED CITY ---
     this.cityGroup = new THREE.Group();
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6e6a62, roughness: 0.9, flatShading: true });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d2c1e, roughness: 0.9, flatShading: true });
     const strawMat = new THREE.MeshStandardMaterial({ color: 0xd8c39e, roughness: 0.95, flatShading: true });
     
-    // Scaled-up Towers / Huts
     for (let i = 0; i < 3; i++) {
       const tower = new THREE.Group();
       const body = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.8, 6.5 + i*1.8, 5), stoneMat);
@@ -107,7 +158,6 @@ export class NoahScene {
       this.cityGroup.add(tower);
     }
     
-    // Tables and stools scaled up
     const table = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 1.4), woodMat);
     table.position.set(-11, 0.45, -2);
     table.castShadow = true;
@@ -121,27 +171,10 @@ export class NoahScene {
     
     this.scene.add(this.cityGroup);
     
-    // --- NOAH'S FAMILY HOUSE / SHELTER ---
-    this.houseGroup = new THREE.Group();
-    const houseWall = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), woodMat);
-    houseWall.position.y = 1.25;
-    houseWall.castShadow = true;
-    houseWall.receiveShadow = true;
-    
-    const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.8, 4), strawMat);
-    houseRoof.position.y = 2.5 + 0.9;
-    houseRoof.rotation.y = Math.PI / 4;
-    houseRoof.castShadow = true;
-    
-    this.houseGroup.add(houseWall, houseRoof);
-    this.houseGroup.position.set(18.0, this.getTerrainHeight(18.0, 12.0), 12.0);
-    this.scene.add(this.houseGroup);
-    
-    // --- WICKED CITIZENS (SCALED UP TO MATCH NOAH) ---
+    // --- WICKED CITIZENS ---
     this.wickedGroup = new THREE.Group();
     const skinMat = new THREE.MeshStandardMaterial({ color: 0xcc9c78, roughness: 0.85 });
     
-    // 1. Drinking bystander
     this.wickedDrinker = new THREE.Group();
     const wdTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x6b487a }));
     wdTorso.position.y = 0.55;
@@ -157,7 +190,6 @@ export class NoahScene {
     this.wickedDrinker.lookAt(-11, this.wickedDrinker.position.y, -2.0);
     this.wickedGroup.add(this.wickedDrinker);
     
-    // 2 & 3. Fighting bystanders
     this.wickedFighter1 = new THREE.Group();
     const wf1Torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0xa34b4b }));
     wf1Torso.position.y = 0.55;
@@ -186,21 +218,62 @@ export class NoahScene {
     this.wickedGroup.add(this.wickedFighter1, this.wickedFighter2);
     this.scene.add(this.wickedGroup);
     
-    // --- NOAH'S ARK ---
+    // --- NOAH'S FAMILY HOUSE ---
+    this.houseGroup = new THREE.Group();
+    const houseWall = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), woodMat);
+    houseWall.position.y = 1.25;
+    houseWall.castShadow = true;
+    houseWall.receiveShadow = true;
+    
+    const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.8, 4), strawMat);
+    houseRoof.position.y = 2.5 + 0.9;
+    houseRoof.rotation.y = Math.PI / 4;
+    houseRoof.castShadow = true;
+    
+    this.houseGroup.add(houseWall, houseRoof);
+    this.houseGroup.position.set(18.0, this.getTerrainHeight(18.0, 12.0), 12.0);
+    this.scene.add(this.houseGroup);
+    
+    // --- NOAH'S ARK (TIMELAPSE & ENHANCED MODEL) ---
     this.arkGroup = new THREE.Group();
     const arkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0d, roughness: 0.95, flatShading: true });
     const arkRampMat = new THREE.MeshStandardMaterial({ color: 0x3d2c1e, roughness: 0.9 });
     
-    // 1. Finished Hull (Hidden initially)
+    // 1. Finished Hull with detailed structural window rows and columns
     const hullWidth = 14;
     const hullHeight = 5.2;
     const hullLength = 32;
+    
     this.arkHull = new THREE.Mesh(new THREE.BoxGeometry(hullWidth, hullHeight, hullLength), arkWoodMat);
     this.arkHull.position.y = hullHeight / 2;
     this.arkHull.castShadow = true;
     this.arkHull.receiveShadow = true;
     this.arkHull.visible = false;
     this.arkGroup.add(this.arkHull);
+    
+    // Add upper-deck windows (recessed black boxes)
+    const windowGroup = new THREE.Group();
+    const windowMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+    for (let side = -1; side <= 1; side += 2) {
+      for (let w = 0; w < 6; w++) {
+        const win = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.45), windowMat);
+        win.position.set(side * (hullWidth/2 + 0.05), hullHeight - 0.8, -10 + w * 4.0);
+        windowGroup.add(win);
+      }
+    }
+    
+    // Add structural wooden support beams along the hull
+    const beamGroup = new THREE.Group();
+    for (let b = 0; b < 8; b++) {
+      const beamL = new THREE.Mesh(new THREE.BoxGeometry(0.2, hullHeight, 0.35), arkRampMat);
+      beamL.position.set(-hullWidth/2 - 0.05, hullHeight/2, -14.0 + b * 4.0);
+      const beamR = beamL.clone();
+      beamR.position.x = hullWidth/2 + 0.05;
+      beamGroup.add(beamL, beamR);
+    }
+    
+    this.arkHull.add(windowGroup);
+    this.arkHull.add(beamGroup);
     
     this.arkRoof = new THREE.Mesh(new THREE.BoxGeometry(hullWidth - 1.2, 1.2, hullLength - 2.5), arkWoodMat);
     this.arkRoof.position.y = hullHeight + 0.6;
@@ -214,7 +287,7 @@ export class NoahScene {
     door.castShadow = true;
     this.doorGroup.add(door);
     this.doorGroup.position.set(hullWidth / 2 + 0.05, 0.05, 0.0);
-    this.doorGroup.rotation.y = -Math.PI / 2.0; // Initialize as open!
+    this.doorGroup.rotation.y = -Math.PI / 2.0; // Open by default
     this.doorGroup.visible = false;
     this.arkGroup.add(this.doorGroup);
     
@@ -226,10 +299,9 @@ export class NoahScene {
     this.ramp.visible = false;
     this.arkGroup.add(this.ramp);
     
-    // 2. Skeleton / Scaffolding State (Visible initially)
+    // 2. Skeleton / Scaffolding State
     this.arkSkeleton = new THREE.Group();
     
-    // Log stacks on the ground
     for (let i = 0; i < 6; i++) {
       const log = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.8, 6), woodMat);
       log.rotation.z = Math.PI / 2;
@@ -237,7 +309,6 @@ export class NoahScene {
       this.arkSkeleton.add(log);
     }
     
-    // Structural Ribs
     for (let r = 0; r < 8; r++) {
       const zOffset = -14.0 + r * 4.0;
       const ribL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5.0, 0.3), woodMat);
@@ -249,7 +320,6 @@ export class NoahScene {
       this.arkSkeleton.add(ribL, ribR, ribT);
     }
     
-    // Scaffolding poles and ladders
     for (let s = 0; s < 4; s++) {
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 6.0, 5), woodMat);
       pole.position.set(7.5, 3.0, -10 + s*6);
@@ -260,7 +330,7 @@ export class NoahScene {
     this.arkGroup.position.set(0.0, this.getTerrainHeight(0, 0) - 0.2, 0.0);
     this.scene.add(this.arkGroup);
     
-    // --- 30 PAIRS OF PROCEDURAL ANIMALS ---
+    // --- 30 PAIRS OF ANIMALS INCLUDING FLAPPING BIRDS ---
     this.animals = new THREE.Group();
     this.pairInstances = [];
     
@@ -277,8 +347,49 @@ export class NoahScene {
       this.animals.add(male, female);
       this.pairInstances.push(male, female);
     }
-    this.animals.visible = false; // Hide animals initially
+    this.animals.visible = false;
     this.scene.add(this.animals);
+    
+    // --- 3D GLOWING COVENANT RAINBOW (EPILOGUE) ---
+    this.rainbow = new THREE.Group();
+    const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x4b0082, 0x8b00ff];
+    colors.forEach((c, idx) => {
+      const ringGeo = new THREE.RingGeometry(18 - idx * 0.6, 18.5 - idx * 0.6, 30, 1, 0, Math.PI);
+      const ringMat = new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      this.rainbow.add(ring);
+    });
+    this.rainbow.position.set(-45, this.getTerrainHeight(-45, -35) + 3.0, -35); // Position over Mount Ararat
+    this.rainbow.rotation.y = Math.PI / 4;
+    this.rainbow.visible = false;
+    this.scene.add(this.rainbow);
+    
+    // --- SACRIFICIAL ALTAR MESH (EPILOGUE) ---
+    this.altar = new THREE.Group();
+    const altarBase = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.8, 1.2), stoneMat);
+    altarBase.position.y = 0.4;
+    altarBase.castShadow = true;
+    this.altar.add(altarBase);
+    
+    this.altarFire = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35), new THREE.MeshBasicMaterial({ color: 0xff4500 }));
+    this.altarFire.position.y = 0.95;
+    this.altar.add(this.altarFire);
+    this.altar.position.set(-35, this.getTerrainHeight(-35, -30), -30);
+    this.altar.visible = false;
+    this.scene.add(this.altar);
+    
+    // --- FLYING DOVE MODEL (EPILOGUE) ---
+    this.dove = new THREE.Group();
+    const doveMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const doveBody = new THREE.Mesh(new THREE.SphereGeometry(0.12, 5, 5), doveMat);
+    doveBody.scale.set(1.4, 1.0, 1.0);
+    this.doveWingL = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.08, 0.22), doveMat);
+    this.doveWingL.position.set(-0.08, 0.05, 0);
+    this.doveWingR = this.doveWingL.clone(); this.doveWingR.position.x = 0.08;
+    this.dove.add(doveBody, this.doveWingL, this.doveWingR);
+    this.dove.position.set(0, 4.5, 0);
+    this.dove.visible = false;
+    this.scene.add(this.dove);
     
     // --- FLOOD WATER PLANE ---
     const waterGeo = new THREE.PlaneGeometry(600, 600);
@@ -295,9 +406,11 @@ export class NoahScene {
     this.waterPlane.position.y = this.waterHeight;
     this.scene.add(this.waterPlane);
     
-    // --- CHARACTERS ---
+    // --- 8 FAMILY MEMBERS INSTEAD OF 4 ---
+    this.familyGroup = new THREE.Group();
+    
+    // 1. Noah
     this.noah = new THREE.Group();
-    this.noah.name = 'Noah';
     const noahTunicMat = new THREE.MeshStandardMaterial({ color: 0x485c7a, roughness: 0.9 });
     const beardMat = new THREE.MeshStandardMaterial({ color: 0xeaeaea, roughness: 0.9 });
     
@@ -316,7 +429,6 @@ export class NoahScene {
     nLegL.position.set(-0.12, 0.48, 0);
     const nLegR = nLegL.clone(); nLegR.position.x = 0.12;
     
-    // Noah's Hammer tool
     this.hammer = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.35), new THREE.MeshStandardMaterial({ color: 0x5a554e }));
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 4), new THREE.MeshStandardMaterial({ color: 0x5c4033 }));
     handle.position.y = -0.22;
@@ -325,26 +437,62 @@ export class NoahScene {
     this.noahArmR.add(this.hammer);
     
     this.noah.add(nTorso, nHead, nBeard, this.noahArmL, this.noahArmR, nLegL, nLegR);
-    this.noah.position.set(18.0, this.getTerrainHeight(18.0, 10.0), 10.0); // Start at house
+    this.noah.position.set(18.0, this.getTerrainHeight(18.0, 10.0), 10.0);
     this.noah.lookAt(18, this.noah.position.y, 12);
-    this.scene.add(this.noah);
+    this.familyGroup.add(this.noah);
     
-    // Wife
-    this.wife = new THREE.Group();
-    this.wife.name = 'Wife';
-    const wifeTunicMat = new THREE.MeshStandardMaterial({ color: 0x8c6b54, roughness: 0.9 });
-    const wTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.0, 8), wifeTunicMat);
-    wTorso.position.y = 1.0;
-    const wHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
-    wHead.position.y = 1.62;
-    this.wife.add(wTorso, wHead);
-    this.wife.position.set(19.5, this.getTerrainHeight(19.5, 9.5), 9.5); // Start next to house
-    this.wife.lookAt(18, this.wife.position.y, 12);
-    this.scene.add(this.wife);
+    // Helper function to build standard family members
+    const buildPersonMesh = (tunicColor, headScale, hasHairLong) => {
+      const p = new THREE.Group();
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.0, 8), new THREE.MeshStandardMaterial({ color: tunicColor, roughness: 0.9 }));
+      torso.position.y = 1.0;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(headScale, 10, 10), skinMat);
+      head.position.y = 1.62;
+      p.add(torso, head);
+      if (hasHairLong) {
+        const hair = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.4, 0.22), new THREE.MeshStandardMaterial({ color: 0x1f1f1f }));
+        hair.position.set(0, 1.5, -0.06);
+        p.add(hair);
+      }
+      return p;
+    };
+    
+    // 2. Wife
+    this.wife = buildPersonMesh(0x8c6b54, 0.18, true);
+    this.wife.position.set(19.5, this.getTerrainHeight(19.5, 9.5), 9.5);
+    this.familyGroup.add(this.wife);
+    
+    // 3. Shem
+    this.shem = buildPersonMesh(0x567d46, 0.19, false);
+    this.shem.position.set(17.0, this.getTerrainHeight(17.0, 8.5), 8.5);
+    // 4. Ham
+    this.ham = buildPersonMesh(0x7d6a46, 0.19, false);
+    this.ham.position.set(16.0, this.getTerrainHeight(16.0, 9.0), 9.0);
+    // 5. Japheth
+    this.japheth = buildPersonMesh(0x466f7d, 0.19, false);
+    this.japheth.position.set(17.5, this.getTerrainHeight(17.5, 7.5), 7.5);
+    
+    // 6. Shem's Wife
+    this.shemWife = buildPersonMesh(0x75526c, 0.18, true);
+    this.shemWife.position.set(18.5, this.getTerrainHeight(18.5, 8.0), 8.0);
+    // 7. Ham's Wife
+    this.hamWife = buildPersonMesh(0x52756d, 0.18, true);
+    this.hamWife.position.set(16.5, this.getTerrainHeight(16.5, 8.2), 8.2);
+    // 8. Japheth's Wife
+    this.japhethWife = buildPersonMesh(0x756b52, 0.18, true);
+    this.japhethWife.position.set(15.5, this.getTerrainHeight(15.5, 7.8), 7.8);
+    
+    this.familyGroup.add(this.shem, this.ham, this.japheth, this.shemWife, this.hamWife, this.japhethWife);
+    
+    // Make everyone look at the house initially
+    this.familyGroup.children.forEach(member => {
+      member.lookAt(18, member.position.y, 12);
+    });
+    
+    this.scene.add(this.familyGroup);
     
     // Event listeners
     window.addEventListener('resize', this.onWindowResize.bind(this));
-    
     this.renderer.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
@@ -358,9 +506,9 @@ export class NoahScene {
     this.arkHull.visible = true;
     this.arkRoof.visible = true;
     this.doorGroup.visible = true;
-    this.doorGroup.rotation.y = -Math.PI / 2.0; // Ensure door is open initially
+    this.doorGroup.rotation.y = -Math.PI / 2.0; 
     this.ramp.visible = true;
-    this.animals.visible = true; // Show animals now that the Ark is ready!
+    this.animals.visible = true; 
     this.hammer.visible = false;
   }
   
@@ -459,7 +607,14 @@ export class NoahScene {
   
   getTerrainHeight(x, z) {
     const distFromCenter = Math.sqrt(x*x + z*z);
+    
     let h = Math.sin(x * 0.01) * Math.cos(z * 0.01) * 3.8 + Math.sin(x*0.06)*0.6;
+    
+    const distToPeak = Math.sqrt((x + 45)*(x + 45) + (z + 35)*(z + 35));
+    if (distToPeak < 70) {
+      h += (70 - distToPeak) * 0.4;
+    }
+    
     if (distFromCenter > 35) {
       h += (distFromCenter - 35) * 0.28;
     }
@@ -505,7 +660,6 @@ export class NoahScene {
   }
   
   checkCollision(newX, newZ) {
-    // City block collisions
     if (newX < -6.5 && newZ < 2.0) {
       return true; 
     }
@@ -521,6 +675,7 @@ export class NoahScene {
   update(time, dt) {
     const elapsed = time;
     
+    // Animate carousing bystanders
     if (this.wickedDrinker) {
       this.wdArmR.rotation.z = Math.sin(elapsed * 2.5) * 0.4 - 0.25;
     }
@@ -530,6 +685,7 @@ export class NoahScene {
       this.wf2ArmR.rotation.x = Math.PI / 3.5 - shove;
     }
     
+    // Rain lines
     if (this.rainActive) {
       if (this.rainLines.length < 180) {
         const rainGeo = new THREE.BufferGeometry().setFromPoints([
@@ -557,9 +713,10 @@ export class NoahScene {
       }
     }
     
+    // Flood water rise
     if (this.waterRising) {
-      this.waterHeight += dt * 0.95;
-      if (this.waterHeight > 16.0) this.waterHeight = 16.0; // Raise cap to fully submerge huts & hills
+      this.waterHeight += dt * 1.6; // Rise slightly faster
+      if (this.waterHeight > 16.0) this.waterHeight = 16.0;
       this.waterPlane.position.y = this.waterHeight;
       
       const baseHeight = this.getTerrainHeight(0, 0) - 0.2;
@@ -569,6 +726,24 @@ export class NoahScene {
         this.arkGroup.position.y = this.waterHeight + bob;
         this.arkGroup.position.x = driftX;
       }
+    }
+    
+    // Animate flying dove wing beats
+    if (this.dove.visible) {
+      const beat = Math.sin(elapsed * 15.0) * 0.8;
+      this.doveWingL.rotation.x = beat;
+      this.doveWingR.rotation.x = -beat;
+    }
+    
+    // Animate bird flapping in animal list
+    if (this.animals.visible) {
+      this.pairInstances.forEach(instance => {
+        if (instance.name === 'Eagle' || instance.name === 'Hawk' || instance.name === 'Falcon' || instance.name === 'Owl' || instance.name === 'Parrot' || instance.name === 'Sparrow') {
+          const wingBeat = Math.sin(elapsed * 18.0) * 0.6;
+          if (instance.children[2]) instance.children[2].rotation.x = wingBeat;
+          if (instance.children[3]) instance.children[3].rotation.x = -wingBeat;
+        }
+      });
     }
     
     this.yaw += (this.targetYaw - this.yaw) * 0.1;

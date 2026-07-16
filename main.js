@@ -1412,8 +1412,8 @@ async function executeNoahSequence(seqId) {
     gsap.to(animal.position, {
       x: 6.2,
       z: 0.0,
-      duration: 1.5,
-      delay: i * 0.16,
+      duration: 1.6,
+      delay: i * 0.09, // Keep queue tight and quick
       ease: 'power1.inOut',
       onComplete: () => {
         animal.visible = false;
@@ -1421,17 +1421,24 @@ async function executeNoahSequence(seqId) {
     });
   }
   // Wait for animal queue to enter
-  if (!await stepDelay(5200)) return;
+  if (!await stepDelay(4500)) return;
 
-  // Noah and Wife walk inside
-  gsap.to(sceneEngine.noah.position, { x: 7.2, z: 0.0, duration: 1.5 });
-  gsap.to(sceneEngine.wife.position, { x: 7.2, z: 0.0, duration: 1.5 });
-  if (!await stepDelay(1800)) return;
+  // Noah, Wife, Sons & their Wives (all 8 family members) walk inside in order
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.familyGroup.children.forEach((member, index) => {
+    gsap.to(member.position, {
+      x: 7.2,
+      z: 0.0,
+      duration: 1.8,
+      delay: index * 0.28,
+      onComplete: () => {
+        member.visible = false;
+      }
+    });
+  });
+  if (!await stepDelay(4200)) return;
 
-  sceneEngine.noah.visible = false;
-  sceneEngine.wife.visible = false;
-
-  // Close the Ark Door (closing to 0.0)
+  // Close the Ark Door (closing to 0.0) only after EVERYONE is inside
   gsap.to(sceneEngine.doorGroup.rotation, { y: 0.0, duration: 1.8 });
   if (!await stepDelay(1200)) return;
 
@@ -1456,8 +1463,11 @@ async function executeNoahSequence(seqId) {
   if (!await stepText('...the same day were all the fountains of the great deep broken up, and the windows of heaven were opened.', 4500, 'Narrator')) return;
   if (!await stepText('And the rain was upon the earth forty days and forty nights.', 4200, 'Narrator')) return;
 
-  // Gen 7:17-18 - The Flood & Floating
+  // Gen 7:17-18 - The Flood & Floating with Day/Time Ticker
   sceneEngine.waterRising = true;
+  
+  const dayCounterEl = document.getElementById('day-counter');
+  dayCounterEl.classList.add('show');
 
   // Pull camera out to wide flooded view
   gsap.to(camPos, {
@@ -1468,6 +1478,23 @@ async function executeNoahSequence(seqId) {
     onUpdate: () => {
       if (sceneEngine && sceneEngine.camera) {
         sceneEngine.camera.lookAt(sceneEngine.arkGroup.position);
+      }
+    }
+  });
+
+  const dayObj = { val: 1 };
+  gsap.to(dayObj, {
+    val: 150,
+    duration: 9.0,
+    ease: 'none',
+    onUpdate: () => {
+      const currentVal = Math.floor(dayObj.val);
+      if (currentVal < 40) {
+        dayCounterEl.textContent = `Day ${currentVal} (Rain)`;
+      } else if (currentVal < 80) {
+        dayCounterEl.textContent = `Week ${Math.floor(currentVal / 7)}`;
+      } else {
+        dayCounterEl.textContent = `Month ${Math.floor(currentVal / 30)}`;
       }
     }
   });
@@ -1491,19 +1518,79 @@ async function executeNoahSequence(seqId) {
   veilEl.style.background = '#000000';
   if (!await stepDelay(3200)) return;
 
-  // Disable rain/rising water
+  // Disable rain/rising water and hide day counter
   sceneEngine.rainActive = false;
   sceneEngine.waterRising = false;
+  dayCounterEl.classList.remove('show');
+
+  // Reposition Ark at Ararat peak and submerge terrain
+  const peakHeight = sceneEngine.getTerrainHeight(-45, -35);
+  sceneEngine.arkGroup.position.set(-45, peakHeight - 0.1, -35);
+  sceneEngine.arkGroup.rotation.set(0, Math.PI / 4, 0);
+  sceneEngine.waterPlane.position.y = peakHeight - 1.5; // Only Ararat peak stays above water
+  
+  // Position camera to view Mount Ararat peak landing
+  camPos.set(-36, peakHeight + 3.2, -22);
+  sceneEngine.camera.lookAt(-45, peakHeight + 1.5, -35);
+
+  // Fade back in
+  if (seqId !== currentSequenceId) return;
+  veilEl.style.transition = 'background 2.0s ease';
+  veilEl.style.background = 'rgba(0,0,0,0)';
+  if (!await stepDelay(2200)) return;
 
   if (!await stepText('And God remembered Noah, and every living thing, and all the cattle that was with him in the ark...', 4500, 'Narrator')) return;
   if (!await stepText('And the rain from heaven was restrained; And the waters returned from off the earth continually.', 4500, 'Narrator')) return;
+  if (!await stepText('And the ark rested in the seventh month, on the seventeenth day of the month, upon the mountains of Ararat.', 4800, 'Narrator')) return;
+
+  // Dove flight sequence
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.dove.visible = true;
+  sceneEngine.dove.position.set(-45, peakHeight + 4.8, -35);
+  
+  // Animate Dove flying in circles and returning
+  gsap.to(sceneEngine.dove.position, {
+    x: -33,
+    y: peakHeight + 6.5,
+    z: -27,
+    duration: 3.5,
+    ease: 'power1.out'
+  });
+  
+  if (!await stepText('And Noah sent forth a dove, to see if the waters were abated from off the face of the ground.', 4800, 'Narrator')) return;
+  if (!await stepText('And the dove came in to him in the evening; and, lo, in her mouth was an olive leaf pluckt off.', 4800, 'Narrator')) return;
+  
+  // Hide dove after returning
+  sceneEngine.dove.visible = false;
+
+  // Noah and family exit onto dry ground near the Altar
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.familyGroup.children.forEach((member, index) => {
+    member.visible = true;
+    member.position.set(-38 + (index % 3) * 0.8, peakHeight, -31 - Math.floor(index / 3) * 0.8);
+    member.lookAt(-35, peakHeight, -30); // Face altar
+  });
+  
+  // Reveal stone Altar and burn offerings
+  sceneEngine.altar.visible = true;
+  // Animate altar fire glow pulse
+  gsap.to(sceneEngine.altarFire.scale, { x: 1.3, y: 1.3, z: 1.3, repeat: -1, yoyo: true, duration: 0.6 });
+
+  if (!await stepText('And Noah went forth, and his sons, and his wife, and his sons\' wives with him...', 4600, 'Narrator')) return;
+  if (!await stepText('And Noah builded an altar unto the LORD; and took of every clean beast, and of every clean fowl, and offered burnt offerings on the altar.', 5400, 'Narrator')) return;
 
   // Rainbow Covenant (Gen 9:13)
-  if (!await stepText('And God said, "I do set my bow in the cloud, and it shall be for a token of a covenant between me and the earth."', 5200, 'God')) return;
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.rainbow.visible = true;
+  gsap.from(sceneEngine.rainbow.scale, { x: 0, y: 0, z: 0, duration: 3.0, ease: 'back.out(1.5)' });
+
+  if (!await stepText('And God said, "I do set my bow in the cloud, and it shall be for a token of a covenant between me and the earth."', 5600, 'God')) return;
+  if (!await stepText('"And the waters shall no more become a flood to destroy all flesh."', 4800, 'God')) return;
 
   clearNarration();
   if (seqId !== currentSequenceId) return;
   scriptureLabelEl.classList.add('show');
+}
 }
 
 // --- 5. Scene Swap Loader ---
