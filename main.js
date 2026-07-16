@@ -1792,7 +1792,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const progressBarFill = document.getElementById('progress-bar-fill');
   const loadingText = document.getElementById('loading-text');
 
-  beginBtn.addEventListener('click', () => {
+  const handleBegin = () => {
     // Hide Title Screen
     titleScreen.style.opacity = 0;
     setTimeout(() => {
@@ -1819,5 +1819,11 @@ document.addEventListener('DOMContentLoaded', () => {
       progressBarFill.style.width = `${progress}%`;
       loadingText.textContent = `Loading Assets... ${progress}%`;
     }, 100);
+  };
+
+  beginBtn.addEventListener('click', handleBegin);
+  beginBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleBegin();
   });
 });

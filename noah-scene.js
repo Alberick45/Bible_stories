@@ -347,7 +347,7 @@ export class NoahScene {
       this.animals.add(male, female);
       this.pairInstances.push(male, female);
     }
-    this.animals.visible = false;
+    this.animals.visible = true; // Show animals from startup
     this.scene.add(this.animals);
     
     // --- 3D GLOWING COVENANT RAINBOW (EPILOGUE) ---
@@ -508,7 +508,6 @@ export class NoahScene {
     this.doorGroup.visible = true;
     this.doorGroup.rotation.y = -Math.PI / 2.0; 
     this.ramp.visible = true;
-    this.animals.visible = true; 
     this.hammer.visible = false;
   }
   
@@ -735,9 +734,20 @@ export class NoahScene {
       this.doveWingR.rotation.x = -beat;
     }
     
-    // Animate bird flapping in animal list
+    // Animate bird flapping and idle grazing in animal list
     if (this.animals.visible) {
-      this.pairInstances.forEach(instance => {
+      this.pairInstances.forEach((instance, idx) => {
+        if (!instance.visible) return;
+        
+        // If boarding hasn't started yet, simulate grazing
+        if (this.movementEnabled || !this.waterRising) {
+          const graze = Math.sin(elapsed * 1.2 + idx) * 0.16;
+          instance.rotation.x = Math.max(0, graze); // Head dipping
+        } else {
+          // Reset rotation when moving/boarding
+          instance.rotation.x = 0;
+        }
+
         if (instance.name === 'Eagle' || instance.name === 'Hawk' || instance.name === 'Falcon' || instance.name === 'Owl' || instance.name === 'Parrot' || instance.name === 'Sparrow') {
           const wingBeat = Math.sin(elapsed * 18.0) * 0.6;
           if (instance.children[2]) instance.children[2].rotation.x = wingBeat;

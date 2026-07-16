@@ -829,16 +829,7 @@ export class CreationScene {
     // Wander animation for land animals
     if (this.animalGroup.visible) {
       this.animalGroup.children.forEach(animal => {
-        const type = animal.userData.type;
-        let speed = 0.0;
-        
-        if (type === 'sheep') {
-          speed = 0.25;
-        } else if (type === 'lion') {
-          speed = 0.4;
-        } else if (type === 'squirrel') {
-          speed = 0.6;
-        }
+        const speed = animal.userData.speed || 0.35;
         
         if (Math.random() < 0.015) {
           animal.userData.wanderAngle += (Math.random() - 0.5) * 2.0;
