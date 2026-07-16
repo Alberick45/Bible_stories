@@ -1306,10 +1306,10 @@ async function executeNoahSequence(seqId) {
   veilEl.style.transition = 'background 1.5s ease';
   veilEl.style.background = 'rgba(0,0,0,0)';
 
-  // Gen 6:13-14 - God's Command
+  // Gen 6:13-14 - God's Command starting at family home
   const camPos = sceneEngine.camera.position;
-  camPos.set(-10, 4.5, 20);
-  sceneEngine.camera.lookAt(0, 2.0, 0);
+  camPos.set(16, 2.8, 4.0);
+  sceneEngine.camera.lookAt(18.0, 1.2, 11.0);
 
   if (!await stepText('And God said unto Noah, "The end of all flesh is come before me; for the earth is filled with violence through them..."', 5200, 'God')) return;
   if (!await stepText('"Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."', 5600, 'God')) return;
@@ -1431,8 +1431,8 @@ async function executeNoahSequence(seqId) {
   sceneEngine.noah.visible = false;
   sceneEngine.wife.visible = false;
 
-  // Close the Ark Door
-  gsap.to(sceneEngine.doorGroup.rotation, { y: -Math.PI / 2.0, duration: 1.8 });
+  // Close the Ark Door (closing to 0.0)
+  gsap.to(sceneEngine.doorGroup.rotation, { y: 0.0, duration: 1.8 });
   if (!await stepDelay(1200)) return;
 
   // Golden Divine Glow effect when closing
@@ -1461,13 +1461,13 @@ async function executeNoahSequence(seqId) {
 
   // Pull camera out to wide flooded view
   gsap.to(camPos, {
-    x: -30.0,
-    y: 22.0,
-    z: 42.0,
-    duration: 8.0,
+    x: -42.0,
+    y: 32.0,
+    z: 52.0,
+    duration: 10.0,
     onUpdate: () => {
       if (sceneEngine && sceneEngine.camera) {
-        sceneEngine.camera.lookAt(sceneEngine.ark.position);
+        sceneEngine.camera.lookAt(sceneEngine.arkGroup.position);
       }
     }
   });
@@ -1480,7 +1480,7 @@ async function executeNoahSequence(seqId) {
   while (waterCheck) {
     if (!await stepDelay(150)) return;
     if (seqId !== currentSequenceId) return;
-    if (sceneEngine && sceneEngine.waterHeight >= 4.5) {
+    if (sceneEngine && sceneEngine.waterHeight >= 15.5) {
       waterCheck = false;
     }
   }

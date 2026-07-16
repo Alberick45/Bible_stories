@@ -121,6 +121,22 @@ export class NoahScene {
     
     this.scene.add(this.cityGroup);
     
+    // --- NOAH'S FAMILY HOUSE / SHELTER ---
+    this.houseGroup = new THREE.Group();
+    const houseWall = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), woodMat);
+    houseWall.position.y = 1.25;
+    houseWall.castShadow = true;
+    houseWall.receiveShadow = true;
+    
+    const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.8, 4), strawMat);
+    houseRoof.position.y = 2.5 + 0.9;
+    houseRoof.rotation.y = Math.PI / 4;
+    houseRoof.castShadow = true;
+    
+    this.houseGroup.add(houseWall, houseRoof);
+    this.houseGroup.position.set(18.0, this.getTerrainHeight(18.0, 12.0), 12.0);
+    this.scene.add(this.houseGroup);
+    
     // --- WICKED CITIZENS (SCALED UP TO MATCH NOAH) ---
     this.wickedGroup = new THREE.Group();
     const skinMat = new THREE.MeshStandardMaterial({ color: 0xcc9c78, roughness: 0.85 });
@@ -198,6 +214,7 @@ export class NoahScene {
     door.castShadow = true;
     this.doorGroup.add(door);
     this.doorGroup.position.set(hullWidth / 2 + 0.05, 0.05, 0.0);
+    this.doorGroup.rotation.y = -Math.PI / 2.0; // Initialize as open!
     this.doorGroup.visible = false;
     this.arkGroup.add(this.doorGroup);
     
@@ -260,6 +277,7 @@ export class NoahScene {
       this.animals.add(male, female);
       this.pairInstances.push(male, female);
     }
+    this.animals.visible = false; // Hide animals initially
     this.scene.add(this.animals);
     
     // --- FLOOD WATER PLANE ---
@@ -307,8 +325,8 @@ export class NoahScene {
     this.noahArmR.add(this.hammer);
     
     this.noah.add(nTorso, nHead, nBeard, this.noahArmL, this.noahArmR, nLegL, nLegR);
-    this.noah.position.set(10.0, this.getTerrainHeight(10.0, 5.0), 5.0);
-    this.noah.lookAt(0, this.noah.position.y, 0);
+    this.noah.position.set(18.0, this.getTerrainHeight(18.0, 10.0), 10.0); // Start at house
+    this.noah.lookAt(18, this.noah.position.y, 12);
     this.scene.add(this.noah);
     
     // Wife
@@ -320,8 +338,8 @@ export class NoahScene {
     const wHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
     wHead.position.y = 1.62;
     this.wife.add(wTorso, wHead);
-    this.wife.position.set(9.0, this.getTerrainHeight(9.0, 6.2), 6.2);
-    this.wife.lookAt(0, this.wife.position.y, 0);
+    this.wife.position.set(19.5, this.getTerrainHeight(19.5, 9.5), 9.5); // Start next to house
+    this.wife.lookAt(18, this.wife.position.y, 12);
     this.scene.add(this.wife);
     
     // Event listeners
@@ -340,7 +358,9 @@ export class NoahScene {
     this.arkHull.visible = true;
     this.arkRoof.visible = true;
     this.doorGroup.visible = true;
+    this.doorGroup.rotation.y = -Math.PI / 2.0; // Ensure door is open initially
     this.ramp.visible = true;
+    this.animals.visible = true; // Show animals now that the Ark is ready!
     this.hammer.visible = false;
   }
   
@@ -539,7 +559,7 @@ export class NoahScene {
     
     if (this.waterRising) {
       this.waterHeight += dt * 0.95;
-      if (this.waterHeight > 4.6) this.waterHeight = 4.6;
+      if (this.waterHeight > 16.0) this.waterHeight = 16.0; // Raise cap to fully submerge huts & hills
       this.waterPlane.position.y = this.waterHeight;
       
       const baseHeight = this.getTerrainHeight(0, 0) - 0.2;
