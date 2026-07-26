@@ -8,30 +8,93 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <!-- Title Screen / Title Page -->
-  <div id="title-screen">
-    <div class="title-frame">
-      <h1>The Biblical Experience</h1>
-      <p>An interactive, immersive journey through the Holy Scriptures</p>
-      <button class="begin-btn" id="begin-btn">Begin Journey</button>
-    </div>
-  </div>
+  <!-- Cinematic Book Cover & Opening Sequence -->
+  <div id="book-container" class="book-viewport">
+    <canvas id="ambient-dust"></canvas>
+    
+    <div class="book-wrapper">
+      <!-- Left Page (revealed when cover opens) -->
+      <div class="book-page left-page" id="left-page">
+        <div class="parchment-texture"></div>
+        <div class="parchment-content">
+          <div class="left-page-decor" style="text-align: center;">
+            <div class="vintage-crown" style="margin-bottom: 12px;"><i class="fa-solid fa-crown" style="color: #8a7d5e; font-size: 28px; opacity: 0.6;"></i></div>
+            <h2 class="left-page-title" style="font-family: 'Cormorant Garamond', serif; font-size: 26px; color: #5c4e3b; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px;">Holy Bible</h2>
+            <div class="vintage-divider" style="width: 80px; height: 1px; background: #8a7d5e; margin: 15px auto; opacity: 0.4;"></div>
+            <p style="font-family: 'EB Garamond', serif; font-style: italic; font-size: 15px; color: #7a6a4d; line-height: 1.6; max-width: 220px; margin: 0 auto; opacity: 0.85;">
+              "In the beginning was the Word, and the Word was with God, and the Word was God."
+            </p>
+            <span style="font-family: 'EB Garamond', serif; font-size: 12px; color: #8a7d5e; display: block; margin-top: 12px; opacity: 0.7;">John 1:1</span>
+          </div>
+        </div>
+      </div>
 
-  <!-- Gear Loading Screen -->
-  <div id="loading-screen">
-    <div class="gear-container">
-      <!-- Large Gear -->
-      <svg class="gear gear-large" viewBox="0 0 100 100">
-        <path d="M50 35c-8.3 0-15 6.7-15 15s6.7 15 15 15 15-6.7 15-15-6.7-15-15-15zm0 22c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7zm0-42c-2.2 0-4 1.8-4 4v4.5c-2.7.5-5.2 1.5-7.5 3l-3.2-3.2c-1.6-1.6-4.1-1.6-5.7 0l-5.7 5.7c-1.6 1.6-1.6 4.1 0 5.7l3.2 3.2c-1.5 2.3-2.5 4.8-3 7.5H20c-2.2 0-4 1.8-4 4v8c0 2.2 1.8 4 4 4h4.5c.5 2.7 1.5 5.2 3 7.5l-3.2 3.2c-1.6 1.6-1.6 4.1 0 5.7l5.7 5.7c1.6 1.6 4.1 1.6 5.7 0l3.2-3.2c2.3 1.5 4.8 2.5 7.5 3V80c0 2.2 1.8 4 4 4h8c2.2 0 4-1.8 4-4v-4.5c2.7-.5 5.2-1.5 7.5-3l3.2 3.2c1.6 1.6 4.1 1.6 5.7 0l5.7-5.7c1.6-1.6 1.6-4.1 0-5.7l-3.2-3.2c1.5-2.3 2.5-4.8 3-7.5H80c2.2 0 4-1.8 4-4v-8c0-2.2-1.8-4-4-4h-4.5c-.5-2.7-1.5-5.2-3-7.5l3.2-3.2c1.6-1.6 1.6-4.1 0-5.7l-5.7-5.7c-1.6-1.6-4.1-1.6-5.7 0l-3.2 3.2c-2.3-1.5-4.8-2.5-7.5-3V20c0-2.2-1.8-4-4-4h-8z"/>
-      </svg>
-      <!-- Small Gear -->
-      <svg class="gear gear-small" viewBox="0 0 100 100">
-        <path d="M50 35c-8.3 0-15 6.7-15 15s6.7 15 15 15 15-6.7 15-15-6.7-15-15-15zm0 22c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7zm0-42c-2.2 0-4 1.8-4 4v4.5c-2.7.5-5.2 1.5-7.5 3l-3.2-3.2c-1.6-1.6-4.1-1.6-5.7 0l-5.7 5.7c-1.6 1.6-1.6 4.1 0 5.7l3.2 3.2c-1.5 2.3-2.5 4.8-3 7.5H20c-2.2 0-4 1.8-4 4v8c0 2.2 1.8 4 4 4h4.5c.5 2.7 1.5 5.2 3 7.5l-3.2 3.2c-1.6 1.6-1.6 4.1 0 5.7l5.7 5.7c1.6 1.6 4.1 1.6 5.7 0l3.2-3.2c2.3 1.5 4.8 2.5 7.5 3V80c0 2.2 1.8 4 4 4h8c2.2 0 4-1.8 4-4v-4.5c2.7-.5 5.2-1.5 7.5-3l3.2 3.2c1.6 1.6 4.1 1.6 5.7 0l5.7-5.7c1.6-1.6 1.6-4.1 0-5.7l-3.2-3.2c1.5-2.3 2.5-4.8 3-7.5H80c2.2 0 4-1.8 4-4v-8c0-2.2-1.8-4-4-4h-4.5c-.5-2.7-1.5-5.2-3-7.5l3.2-3.2c1.6-1.6 1.6-4.1 0-5.7l-5.7-5.7c-1.6-1.6-4.1-1.6-5.7 0l-3.2 3.2c-2.3-1.5-4.8-2.5-7.5-3V20c0-2.2-1.8-4-4-4h-8z"/>
-      </svg>
-    </div>
-    <div class="loading-text" id="loading-text">Loading Assets... 0%</div>
-    <div class="progress-bar-container">
-      <div class="progress-bar-fill" id="progress-bar-fill"></div>
+      <!-- Spine of the book (positioned in the center crease when open) -->
+      <div class="book-spine"></div>
+      
+      <!-- The Back Cover / Pages Base (visible behind the front cover) -->
+      <div class="book-page parchment-page" id="parchment-page">
+        <div class="parchment-texture"></div>
+        <div class="parchment-content">
+          <!-- The Engraved Cross Loading Screen -->
+          <div class="cross-loader-container">
+            <svg class="cross-svg" viewBox="0 0 100 150">
+              <defs>
+                <!-- Liquid Gold Gradient -->
+                <linearGradient id="gold-liquid-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#8c6d1d" />
+                  <stop offset="25%" stop-color="#e5b83b" />
+                  <stop offset="50%" stop-color="#fff1b0" />
+                  <stop offset="75%" stop-color="#e5b83b" />
+                  <stop offset="100%" stop-color="#8c6d1d" />
+                </linearGradient>
+                
+                <!-- Golden Glow Filter -->
+                <filter id="gold-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur" />
+                  <feComponentTransfer in="blur" result="glow">
+                    <feFuncA type="linear" slope="0.85"/>
+                  </feComponentTransfer>
+                  <feMerge>
+                    <feMergeNode in="glow" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                
+                <!-- Clipping masks for sequential cross fill: Bottom -> Center -> Arms -> Top -->
+                <clipPath id="cross-clip">
+                  <!-- Will be dynamically populated with multiple shape/rect overlays in JS -->
+                  <rect id="clip-bottom" x="44" y="140" width="12" height="0" />
+                  <rect id="clip-center" x="44" y="56" width="12" height="0" />
+                  <rect id="clip-left-arm" x="44" y="44" width="0" height="12" />
+                  <rect id="clip-right-arm" x="56" y="44" width="0" height="12" />
+                  <rect id="clip-top" x="44" y="44" width="12" height="0" />
+                </clipPath>
+              </defs>
+              
+              <!-- Matte Bronze Engraved Outline (Background) -->
+              <path class="cross-outline" d="M 44,10 L 56,10 L 56,44 L 90,44 L 90,56 L 56,56 L 56,140 L 44,140 L 44,56 L 10,56 L 10,44 L 44,44 Z" />
+              
+              <!-- Liquid Gold Fill Path (Using clip path) -->
+              <path class="cross-gold-fill" clip-path="url(#cross-clip)" d="M 44,10 L 56,10 L 56,44 L 90,44 L 90,56 L 56,56 L 56,140 L 44,140 L 44,56 L 10,56 L 10,44 L 44,44 Z" fill="url(#gold-liquid-gradient)" />
+            </svg>
+            <div class="loading-text" id="loading-text">Opening the Scriptures...</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- The Front Cover (rotates open) -->
+      <div class="book-cover" id="book-cover">
+        <div class="cover-inner">
+          <div class="cover-gold-border"></div>
+          <div class="cover-lighting"></div>
+          <div class="cover-content">
+            <h1>The Biblical Experience</h1>
+            <p class="subtitle">An interactive, immersive journey through the Holy Scriptures</p>
+            <button class="begin-btn" id="begin-btn">Begin Journey</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -65,7 +128,7 @@
         <button class="era-btn" data-scene="eden">Genesis 2-3 &mdash; Eden & The Fall</button>
         <button class="era-btn" data-scene="cainabel">Genesis 4 &mdash; Cain & Abel</button>
         <button class="era-btn" data-scene="noah">Genesis 6-9 &mdash; Noah's Ark</button>
-        <button class="era-btn disabled" disabled>Genesis 11 &mdash; Tower of Babel</button>
+        <button class="era-btn" data-scene="babel">Genesis 11 &mdash; Tower of Babel</button>
       </div>
       <button id="close-hub">close</button>
     </div>

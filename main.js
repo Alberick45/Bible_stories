@@ -2,6 +2,7 @@ import { CreationScene } from './creation-scene.js';
 import { EdenScene } from './eden-scene.js';
 import { CainAbelScene } from './cain-abel-scene.js';
 import { NoahScene } from './noah-scene.js';
+import { BabelScene } from './babel-scene.js';
 import { gsap } from 'gsap';
 import * as THREE from 'three';
 
@@ -357,6 +358,12 @@ function showSpeechBubble(characterName, text, holdBeforeHintMs = 2600) {
       bubbleTargetObject = sceneEngine.eve;
     } else if (characterName === 'Adam') {
       bubbleTargetObject = sceneEngine.adam;
+    } else if (characterName === 'Noah') {
+      bubbleTargetObject = sceneEngine.noah;
+    } else if (characterName === 'Nimrod' || characterName === 'Builder') {
+      bubbleTargetObject = sceneEngine.builder;
+    } else if (characterName === 'Worker') {
+      bubbleTargetObject = sceneEngine.workers ? sceneEngine.workers[0] : null;
     } else {
       bubbleTargetObject = null;
     }
@@ -789,8 +796,26 @@ async function executeEdenSequence(seqId) {
     }
   }, 30);
   
-  gsap.to(sceneEngine.adam.position, { x: 9.0, z: -8.0, duration: 2.5 });
-  gsap.to(sceneEngine.eve.position, { x: 10.5, z: -7.5, duration: 2.5 });
+  gsap.to(sceneEngine.adam.position, {
+    x: 9.0,
+    z: -8.0,
+    duration: 2.5,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.adam.position.y = sceneEngine.getTerrainHeight(sceneEngine.adam.position.x, sceneEngine.adam.position.z);
+      }
+    }
+  });
+  gsap.to(sceneEngine.eve.position, {
+    x: 10.5,
+    z: -7.5,
+    duration: 2.5,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.eve.position.y = sceneEngine.getTerrainHeight(sceneEngine.eve.position.x, sceneEngine.eve.position.z);
+      }
+    }
+  });
   
   // Pivot camera to look at the trees where they are hiding
   gsap.to(camPos, {
@@ -874,8 +899,26 @@ async function executeEdenSequence(seqId) {
     }
   }, 30);
   
-  gsap.to(sceneEngine.eve.position, { x: 26.0, z: 0.5, duration: 6.0 });
-  gsap.to(sceneEngine.adam.position, { x: 25.0, z: -0.5, duration: 6.0 });
+  gsap.to(sceneEngine.eve.position, {
+    x: 26.0,
+    z: 0.5,
+    duration: 6.0,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.eve.position.y = sceneEngine.getTerrainHeight(sceneEngine.eve.position.x, sceneEngine.eve.position.z);
+      }
+    }
+  });
+  gsap.to(sceneEngine.adam.position, {
+    x: 25.0,
+    z: -0.5,
+    duration: 6.0,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.adam.position.y = sceneEngine.getTerrainHeight(sceneEngine.adam.position.x, sceneEngine.adam.position.z);
+      }
+    }
+  });
   
   // Fade screen to black as they walk past
   veilEl.style.transition = 'background 5.0s ease';
@@ -1079,8 +1122,26 @@ async function executeCainAbelSequence(seqId) {
     }
   }, 30);
 
-  gsap.to(sceneEngine.cain.position, { x: -0.6, z: -12.0, duration: 3.5 });
-  gsap.to(sceneEngine.abel.position, { x: 0.6, z: -12.0, duration: 3.5 });
+  gsap.to(sceneEngine.cain.position, {
+    x: -0.6,
+    z: -12.0,
+    duration: 3.5,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.cain.position.y = sceneEngine.getTerrainHeight(sceneEngine.cain.position.x, sceneEngine.cain.position.z);
+      }
+    }
+  });
+  gsap.to(sceneEngine.abel.position, {
+    x: 0.6,
+    z: -12.0,
+    duration: 3.5,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.abel.position.y = sceneEngine.getTerrainHeight(sceneEngine.abel.position.x, sceneEngine.abel.position.z);
+      }
+    }
+  });
 
   // Camera follows them to the tilled fields
   gsap.to(camPos, {
@@ -1172,7 +1233,16 @@ async function executeCainAbelSequence(seqId) {
     }
   }, 30);
 
-  gsap.to(sceneEngine.cain.position, { x: 20, z: -30, duration: 6.0 });
+  gsap.to(sceneEngine.cain.position, {
+    x: 20,
+    z: -30,
+    duration: 6.0,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.cain.position.y = sceneEngine.getTerrainHeight(sceneEngine.cain.position.x, sceneEngine.cain.position.z);
+      }
+    }
+  });
   
   veilEl.style.transition = 'background 5.0s ease';
   veilEl.style.background = '#000000';
@@ -1319,7 +1389,16 @@ async function executeNoahSequence(seqId) {
   // Visual Timelapse Building Phase
   if (seqId !== currentSequenceId) return;
   // Noah runs to the building site
-  gsap.to(sceneEngine.noah.position, { x: 7.2, y: sceneEngine.getTerrainHeight(7.2, 6.0), z: 6.0, duration: 1.5 });
+  gsap.to(sceneEngine.noah.position, {
+    x: 7.2,
+    z: 6.0,
+    duration: 1.5,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.noah.position.y = sceneEngine.getTerrainHeight(sceneEngine.noah.position.x, sceneEngine.noah.position.z);
+      }
+    }
+  });
   gsap.to(sceneEngine.noah.rotation, { y: -Math.PI / 2, duration: 1.5 });
   
   // Camera pans to show construction
@@ -1357,7 +1436,16 @@ async function executeNoahSequence(seqId) {
   if (!await stepText('And the LORD said unto Noah, "Come thou and all thy house into the ark; for thee have I seen righteous before me in this generation."', 5600, 'God')) return;
 
   // Move Noah back to start position to guide animals
-  gsap.to(sceneEngine.noah.position, { x: 13.5, y: sceneEngine.getTerrainHeight(13.5, 4.0), z: 4.0, duration: 1.5 });
+  gsap.to(sceneEngine.noah.position, {
+    x: 13.5,
+    z: 4.0,
+    duration: 1.5,
+    onUpdate: () => {
+      if (sceneEngine) {
+        sceneEngine.noah.position.y = sceneEngine.getTerrainHeight(sceneEngine.noah.position.x, sceneEngine.noah.position.z);
+      }
+    }
+  });
   gsap.to(sceneEngine.noah.rotation, { y: Math.PI, duration: 1.5 });
   if (!await stepDelay(1600)) return;
 
@@ -1415,6 +1503,11 @@ async function executeNoahSequence(seqId) {
       duration: 1.6,
       delay: i * 0.09, // Keep queue tight and quick
       ease: 'power1.inOut',
+      onUpdate: () => {
+        if (sceneEngine) {
+          animal.position.y = sceneEngine.getTerrainHeight(animal.position.x, animal.position.z);
+        }
+      },
       onComplete: () => {
         animal.visible = false;
       }
@@ -1431,6 +1524,11 @@ async function executeNoahSequence(seqId) {
       z: 0.0,
       duration: 1.8,
       delay: index * 0.28,
+      onUpdate: () => {
+        if (sceneEngine) {
+          member.position.y = sceneEngine.getTerrainHeight(member.position.x, member.position.z);
+        }
+      },
       onComplete: () => {
         member.visible = false;
       }
@@ -1592,80 +1690,249 @@ async function executeNoahSequence(seqId) {
   scriptureLabelEl.classList.add('show');
 }
 
+async function executeBabelSequence(seqId) {
+  const stepText = async (txt, hold, ttsName = 'Narrator') => {
+    if (seqId !== currentSequenceId) return false;
+    await showTextLine(txt, hold, ttsName);
+    return seqId === currentSequenceId;
+  };
+  
+  const stepDelay = async (ms) => {
+    if (seqId !== currentSequenceId) return false;
+    await delay(ms);
+    return seqId === currentSequenceId;
+  };
+
+  const stepSpeech = async (char, txt, hold) => {
+    if (seqId !== currentSequenceId) return false;
+    await showSpeechBubble(char, txt, hold);
+    return seqId === currentSequenceId;
+  };
+
+  scriptureLabelEl.classList.remove('show');
+  loadScriptureScroll(
+    `Genesis 11:1 &ndash; 9 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    `
+      <p><span class="verse-num">1</span>And the whole earth was of one language, and of one speech.</p>
+      <p><span class="verse-num">2</span>And it came to pass, as they journeyed from the east, that they found a plain in the land of Shinar; and they dwelt there.</p>
+      <p><span class="verse-num">3</span>And they said one to another, Go to, let us make brick, and burn them thoroughly. And they had brick for stone, and slime had they for morter.</p>
+      <p><span class="verse-num">4</span>And they said, Go to, let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name, lest we be scattered abroad upon the face of the whole earth.</p>
+      <p><span class="verse-num">5</span>And the LORD came down to see the city and the tower, which the children of men builded.</p>
+      <p><span class="verse-num">6</span>And the LORD said, Behold, the people is one, and they have all one language... and now nothing will be restrained from them...</p>
+      <p><span class="verse-num">7</span>Go to, let us go down, and there confound their language, that they may not understand one another's speech.</p>
+      <p><span class="verse-num">8</span>So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.</p>
+      <p><span class="verse-num">9</span>Therefore is the name of it called Babel; because the LORD did there confound the language of all the earth...</p>
+    `
+  );
+
+  if (seqId !== currentSequenceId) return;
+  veilEl.style.transition = 'background 1.5s ease';
+  veilEl.style.background = 'rgba(0,0,0,0)';
+
+  // Camera looking at the construction plain in Shinar
+  const camPos = sceneEngine.camera.position;
+  camPos.set(-18, 3.2, 18);
+  sceneEngine.camera.lookAt(0.0, 1.0, 0.0);
+
+  if (!await stepText('And the whole earth was of one language, and of one speech.', 4500, 'Narrator')) return;
+  if (!await stepText('And they said, "Go to, let us build us a city and a tower, whose top may reach unto heaven..."', 5200, 'Nimrod')) return;
+
+  // 1. TIMELAPSE: Tower building
+  // Grow Tier 1
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.growTowerTier(0);
+  gsap.to(camPos, { x: -14, y: 5.0, z: 20, duration: 2.2, onUpdate: () => { sceneEngine.camera.lookAt(0, 1.0, 0); } });
+  if (!await stepText('And they had brick for stone, and slime had they for morter.', 4000, 'Narrator')) return;
+
+  // Grow Tier 2
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.growTowerTier(1);
+  gsap.to(camPos, { x: -10, y: 7.0, z: 18, duration: 2.2, onUpdate: () => { sceneEngine.camera.lookAt(0, 2.5, 0); } });
+  if (!await stepDelay(1500)) return;
+
+  // Grow Tier 3 & 4
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.growTowerTier(2);
+  sceneEngine.growTowerTier(3);
+  gsap.to(camPos, { x: -6, y: 9.5, z: 12, duration: 2.5, onUpdate: () => { sceneEngine.camera.lookAt(0, 4.0, 0); } });
+  if (!await stepText('And they said, "...and let us make us a name, lest we be scattered abroad upon the face of the whole earth."', 5500, 'Narrator')) return;
+
+  // 2. DIVINE INTERVENTION: The Lord descends
+  if (seqId !== currentSequenceId) return;
+  // Dynamic sky flash and lighting change
+  gsap.to(sceneEngine.scene.background, { r: 1.0, g: 0.95, b: 0.85, duration: 0.8, yoyo: true, repeat: 1 });
+  gsap.to(sceneEngine.scene.fog.color, { r: 1.0, g: 0.95, b: 0.85, duration: 0.8, yoyo: true, repeat: 1 });
+  
+  if (!await stepText('And the LORD came down to see the city and the tower, which the children of men builded.', 5200, 'Narrator')) return;
+  if (!await stepText('"Behold, the people is one, and they have all one language... Go to, let us go down, and there confound their language, that they may not understand one another\'s speech."', 7500, 'God')) return;
+
+  // 3. CONFUSION: Confounding the languages
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.confoundLanguages();
+  
+  // Show speech bubbles in different confounded languages above workers
+  const workerList = sceneEngine.workers;
+  const gibberish = [
+    "Δόξα τῷ Θεῷ! (What?)",
+    "Quid agis, frater? (Huh?)",
+    "Ragnarok bork bork! (Eh?)",
+    "Lorem ipsum dolor! (What?)",
+    "Baga bo pi do! (Gibberish?)",
+    "Ay caramba skibidi! (What?)"
+  ];
+  
+  // Animate camera zooming in to workers
+  gsap.to(camPos, {
+    x: -12.0,
+    y: 2.8,
+    z: 12.0,
+    duration: 2.0,
+    onUpdate: () => {
+      if (sceneEngine) sceneEngine.camera.lookAt(workerList[0].position.x, 1.2, workerList[0].position.z);
+    }
+  });
+  if (!await stepDelay(2000)) return;
+
+  if (seqId !== currentSequenceId) return;
+  // Trigger speech bubbles sequentially as they realize their languages are confounded
+  if (!await stepSpeech('Worker', 'Δόξα τῷ Θεῷ! (Wait, what did you say?)', 3500)) return;
+  if (!await stepSpeech('Worker', 'Quid agis? (I cannot understand you!)', 3500)) return;
+  if (!await stepSpeech('Worker', 'Baga bo pi do! (What is this gibberish?!)', 3500)) return;
+  
+  if (!await stepText('And there the LORD did confound the language of all the earth...', 4500, 'Narrator')) return;
+
+  // 4. SCATTERING: Workers panic and flee
+  if (seqId !== currentSequenceId) return;
+  sceneEngine.scatterWorkers();
+  
+  // Pan camera up to show workers scattering away
+  gsap.to(camPos, {
+    x: 0,
+    y: 14.0,
+    z: 22.0,
+    duration: 4.5,
+    onUpdate: () => {
+      if (sceneEngine) sceneEngine.camera.lookAt(0, 4.0, 0);
+    }
+  });
+  if (!await stepText('So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.', 6200, 'Narrator')) return;
+
+  // 5. PLAYABLE EXPLORATION
+  if (seqId !== currentSequenceId) return;
+  clearNarration();
+  
+  // Position camera behind builder player
+  const bPos = sceneEngine.builder.position;
+  camPos.set(bPos.x - 4, bPos.y + 2, bPos.z + 4);
+  sceneEngine.camera.lookAt(bPos);
+  
+  sceneEngine.unlockControls();
+  movementHintEl.classList.add('show');
+  
+  if (!await stepText('The construction has ceased. Explore the silent ruins of Babel.', 5000, 'Narrator')) return;
+  clearNarration();
+  
+  if (seqId !== currentSequenceId) return;
+  scriptureLabelEl.classList.add('show');
+}
+
 // --- 5. Scene Swap Loader ---
 function loadScene(sceneName) {
   currentSequenceId++;
   const thisSeqId = currentSequenceId;
 
-  destroyActiveScene();
-  activeSceneName = sceneName;
-  
-  eraButtons.forEach(btn => {
-    if (btn.getAttribute('data-scene') === sceneName) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-  
-  veilEl.style.transition = 'none';
+  // 1. Fade the veil overlay to black to hide transition artifacts
+  veilEl.style.transition = 'background 0.4s ease';
   veilEl.style.background = '#000000';
-  
-  void veilEl.offsetWidth;
-  
-  veilEl.style.transition = 'background 1.5s ease';
-  veilEl.style.background = 'rgba(0,0,0,0)';
 
-  let lastTime = 0;
-  function tick(timestamp) {
-    if (thisSeqId !== currentSequenceId || !sceneEngine) return;
-    const elapsed = timestamp * 0.001;
-    const dt = elapsed - lastTime;
-    lastTime = elapsed;
+  // 2. Perform scene swap after the fade-out completes
+  setTimeout(() => {
+    if (thisSeqId !== currentSequenceId) return;
+
+    destroyActiveScene();
+    activeSceneName = sceneName;
     
-    // Project and position speech bubble in 2D screen coordinates
-    if (bubbleTargetObject && sceneEngine) {
-      const tempV = new THREE.Vector3();
-      bubbleTargetObject.getWorldPosition(tempV);
-      
-      if (bubbleTargetObject === sceneEngine.serpentHead) {
-        tempV.y += 0.45;
+    eraButtons.forEach(btn => {
+      if (btn.getAttribute('data-scene') === sceneName) {
+        btn.classList.add('active');
       } else {
-        tempV.y += 1.85;
+        btn.classList.remove('active');
+      }
+    });
+
+    let lastTime = 0;
+    function tick(timestamp) {
+      if (thisSeqId !== currentSequenceId || !sceneEngine) return;
+      const elapsed = timestamp * 0.001;
+      const dt = elapsed - lastTime;
+      lastTime = elapsed;
+      
+      // Project and position speech bubble in 2D screen coordinates
+      if (bubbleTargetObject && sceneEngine) {
+        const tempV = new THREE.Vector3();
+        bubbleTargetObject.getWorldPosition(tempV);
+        
+        if (bubbleTargetObject === sceneEngine.serpentHead) {
+          tempV.y += 0.45;
+        } else {
+          tempV.y += 1.85;
+        }
+        
+        tempV.project(sceneEngine.camera);
+        
+        const pxX = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+        let pxY = (tempV.y * -0.5 + 0.5) * window.innerHeight;
+        
+        if (pxY < 80) pxY = 80;
+        
+        speechBubbleEl.style.left = `${pxX}px`;
+        speechBubbleEl.style.top = `${pxY}px`;
       }
       
-      tempV.project(sceneEngine.camera);
-      
-      const pxX = (tempV.x * 0.5 + 0.5) * window.innerWidth;
-      let pxY = (tempV.y * -0.5 + 0.5) * window.innerHeight;
-      
-      if (pxY < 80) pxY = 80;
-      
-      speechBubbleEl.style.left = `${pxX}px`;
-      speechBubbleEl.style.top = `${pxY}px`;
+      sceneEngine.update(elapsed, dt);
+      requestAnimationFrame(tick);
     }
     
-    sceneEngine.update(elapsed, dt);
-    requestAnimationFrame(tick);
-  }
-  
-  if (sceneName === 'creation') {
-    sceneEngine = new CreationScene(canvasWrap);
-    requestAnimationFrame(tick);
-    executeCreationSequence(thisSeqId);
-  } else if (sceneName === 'eden') {
-    sceneEngine = new EdenScene(canvasWrap);
-    requestAnimationFrame(tick);
-    executeEdenSequence(thisSeqId);
-  } else if (sceneName === 'cainabel') {
-    sceneEngine = new CainAbelScene(canvasWrap);
-    requestAnimationFrame(tick);
-    executeCainAbelSequence(thisSeqId);
-  } else if (sceneName === 'noah') {
-    sceneEngine = new NoahScene(canvasWrap);
-    requestAnimationFrame(tick);
-    executeNoahSequence(thisSeqId);
-  }
+    // Instantiate scene engine based on name
+    if (sceneName === 'creation') {
+      sceneEngine = new CreationScene(canvasWrap);
+    } else if (sceneName === 'eden') {
+      sceneEngine = new EdenScene(canvasWrap);
+    } else if (sceneName === 'cainabel') {
+      sceneEngine = new CainAbelScene(canvasWrap);
+    } else if (sceneName === 'noah') {
+      sceneEngine = new NoahScene(canvasWrap);
+    } else if (sceneName === 'babel') {
+      sceneEngine = new BabelScene(canvasWrap);
+    }
+
+    if (sceneEngine) {
+      // Force immediate GPU upload/compilation of shaders & geometries
+      sceneEngine.update(0, 0.016);
+      
+      // Start loop and sequences
+      requestAnimationFrame(tick);
+      if (sceneName === 'creation') {
+        executeCreationSequence(thisSeqId);
+      } else if (sceneName === 'eden') {
+        executeEdenSequence(thisSeqId);
+      } else if (sceneName === 'cainabel') {
+        executeCainAbelSequence(thisSeqId);
+      } else if (sceneName === 'noah') {
+        executeNoahSequence(thisSeqId);
+      } else if (sceneName === 'babel') {
+        executeBabelSequence(thisSeqId);
+      }
+    }
+
+    // 3. Fade the veil back to transparent smoothly
+    setTimeout(() => {
+      if (thisSeqId !== currentSequenceId) return;
+      veilEl.style.transition = 'background 1.0s ease';
+      veilEl.style.background = 'rgba(0,0,0,0)';
+    }, 100);
+
+  }, 400);
 }
 
 // Mobile Virtual Joystick Touch Helper
@@ -1753,9 +2020,156 @@ function initTouchControls() {
   }, { passive: true });
 }
 
-// --- 6. DOM Initialization Hooks ---
+// --- 6. Procedural SFX & Ambient Dust ---
+
+function playProceduralLeatherCreak() {
+  if (!audioContext) initWindAudio();
+  if (!audioContext) return;
+  
+  const now = audioContext.currentTime;
+  const sampleRate = audioContext.sampleRate;
+  
+  // Synthesize low-frequency creaking friction noise
+  const bufferSize = sampleRate * 0.9;
+  const buffer = audioContext.createBuffer(1, bufferSize, sampleRate);
+  const data = buffer.getChannelData(0);
+  let lastOut = 0.0;
+  
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    lastOut = (lastOut + 0.04 * white) / 1.04;
+    
+    // Add periodic friction crackles
+    const pitchMod = Math.sin(i * 0.005);
+    data[i] = lastOut * (0.85 + 0.15 * pitchMod);
+  }
+  
+  const noiseNode = audioContext.createBufferSource();
+  noiseNode.buffer = buffer;
+  
+  const filter = audioContext.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.Q.value = 5.0;
+  
+  const gainNode = audioContext.createGain();
+  
+  noiseNode.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  // Sweep filter to simulate stretching leather
+  filter.frequency.setValueAtTime(65, now);
+  filter.frequency.exponentialRampToValueAtTime(260, now + 0.35);
+  filter.frequency.linearRampToValueAtTime(110, now + 0.85);
+  
+  gainNode.gain.setValueAtTime(0.0, now);
+  gainNode.gain.linearRampToValueAtTime(0.08, now + 0.15);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+  
+  noiseNode.start(now);
+  noiseNode.stop(now + 0.9);
+}
+
+function playProceduralPageRustle() {
+  if (!audioContext) return;
+  
+  const now = audioContext.currentTime;
+  const sampleRate = audioContext.sampleRate;
+  
+  // High frequency whispering paper rustles
+  const bufferSize = sampleRate * 1.3;
+  const buffer = audioContext.createBuffer(1, bufferSize, sampleRate);
+  const data = buffer.getChannelData(0);
+  
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  
+  const noiseNode = audioContext.createBufferSource();
+  noiseNode.buffer = buffer;
+  
+  const filter = audioContext.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.Q.value = 1.8;
+  
+  const gainNode = audioContext.createGain();
+  
+  noiseNode.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  filter.frequency.setValueAtTime(2800, now);
+  filter.frequency.exponentialRampToValueAtTime(7000, now + 0.45);
+  filter.frequency.exponentialRampToValueAtTime(3200, now + 1.25);
+  
+  gainNode.gain.setValueAtTime(0.0, now);
+  gainNode.gain.linearRampToValueAtTime(0.024, now + 0.2);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+  
+  noiseNode.start(now);
+  noiseNode.stop(now + 1.3);
+}
+
+function initAmbientDust() {
+  const canvas = document.getElementById('ambient-dust');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  
+  let width = (canvas.width = window.innerWidth);
+  let height = (canvas.height = window.innerHeight);
+  
+  window.addEventListener('resize', () => {
+    width = (canvas.width = window.innerWidth);
+    height = (canvas.height = window.innerHeight);
+  });
+  
+  // Subtle dust particles drifting
+  const particles = Array.from({ length: 30 }, () => ({
+    x: Math.random() * width,
+    y: Math.random() * height,
+    size: Math.random() * 1.6 + 0.4,
+    speedX: (Math.random() - 0.5) * 0.15,
+    speedY: (Math.random() - 0.25) * 0.25 - 0.05,
+    alpha: Math.random() * 0.45 + 0.1,
+    fadeSpeed: Math.random() * 0.006 + 0.002,
+    direction: Math.random() > 0.5 ? 1 : -1
+  }));
+  
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+    
+    particles.forEach(p => {
+      p.x += p.speedX;
+      p.y += p.speedY;
+      p.alpha += p.fadeSpeed * p.direction;
+      
+      if (p.alpha > 0.6) {
+        p.direction = -1;
+      } else if (p.alpha < 0.1) {
+        p.direction = 1;
+      }
+      
+      if (p.x < 0) p.x = width;
+      if (p.x > width) p.x = 0;
+      if (p.y < 0) p.y = height;
+      if (p.y > height) p.y = 0;
+      
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(235, 218, 172, ${p.alpha})`;
+      ctx.fill();
+    });
+    
+    requestAnimationFrame(animate);
+  }
+  
+  animate();
+}
+
+// --- 7. DOM Initialization Hooks ---
 document.addEventListener('DOMContentLoaded', () => {
   initTouchControls();
+  initAmbientDust();
 
   hubToggleBtn.addEventListener('click', () => {
     hubPanelEl.classList.add('show');
@@ -1787,38 +2201,235 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   const beginBtn = document.getElementById('begin-btn');
-  const titleScreen = document.getElementById('title-screen');
-  const loadingScreen = document.getElementById('loading-screen');
-  const progressBarFill = document.getElementById('progress-bar-fill');
+  const bookContainer = document.getElementById('book-container');
+  const bookCover = document.getElementById('book-cover');
+  const parchmentPage = document.getElementById('parchment-page');
   const loadingText = document.getElementById('loading-text');
 
-  const handleBegin = () => {
-    // Hide Title Screen
-    titleScreen.style.opacity = 0;
-    setTimeout(() => {
-      titleScreen.style.visibility = 'hidden';
-    }, 1000);
+  // Cross loading segments
+  const clipBottom = document.getElementById('clip-bottom');
+  const clipCenter = document.getElementById('clip-center');
+  const clipLeftArm = document.getElementById('clip-left-arm');
+  const clipRightArm = document.getElementById('clip-right-arm');
+  const clipTop = document.getElementById('clip-top');
+  const crossGoldFill = document.querySelector('.cross-gold-fill');
 
-    // Show Loading Screen
-    loadingScreen.classList.add('show');
+  function updateCrossProgress(p) {
+    if (!clipBottom) return;
+    
+    // Clear styles/attributes
+    clipBottom.setAttribute('height', '0');
+    clipCenter.setAttribute('height', '0');
+    clipLeftArm.setAttribute('width', '0');
+    clipLeftArm.setAttribute('x', '44');
+    clipRightArm.setAttribute('width', '0');
+    clipTop.setAttribute('height', '0');
+    clipTop.setAttribute('y', '44');
 
-    // Simulate Asset Loading with Progress Bar
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += Math.floor(Math.random() * 12) + 4;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(progressInterval);
-
-        setTimeout(() => {
-          loadingScreen.classList.remove('show');
-          startAmbientSoundLoops();
-          loadScene('creation');
-        }, 500);
+    if (p <= 50) {
+      // Bottom fills (y: 140 down to 56, total height 84)
+      const pct = p / 50;
+      const h = pct * 84;
+      clipBottom.setAttribute('y', (140 - h).toString());
+      clipBottom.setAttribute('height', h.toString());
+    } else {
+      clipBottom.setAttribute('y', '56');
+      clipBottom.setAttribute('height', '84');
+      
+      if (p <= 55) {
+        // Center fills (y: 56 down to 44, total height 12)
+        const pct = (p - 50) / 5;
+        const h = pct * 12;
+        clipCenter.setAttribute('y', (56 - h).toString());
+        clipCenter.setAttribute('height', h.toString());
+      } else {
+        clipCenter.setAttribute('y', '44');
+        clipCenter.setAttribute('height', '12');
+        
+        if (p <= 85) {
+          // Horizontal arms expand (x: 44 to 10 & 56 to 90, total width 34)
+          const pct = (p - 55) / 30;
+          const w = pct * 34;
+          clipLeftArm.setAttribute('x', (44 - w).toString());
+          clipLeftArm.setAttribute('width', w.toString());
+          clipRightArm.setAttribute('width', w.toString());
+        } else {
+          clipLeftArm.setAttribute('x', '10');
+          clipLeftArm.setAttribute('width', '34');
+          clipRightArm.setAttribute('width', '34');
+          
+          // Top fills (y: 44 down to 10, total height 34)
+          const pct = (p - 85) / 15;
+          const h = pct * 34;
+          clipTop.setAttribute('y', (44 - h).toString());
+          clipTop.setAttribute('height', h.toString());
+        }
       }
-      progressBarFill.style.width = `${progress}%`;
-      loadingText.textContent = `Loading Assets... ${progress}%`;
-    }, 100);
+    }
+  }
+
+  const loadingPhrases = [
+    { threshold: 0, text: "Opening the Scriptures..." },
+    { threshold: 15, text: "Preparing the World..." },
+    { threshold: 30, text: "Illuminating the Pages..." },
+    { threshold: 45, text: "Loading Sacred Music..." },
+    { threshold: 60, text: "Preparing Characters..." },
+    { threshold: 75, text: "Bringing History to Life..." },
+    { threshold: 90, text: "Preparing Your Journey..." }
+  ];
+
+  const handleBegin = () => {
+    // 150-250ms physical pause before cover opens
+    setTimeout(() => {
+      // Initialize Audio context on user gesture
+      initWindAudio();
+      
+      // Play procedural friction creak and parchment whisper
+      playProceduralLeatherCreak();
+      setTimeout(playProceduralPageRustle, 120);
+
+      // Camera begins leaning over the manuscript
+      const wrapper = document.querySelector('.book-wrapper');
+      if (wrapper) {
+        wrapper.style.transform = 'translateZ(180px) translateX(-25%)';
+      }
+
+      // Rotate book cover after small camera delay
+      setTimeout(() => {
+        if (bookCover) {
+          bookCover.style.transform = 'rotateY(-115deg)';
+        }
+        const container = document.getElementById('book-container');
+        if (container) {
+          container.classList.add('book-opened');
+        }
+      }, 250);
+
+      // Transition wrapper focus to the parchment page
+      setTimeout(() => {
+        if (wrapper) {
+          wrapper.style.transform = 'translateZ(420px) translateX(-25%)';
+        }
+      }, 1200);
+
+      // Begin loading process
+      setTimeout(() => {
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress += Math.floor(Math.random() * 8) + 3;
+          
+          // Preload creation scene WebGL elements
+          if (progress >= 70 && !window.creationScenePreloaded) {
+            window.creationScenePreloaded = true;
+            
+            setTimeout(() => {
+              currentSequenceId++;
+              const thisSeqId = currentSequenceId;
+              destroyActiveScene();
+              activeSceneName = 'creation';
+              
+              sceneEngine = new CreationScene(canvasWrap);
+              sceneEngine.update(0, 0.016);
+              
+              window.preloadedSeqId = thisSeqId;
+            }, 50);
+          }
+
+          if (progress >= 100) {
+            progress = 100;
+            clearInterval(progressInterval);
+            updateCrossProgress(100);
+            loadingText.textContent = "Illuminated";
+
+            // Final completion sequence
+            setTimeout(() => {
+              // Shimmer shimmers and glow activates
+              if (crossGoldFill) {
+                crossGoldFill.classList.add('glow-active');
+              }
+              // Softly start wind audio
+              startAmbientSoundLoops();
+              
+              // Portal transition zoom into parchment to reveal the Three.js canvas
+              setTimeout(() => {
+                if (wrapper) {
+                  wrapper.style.transition = 'transform 2.5s cubic-bezier(0.25, 1, 0.3, 1)';
+                  wrapper.style.transform = 'translateZ(1800px) translateX(-350px)';
+                }
+                if (bookContainer) {
+                  bookContainer.style.transition = 'opacity 2.2s cubic-bezier(0.25, 1, 0.3, 1), visibility 2.2s';
+                  bookContainer.style.opacity = '0';
+                  setTimeout(() => {
+                    bookContainer.style.visibility = 'hidden';
+                  }, 2200);
+                }
+
+                if (window.preloadedSeqId) {
+                  let lastTime = 0;
+                  function tick(timestamp) {
+                    if (window.preloadedSeqId !== currentSequenceId || !sceneEngine) return;
+                    const elapsed = timestamp * 0.001;
+                    const dt = elapsed - lastTime;
+                    lastTime = elapsed;
+                    
+                    if (bubbleTargetObject && sceneEngine) {
+                      const tempV = new THREE.Vector3();
+                      bubbleTargetObject.getWorldPosition(tempV);
+                      if (bubbleTargetObject === sceneEngine.serpentHead) {
+                        tempV.y += 0.45;
+                      } else {
+                        tempV.y += 1.85;
+                      }
+                      tempV.project(sceneEngine.camera);
+                      const pxX = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+                      let pxY = (tempV.y * -0.5 + 0.5) * window.innerHeight;
+                      if (pxY < 80) pxY = 80;
+                      speechBubbleEl.style.left = `${pxX}px`;
+                      speechBubbleEl.style.top = `${pxY}px`;
+                    }
+                    
+                    sceneEngine.update(elapsed, dt);
+                    requestAnimationFrame(tick);
+                  }
+                  
+                  eraButtons.forEach(btn => {
+                    if (btn.getAttribute('data-scene') === 'creation') {
+                      btn.classList.add('active');
+                    } else {
+                      btn.classList.remove('active');
+                    }
+                  });
+                  
+                  veilEl.style.transition = 'none';
+                  veilEl.style.background = '#000000';
+                  void veilEl.offsetWidth;
+                  
+                  veilEl.style.transition = 'background 1.8s ease';
+                  veilEl.style.background = 'rgba(0,0,0,0)';
+                  
+                  requestAnimationFrame(tick);
+                  executeCreationSequence(window.preloadedSeqId);
+                } else {
+                  loadScene('creation');
+                }
+              }, 1200);
+            }, 1000);
+          } else {
+            // Update cross clip segments
+            updateCrossProgress(progress);
+            
+            // Set thematic loading phrases
+            let activePhrase = loadingPhrases[0].text;
+            for (let i = 0; i < loadingPhrases.length; i++) {
+              if (progress >= loadingPhrases[i].threshold) {
+                activePhrase = loadingPhrases[i].text;
+              }
+            }
+            loadingText.textContent = activePhrase;
+          }
+        }, 120);
+      }, 1900);
+    }, 200);
   };
 
   beginBtn.addEventListener('click', handleBegin);

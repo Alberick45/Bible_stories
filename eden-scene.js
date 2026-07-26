@@ -10,6 +10,7 @@ export class EdenScene {
     this.clock = new THREE.Clock();
     this.movementEnabled = false;
     this.keys = {};
+    this.joystickVector = new THREE.Vector2(0, 0);
     
     this.yaw = Math.PI;
     this.pitch = -0.15;
@@ -738,6 +739,12 @@ export class EdenScene {
       if (this.keys['KeyS']) move.sub(camForward);
       if (this.keys['KeyD']) move.add(camRight);
       if (this.keys['KeyA']) move.sub(camRight);
+      
+      if (this.joystickVector && this.joystickVector.lengthSq() > 0) {
+        const joyForward = camForward.clone().multiplyScalar(this.joystickVector.y);
+        const joyRight = camRight.clone().multiplyScalar(this.joystickVector.x);
+        move.add(joyForward).add(joyRight);
+      }
       
       if (move.lengthSq() > 0) {
         move.normalize().multiplyScalar(speed);
