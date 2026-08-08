@@ -5,6 +5,7 @@ import { NoahScene } from './noah-scene.js';
 import { BabelScene } from './babel-scene.js';
 import { gsap } from 'gsap';
 import * as THREE from 'three';
+import { ttsEngine } from './tts/TTSEngine.js';
 
 let activeSceneName = 'creation'; // 'creation' or 'eden'
 let sceneEngine = null;
@@ -44,14 +45,7 @@ const hubPanelEl = document.getElementById('hub-panel');
 const closeHubBtn = document.getElementById('close-hub');
 const eraButtons = document.querySelectorAll('.era-btn');
 
-// Load voices once window is ready
-let voices = [];
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = () => {
-    voices = window.speechSynthesis.getVoices();
-  };
-}
+// TTS Engine will be dynamically initialized on click of 'Begin Journey'
 
 // --- 1. Audio Engine ---
 function initWindAudio() {
@@ -278,45 +272,174 @@ function clearAllIntervals() {
 // --- 2. Narrative Sequencing Helpers ---
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+const CHAPTER_SCRIPTS = {
+  creation: [
+    { text: 'In the beginning God created the heaven and the earth.', character: 'Narrator' },
+    { text: 'And the earth was without form, and void; and darkness was upon the face of the deep.', character: 'Narrator' },
+    { text: 'And God said, "Let there be light."', character: 'God' },
+    { text: 'And God saw the light, that it was good: and God divided the light from the darkness.', character: 'Narrator' },
+    { text: 'And God said, "Let there be a firmament in the midst of the waters, and let it divide the waters from the waters."', character: 'God' },
+    { text: 'And God said, "Let the waters under the heaven be gathered together unto one place, and let the dry land appear:"', character: 'God' },
+    { text: 'And God made two great lights; the greater light to rule the day, and the lesser light to rule the night: he made the stars also.', character: 'Narrator' },
+    { text: 'And God said, "Let the waters bring forth abundantly the moving creature that hath life, and fowl that may fly above the earth in the open firmament of heaven."', character: 'God' },
+    { text: 'And God made the beast of the earth after his kind, and cattle after their kind, and every thing that creepeth upon the earth after his kind: and God saw that it was good.', character: 'Narrator' },
+    { text: 'And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.', character: 'Narrator' },
+    { text: 'And God blessed them, and God said unto them, Be fruitful, and multiply, and replenish the earth, and subdue it...', character: 'Narrator' },
+    { text: 'And God saw every thing that he had made, and, behold, it was very good. And the evening and the morning were the sixth day.', character: 'Narrator' },
+    { text: 'Thus the heavens and the earth were finished, and all the host of them.', character: 'Narrator' },
+    { text: 'And on the seventh day God ended his work which he had made; and he rested on the seventh day...', character: 'Narrator' },
+  ],
+  eden: [
+    { text: 'And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed.', character: 'Narrator' },
+    { text: 'And out of the ground made the LORD God to grow every tree that is pleasant to the sight, and good for food...', character: 'Narrator' },
+    { text: 'The tree of life also in the midst of the garden, and the tree of knowledge of good and evil.', character: 'Narrator' },
+    { text: 'And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it.', character: 'Narrator' },
+    { text: 'And the LORD God commanded the man, saying, Of every tree of the garden thou mayest freely eat...', character: 'Narrator' },
+    { text: 'But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.', character: 'Narrator' },
+    { text: 'And the LORD God said, It is not good that the man should be alone; I will make him an help meet for him.', character: 'God' },
+    { text: 'And out of the ground the LORD God formed every beast of the field, and every fowl of the air...', character: 'Narrator' },
+    { text: 'And brought them unto Adam to see what he would call them...', character: 'Narrator' },
+    { text: 'And Adam gave names to all cattle, and to the fowl of the air, and to every beast of the field...', character: 'Narrator' },
+    { text: 'But for Adam there was not found an help meet for him.', character: 'Narrator' },
+    { text: 'And the LORD God caused a deep sleep to fall upon Adam, and he slept...', character: 'Narrator' },
+    { text: 'And he took one of his ribs, and closed up the flesh instead thereof...', character: 'Narrator' },
+    { text: 'And the rib, which the LORD God had taken from man, made he a woman, and brought her unto the man.', character: 'Narrator' },
+    { text: 'This is now bone of my bones, and flesh of my flesh: she shall be called Woman, because she was taken out of Man.', character: 'Adam' },
+    { text: 'Therefore shall a man leave his father and his mother, and shall cleave unto his wife: and they shall be one flesh.', character: 'Narrator' },
+    { text: 'Walk up to the center Tree of Knowledge to witness the Fall.', character: 'Narrator' },
+    { text: 'Now the serpent was more subtil than any beast of the field which the LORD God had made.', character: 'Narrator' },
+    { text: 'Yea, hath God said, Ye shall not eat of every tree of the garden?', character: 'Serpent' },
+    { text: 'We may eat of the fruit of the trees of the garden: But of the fruit of the tree which is in the midst of the garden, God hath said, Ye shall not eat of it, neither shall ye touch it, lest ye die.', character: 'Eve' },
+    { text: 'Ye shall not surely die: For God doth know that in the day ye eat thereof, then your eyes shall be opened, and ye shall be as gods, knowing good and evil.', character: 'Serpent' },
+    { text: 'And when the woman saw that the tree was good for food, and that it was pleasant to the eyes...', character: 'Narrator' },
+    { text: '...she took of the fruit thereof, and did eat...', character: 'Narrator' },
+    { text: 'Eat of it, and thine eyes shall be opened.', character: 'Eve' },
+    { text: '...and gave also unto her husband with her; and he did eat.', character: 'Narrator' },
+    { text: 'And the eyes of them both were opened, and they knew that they were naked.', character: 'Narrator' },
+    { text: 'And they heard the voice of the LORD God walking in the garden in the cool of the day.', character: 'Narrator' },
+    { text: '...and Adam and his wife hid themselves from the presence of the LORD God amongst the trees of the garden.', character: 'Narrator' },
+    { text: 'And the LORD God called unto Adam, and said unto him, "Where art thou?"', character: 'God' },
+    { text: 'I heard thy voice in the garden, and I was afraid, because I was naked; and I hid myself.', character: 'Adam' },
+    { text: 'And he said, "Who told thee that thou wast naked? Hast thou eaten of the tree, whereof I commanded thee that thou shouldest not eat?"', character: 'God' },
+    { text: 'The woman whom thou gavest to be with me, she gave me of the tree, and I did eat.', character: 'Adam' },
+    { text: 'And the LORD God said unto the woman, "What is this that thou hast done?"', character: 'God' },
+    { text: 'The serpent beguiled me, and I did eat.', character: 'Eve' },
+    { text: 'And the LORD God said unto the serpent, "Because thou hast done this, thou art cursed above all cattle, and above every beast of the field; upon thy belly shalt thou go, and dust shalt thou eat all the days of thy life..."', character: 'God' },
+    { text: 'Unto the woman he said, "I will greatly multiply thy sorrow and thy conception; in sorrow thou shalt bring forth children..."', character: 'God' },
+    { text: 'And unto Adam he said, "Because thou has hearkened unto the voice of thy wife, and has eaten of the tree... cursed is the ground for thy sake; in sorrow shalt thou eat of it all the days of thy life..."', character: 'God' },
+    { text: 'Therefore the LORD God sent him forth from the garden of Eden, to till the ground from whence he was taken.', character: 'Narrator' },
+    { text: 'So he drove out the man; and he placed at the east of the garden of Eden Cherubims, and a flaming sword which turned every way, to keep the way of the tree of life.', character: 'Narrator' },
+  ],
+  cainabel: [
+    { text: 'And Adam knew Eve his wife; and she conceived, and bare Cain...', character: 'Narrator' },
+    { text: 'I have gotten a man from the LORD.', character: 'Eve' },
+    { text: 'And she again bare his brother Abel.', character: 'Narrator' },
+    { text: 'And Abel was a keeper of sheep, but Cain was a tiller of the ground.', character: 'Narrator' },
+    { text: 'And in process of time it came to pass, that Cain brought of the fruit of the ground an offering unto the LORD.', character: 'Narrator' },
+    { text: 'And Abel, he also brought of the firstlings of his flock and of the fat thereof.', character: 'Narrator' },
+    { text: 'Walk to the central Altar of Stones to present your offering.', character: 'Narrator' },
+    { text: 'And the LORD had respect unto Abel and to his offering...', character: 'Narrator' },
+    { text: 'But unto Cain and to his offering he had not respect.', character: 'Narrator' },
+    { text: 'And Cain was very wroth, and his countenance fell.', character: 'Narrator' },
+    { text: 'And the LORD said unto Cain, "Why art thou wroth? and why is thy countenance fallen?"', character: 'God' },
+    { text: '"If thou doest well, shalt thou not be accepted? and if thou doest not well, sin lieth at the door..."', character: 'God' },
+    { text: 'And Cain talked with Abel his brother:', character: 'Narrator' },
+    { text: 'And it came to pass, when they were in the field, that Cain rose up against Abel his brother, and slew him.', character: 'Narrator' },
+    { text: 'And the LORD said unto Cain, "Where is Abel thy brother?"', character: 'God' },
+    { text: "I know not: Am I my brother's keeper?", character: 'Cain' },
+    { text: 'And he said, "What hast thou done? the voice of thy brother\'s blood crieth unto me from the ground."', character: 'God' },
+    { text: '"And now art thou cursed from the earth, which hath opened her mouth to receive thy brother\'s blood from thy hand;"', character: 'God' },
+    { text: '"When thou tillest the ground, it shall not henceforth yield unto thee her strength; a fugitive and a vagabond shalt thou be in the earth."', character: 'God' },
+    { text: 'My punishment is greater than I can bear. Behold, thou hast driven me out this day from the face of the earth;', character: 'Cain' },
+    { text: 'And the LORD said unto him, "Therefore whosoever slayeth Cain, vengeance shall be taken on him sevenfold."', character: 'God' },
+    { text: 'And the LORD set a mark upon Cain, lest any finding him should kill him.', character: 'Narrator' },
+    { text: 'And Cain went out from the presence of the LORD, and dwelt in the land of Nod, on the east of Eden.', character: 'Narrator' },
+    { text: 'And Adam knew his wife again; and she bare a son, and called his name Seth...', character: 'Narrator' },
+    { text: 'For God hath appointed me another seed instead of Abel, whom Cain slew.', character: 'Eve' },
+    { text: 'And it came to pass, when men began to multiply on the face of the earth...', character: 'Narrator' },
+    { text: 'And GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually.', character: 'Narrator' },
+    { text: 'The earth also was corrupt before God, and the earth was filled with violence.', character: 'Narrator' },
+    { text: 'And it repented the LORD that he had made man on the earth, and it grieved him at his heart.', character: 'Narrator' },
+    { text: 'But Noah found grace in the eyes of the LORD.', character: 'Narrator' },
+  ],
+  noah: [
+    { text: 'And God said unto Noah, "The end of all flesh is come before me; for the earth is filled with violence through them..."', character: 'God' },
+    { text: '"Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."', character: 'God' },
+    { text: 'And Noah did according unto all that the LORD commanded him.', character: 'Narrator' },
+    { text: 'Thus did Noah; according to all that God commanded him, so did he.', character: 'Narrator' },
+    { text: 'And the LORD said unto Noah, "Come thou and all thy house into the ark; for thee have I seen righteous before me in this generation."', character: 'God' },
+    { text: 'Guide Noah closer to the marching animal pairs to bring them inside.', character: 'Narrator' },
+    { text: "And Noah went in, and his sons, and his wife, and his sons' wives with him, into the ark, because of the waters of the flood.", character: 'Narrator' },
+    { text: '...and the LORD shut him in.', character: 'Narrator' },
+    { text: '...the same day were all the fountains of the great deep broken up, and the windows of heaven were opened.', character: 'Narrator' },
+    { text: 'And the rain was upon the earth forty days and forty nights.', character: 'Narrator' },
+    { text: 'And the flood was forty days upon the earth; and the waters increased, and bare up the ark...', character: 'Narrator' },
+    { text: 'And the waters prevailed, and were increased greatly upon the earth; and the ark went upon the face of the waters.', character: 'Narrator' },
+    { text: 'And God remembered Noah, and every living thing, and all the cattle that was with him in the ark...', character: 'Narrator' },
+    { text: 'And the rain from heaven was restrained; And the waters returned from off the earth continually.', character: 'Narrator' },
+    { text: 'And the ark rested in the seventh month, on the seventeenth day of the month, upon the mountains of Ararat.', character: 'Narrator' },
+    { text: 'Also he sent forth a dove from him, to see if the waters were abated from off the face of the ground;', character: 'Narrator' },
+    { text: 'And the dove came in to him in the evening; and, lo, in her mouth was an olive leaf pluckt off.', character: 'Narrator' },
+    { text: "And Noah went forth, and his sons, and his wife, and his sons' wives with him...", character: 'Narrator' },
+    { text: 'And Noah builded an altar unto the LORD; and took of every clean beast, and of every clean fowl, and offered burnt offerings on the altar.', character: 'Narrator' },
+    { text: 'And God said, "I do set my bow in the cloud, and it shall be for a token of a covenant between me and the earth."', character: 'God' },
+    { text: '"And the waters shall no more become a flood to destroy all flesh."', character: 'God' },
+  ],
+  babel: [
+    { text: 'And the whole earth was of one language, and of one speech.', character: 'Narrator' },
+    { text: 'And they said, "Go to, let us build us a city and a tower, whose top may reach unto heaven..."', character: 'Nimrod' },
+    { text: 'And they had brick for stone, and slime had they for morter.', character: 'Narrator' },
+    { text: 'And they said, "...and let us make us a name, lest we be scattered abroad upon the face of the whole earth."', character: 'Narrator' },
+    { text: 'And the LORD came down to see the city and the tower, which the children of men builded.', character: 'Narrator' },
+    { text: '"Behold, the people is one, and they have all one language; and this they begin to do: and now nothing will be restrained from them, which they have imagined to do. Go to, let us go down, and there confound their language, that they may not understand one another\'s speech."', character: 'God' },
+    { text: 'Δόξα τῷ Θεῷ! (Wait, what did you say?)', character: 'Worker' },
+    { text: 'Quid agis? (I cannot understand you!)', character: 'Worker' },
+    { text: 'Baga bo pi do! (What is this gibberish?!)', character: 'Worker' },
+    { text: 'And there the LORD did confound the language of all the earth...', character: 'Narrator' },
+    { text: 'So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.', character: 'Narrator' },
+    { text: 'The construction has ceased. Explore the silent ruins of Babel.', character: 'Narrator' },
+  ],
+};
+
+function preloadNextLine(currentCleanText) {
+  const script = CHAPTER_SCRIPTS[activeSceneName];
+  if (!script) return;
+  
+  const norm = (t) => t.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const targetNorm = norm(currentCleanText);
+  const idx = script.findIndex(line => norm(line.text) === targetNorm);
+  
+  if (idx !== -1 && idx < script.length - 1) {
+    const nextLine = script[idx + 1];
+    const characterKey = nextLine.character.toLowerCase();
+    ttsEngine.preload(nextLine.text.replace(/["“”]/g, ''), characterKey);
+  }
+}
+
 function speakText(text, characterName) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  
   const cleanText = text.replace(/["“”]/g, '');
-  const utterance = new SpeechSynthesisUtterance(cleanText);
-  if (voices.length === 0) {
-    voices = window.speechSynthesis.getVoices();
+  
+  let characterKey = 'narrator';
+  if (characterName) {
+    const lowerName = characterName.toLowerCase();
+    if (lowerName === 'god') characterKey = 'god';
+    else if (lowerName === 'eve') characterKey = 'eve';
+    else if (lowerName === 'serpent') characterKey = 'serpent';
+    else if (lowerName === 'cain') characterKey = 'cain';
+    else if (lowerName === 'abel') characterKey = 'abel';
+    else if (lowerName === 'noah') characterKey = 'noah';
+    else if (lowerName === 'nimrod') characterKey = 'nimrod';
+    else if (lowerName === 'builder') characterKey = 'builder';
+    else if (lowerName === 'worker') characterKey = 'worker';
   }
   
-  let matchVoice = null;
-  if (characterName === 'Eve') {
-    matchVoice = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('hazel'));
-    utterance.pitch = 1.15;
-    utterance.rate = 0.95;
-  } else if (characterName === 'Serpent') {
-    matchVoice = voices.find(v => v.name.toLowerCase().includes('google uk english male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('male'));
-    utterance.pitch = 0.55;
-    utterance.rate = 0.78;
-  } else if (characterName === 'God') {
-    matchVoice = voices.find(v => v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('google uk english male'));
-    utterance.pitch = 0.70;
-    utterance.rate = 0.82;
-  } else {
-    matchVoice = voices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david'));
-    utterance.pitch = 0.95;
-    utterance.rate = 0.92;
-  }
+  preloadNextLine(cleanText);
   
-  if (matchVoice) {
-    utterance.voice = matchVoice;
-  }
-  window.speechSynthesis.speak(utterance);
+  return ttsEngine.speak(cleanText, characterKey);
 }
 
 function showTextLine(text, holdBeforeHintMs = 2800, ttsCharacter = 'Narrator') {
   return new Promise(resolve => {
-    speakText(text, ttsCharacter);
-    
     narrationEl.textContent = text;
     narrationEl.classList.remove('show');
     hintEl.classList.remove('show');
@@ -324,17 +447,19 @@ function showTextLine(text, holdBeforeHintMs = 2800, ttsCharacter = 'Narrator') 
     void narrationEl.offsetWidth;
     narrationEl.classList.add('show');
     
-    setTimeout(() => {
-      hintEl.classList.add('show');
-      isWaitingClick = true;
-      advanceCallback = () => {
-        isWaitingClick = false;
-        hintEl.classList.remove('show');
-        narrationEl.classList.remove('show');
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-        setTimeout(resolve, 850);
-      };
-    }, holdBeforeHintMs);
+    Promise.resolve(speakText(text, ttsCharacter)).then(() => {
+      setTimeout(() => {
+        hintEl.classList.add('show');
+        isWaitingClick = true;
+        advanceCallback = () => {
+          isWaitingClick = false;
+          hintEl.classList.remove('show');
+          narrationEl.classList.remove('show');
+          ttsEngine.stop();
+          setTimeout(resolve, 850);
+        };
+      }, holdBeforeHintMs);
+    });
   });
 }
 
@@ -346,8 +471,6 @@ function showSpeechBubble(characterName, text, holdBeforeHintMs = 2600) {
       resolve();
       return;
     }
-    
-    speakText(text, characterName);
     
     speechBubbleEl.innerHTML = `<strong>${characterName}</strong><br/>${text}`;
     speechBubbleEl.style.display = 'block';
@@ -368,22 +491,43 @@ function showSpeechBubble(characterName, text, holdBeforeHintMs = 2600) {
       bubbleTargetObject = null;
     }
     
-    hintEl.classList.add('show');
-    isWaitingClick = true;
-    advanceCallback = () => {
-      isWaitingClick = false;
-      hintEl.classList.remove('show');
-      speechBubbleEl.style.display = 'none';
-      bubbleTargetObject = null;
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-      setTimeout(resolve, 600);
-    };
+    Promise.resolve(speakText(text, characterName)).then(() => {
+      hintEl.classList.add('show');
+      isWaitingClick = true;
+      advanceCallback = () => {
+        isWaitingClick = false;
+        hintEl.classList.remove('show');
+        speechBubbleEl.style.display = 'none';
+        bubbleTargetObject = null;
+        ttsEngine.stop();
+        setTimeout(resolve, 600);
+      };
+    });
   });
 }
 
 function clearNarration() {
   narrationEl.classList.remove('show');
   hintEl.classList.remove('show');
+}
+
+function showInstruction(text, ttsCharacter = 'Narrator') {
+  narrationEl.textContent = text;
+  narrationEl.classList.remove('show');
+  hintEl.classList.remove('show');
+  
+  void narrationEl.offsetWidth;
+  narrationEl.classList.add('show');
+  
+  speakText(text, ttsCharacter);
+}
+
+function clearInstruction() {
+  narrationEl.classList.remove('show');
+  hintEl.classList.remove('show');
+  ttsEngine.stop();
+  isWaitingClick = false;
+  advanceCallback = null;
 }
 
 function handleAdvance() {
@@ -417,9 +561,7 @@ function destroyActiveScene() {
   advanceCallback = null;
   bubbleTargetObject = null;
   
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
+  ttsEngine.stop();
   
   if (speechBubbleEl) {
     speechBubbleEl.style.display = 'none';
@@ -481,20 +623,21 @@ async function executeCreationSequence(seqId) {
       <p><span class="verse-num">2</span>And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.</p>
       <p><span class="verse-num">3</span>And God said, Let there be light: and there was light.</p>
       <p><span class="verse-num">4</span>And God saw the light, that it was good: and God divided the light from the darkness.</p>
-      <p><span class="verse-num">6&ndash;8</span>And God said, Let there be a firmament in the midst of the waters&hellip; And God called the firmament Heaven.</p>
-      <p><span class="verse-num">9&ndash;13</span>And God said, Let the waters under the heaven be gathered together unto one place, and let the dry land appear&hellip; and the earth brought forth grass, and herb yielding seed, and the fruit tree yielding fruit.</p>
-      <p><span class="verse-num">14&ndash;19</span>And God said, Let there be lights in the firmament of the heaven&hellip; the greater light to rule the day, and the lesser light to rule the night: he made the stars also.</p>
-      <p><span class="verse-num">20&ndash;23</span>And God said, Let the waters bring forth abundantly the moving creature that hath life, and fowl that may fly above the earth&hellip;</p>
-      <p><span class="verse-num">24&ndash;25</span>And God said, Let the earth bring forth the living creature after his kind, cattle, and creeping thing, and beast of the earth after his kind: and it was so.</p>
-      <p><span class="verse-num">26&ndash;27</span>And God said, Let us make man in our image, after our likeness&hellip; So God created man in his own image, in the image of God created he him; male and female created he them.</p>
-      <p><span class="verse-num">2:7</span>And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.</p>
+      <p><span class="verse-num">6&ndash;8</span>And God said, Let there be a firmament in the midst of the waters, and let it divide the waters from the waters. And God made the firmament, and divided the waters which were under the firmament from the waters which were above the firmament: and it was so. And God called the firmament Heaven. And the evening and the morning were the second day.</p>
+      <p><span class="verse-num">9&ndash;13</span>And God said, Let the waters under the heaven be gathered together unto one place, and let the dry land appear: and it was so. And God called the dry land Earth; and the gathering together of the waters called he Seas: and God saw that it was good. And God said, Let the earth bring forth grass, the herb yielding seed, and the fruit tree yielding fruit after his kind, whose seed is in itself, upon the earth: and it was so. And the earth brought forth grass, and herb yielding seed after his kind, and the tree yielding fruit, whose seed was in itself, after his kind: and God saw that it was good. And the evening and the morning were the third day.</p>
+      <p><span class="verse-num">14&ndash;19</span>And God said, Let there be lights in the firmament of the heaven to divide the day from the night; and let them be for signs, and for seasons, and for days, and years: And let them be for lights in the firmament of the heaven to give light upon the earth: and it was so. And God made two great lights; the greater light to rule the day, and the lesser light to rule the night: he made the stars also. And God set them in the firmament of the heaven to give light upon the earth, And to rule over the day and over the night, and to divide the light from the darkness: and God saw that it was good. And the evening and the morning were the fourth day.</p>
+      <p><span class="verse-num">20&ndash;23</span>And God said, Let the waters bring forth abundantly the moving creature that hath life, and fowl that may fly above the earth in the open firmament of heaven. And God created great whales, and every living creature that moveth, which the waters brought forth abundantly, after their kind, and every winged fowl after his kind: and God saw that it was good. And God blessed them, saying, Be fruitful, and multiply, and fill the waters in the seas, and let fowl multiply in the earth. And the evening and the morning were the fifth day.</p>
+      <p><span class="verse-num">24&ndash;25</span>And God said, Let the earth bring forth the living creature after his kind, cattle, and creeping thing, and beast of the earth after his kind: and it was so. And God made the beast of the earth after his kind, and cattle after their kind, and every thing that creepeth upon the earth after his kind: and God saw that it was good.</p>
+      <p><span class="verse-num">26&ndash;27</span>And God said, Let us make man in our image, after our likeness: and let them have dominion over the fish of the sea, and over the fowl of the air, and over the cattle, and over all the earth, and over every creeping thing that creepeth upon the earth. So God created man in his own image, in the image of God created he him; male and female created he them.</p>
+      <p><span class="verse-num">28&ndash;31</span>And God blessed them, and God said unto them, Be fruitful, and multiply, and replenish the earth, and subdue it: and have dominion over the fish of the sea, and over the fowl of the air, and over every living thing that moveth upon the earth. And God said, Behold, I have given you every herb bearing seed, which is upon the face of all the earth, and every tree, in the which is the fruit of a tree yielding seed; to you it shall be for meat. And to every beast of the earth, and to every fowl of the air, and to every thing that creepeth upon the earth, wherein there is life, I have given every green herb for meat: and it was so. And God saw every thing that he had made, and, behold, it was very good. And the evening and the morning were the sixth day.</p>
+      <p><span class="verse-num">2:1&ndash;7</span>Thus the heavens and the earth were finished, and all the host of them. And on the seventh day God ended his work which he had made; and he rested on the seventh day from all his work which he had made. And God blessed the seventh day, and sanctified it: because that in it he had rested from all his work which God created and made. These are the generations of the heavens and of the earth when they were created, in the day that the LORD God made the earth and the heavens, And every plant of the field before it was in the earth, and every herb of the field before it grew: for the LORD God had not caused it to rain upon the earth, and there was not a man to till the ground. But there went up a mist from the earth, and watered the whole face of the ground. And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.</p>
     `
   );
   
   if (!await stepDelay(1500)) return;
   
-  if (!await stepText('In the beginning, God created the heavens and the earth.', 3400, 'Narrator')) return;
-  if (!await stepText('The earth was without form, and void; and darkness was upon the face of the deep.', 3800, 'Narrator')) return;
+  if (!await stepText('In the beginning God created the heaven and the earth.', 3400, 'Narrator')) return;
+  if (!await stepText('And the earth was without form, and void; and darkness was upon the face of the deep.', 3800, 'Narrator')) return;
   
   clearNarration();
   if (!await stepDelay(2800)) return;
@@ -519,42 +662,48 @@ async function executeCreationSequence(seqId) {
   
   if (seqId !== currentSequenceId) return;
   await displayDayLabel('Day Two');
-  if (!await stepText('And God said, "Let there be a firmament in the midst of the waters." And God called the firmament Heaven.', 3400, 'God')) return;
+  if (!await stepText('And God said, "Let there be a firmament in the midst of the waters, and let it divide the waters from the waters."', 3400, 'God')) return;
   await sceneEngine.transitionDayTwo();
   if (!await stepDelay(1500)) return;
   
   if (seqId !== currentSequenceId) return;
   await displayDayLabel('Day Three');
-  if (!await stepText('And God said, "Let the dry land appear." And the earth brought forth grass, and the fruit tree yielding fruit.', 3600, 'God')) return;
+  if (!await stepText('And God said, "Let the waters under the heaven be gathered together unto one place, and let the dry land appear:"', 3600, 'God')) return;
   await sceneEngine.transitionDayThree();
   adjustWindIntensity(0.02, 180, 5.0);
   if (!await stepDelay(3200)) return;
   
   if (seqId !== currentSequenceId) return;
   await displayDayLabel('Day Four');
-  if (!await stepText('And God made two great lights, the greater light to rule the day, and the lesser to rule the night: he made the stars also.', 3600, 'Narrator')) return;
+  if (!await stepText('And God made two great lights; the greater light to rule the day, and the lesser light to rule the night: he made the stars also.', 4200, 'Narrator')) return;
   await sceneEngine.transitionDayFour();
   if (!await stepDelay(2000)) return;
   
   if (seqId !== currentSequenceId) return;
   await displayDayLabel('Day Five');
-  if (!await stepText('And God said, "Let the waters bring forth abundantly," and let birds fly above the earth.', 3400, 'God')) return;
+  if (!await stepText('And God said, "Let the waters bring forth abundantly the moving creature that hath life, and fowl that may fly above the earth in the open firmament of heaven."', 4200, 'God')) return;
   await sceneEngine.transitionDayFive();
   enableBirdSounds = true;
   if (!await stepDelay(2200)) return;
   
   if (seqId !== currentSequenceId) return;
   await displayDayLabel('Day Six');
-  if (!await stepText('And God made the beasts of the earth after their kind. And it was so.', 3000, 'Narrator')) return;
+  if (!await stepText('And God made the beast of the earth after his kind, and cattle after their kind, and every thing that creepeth upon the earth after his kind: and God saw that it was good.', 4500, 'Narrator')) return;
   await sceneEngine.transitionDaySix();
   enableAnimalSounds = true;
   if (!await stepDelay(2000)) return;
   
-  if (!await stepText('Then the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.', 4500, 'Narrator')) return;
+  if (!await stepText('And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.', 4500, 'Narrator')) return;
   
   if (seqId !== currentSequenceId) return;
   await sceneEngine.formAdam();
   if (!await stepDelay(6500)) return;
+  
+  if (!await stepText('And God blessed them, and God said unto them, Be fruitful, and multiply, and replenish the earth, and subdue it...', 4500, 'Narrator')) return;
+  if (!await stepText('And God saw every thing that he had made, and, behold, it was very good. And the evening and the morning were the sixth day.', 4500, 'Narrator')) return;
+  
+  if (!await stepText('Thus the heavens and the earth were finished, and all the host of them.', 4000, 'Narrator')) return;
+  if (!await stepText('And on the seventh day God ended his work which he had made; and he rested on the seventh day...', 4000, 'Narrator')) return;
   
   clearNarration();
   if (!await stepDelay(1800)) return;
@@ -587,14 +736,19 @@ async function executeEdenSequence(seqId) {
 
   scriptureLabelEl.classList.remove('show');
   loadScriptureScroll(
-    `Genesis 3:1 &ndash; 24 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    `Genesis 2:1 &ndash; 3:24 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     `
-      <p><span class="verse-num">1</span>Now the serpent was more subtil than any beast of the field which the LORD God had made. And he said unto the woman, Yea, hath God said, Ye shall not eat of every tree of the garden?</p>
+      <p><span class="verse-num">2:1&ndash;7</span>Thus the heavens and the earth were finished, and all the host of them. And on the seventh day God ended his work which he had made; and he rested on the seventh day from all his work which he had made. And God blessed the seventh day, and sanctified it: because that in it he had rested from all his work which God created and made. These are the generations of the heavens and of the earth when they were created, in the day that the LORD God made the earth and the heavens, And every plant of the field before it was in the earth, and every herb of the field before it grew: for the LORD God had not caused it to rain upon the earth, and there was not a man to till the ground. But there went up a mist from the earth, and watered the whole face of the ground. And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.</p>
+      <p><span class="verse-num">8&ndash;14</span>And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed. And out of the ground made the LORD God to grow every tree that is pleasant to the sight, and good for food; the tree of life also in the midst of the garden, and the tree of knowledge of good and evil. And a river went out of Eden to water the garden; and from thence it was parted, and became into four heads. The name of the first is Pison: that is it which compasseth the whole land of Havilah, where there is gold; And the gold of that land is good: there is bdellium and the onyx stone. And the name of the second river is Gihon: the same is it that compasseth the whole land of Ethiopia. And the name of the third river is Hiddekel: that is it which goeth toward the east of Assyria. And the fourth river is Euphrates.</p>
+      <p><span class="verse-num">15&ndash;17</span>And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it. And the LORD God commanded the man, saying, Of every tree of the garden thou mayest freely eat: But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.</p>
+      <p><span class="verse-num">18&ndash;20</span>And the LORD God said, It is not good that the man should be alone; I will make him an help meet for him. And out of the ground the LORD God formed every beast of the field, and every fowl of the air; and brought them unto Adam to see what he would call them: and whatsoever Adam called every living creature, that was the name thereof. And Adam gave names to all cattle, and to the fowl of the air, and to every beast of the field; but for Adam there was not found an help meet for him.</p>
+      <p><span class="verse-num">21&ndash;25</span>And the LORD God caused a deep sleep to fall upon Adam, and he slept: and he took one of his ribs, and closed up the flesh instead thereof; And the rib, which the LORD God had taken from man, made he a woman, and brought her unto the man. And Adam said, This is now bone of my bones, and flesh of my flesh: she shall be called Woman, because she was taken out of Man. Therefore shall a man leave his father and his mother, and shall cleave unto his wife: and they shall be one flesh. And they were both naked, the man and his wife, and were not ashamed.</p>
+      <p><span class="verse-num">3:1</span>Now the serpent was more subtil than any beast of the field which the LORD God had made. And he said unto the woman, Yea, hath God said, Ye shall not eat of every tree of the garden?</p>
       <p><span class="verse-num">2&ndash;3</span>And the woman said unto the serpent, We may eat of the fruit of the trees of the garden: But of the fruit of the tree which is in the midst of the garden, God hath said, Ye shall not eat of it, neither shall ye touch it, lest ye die.</p>
       <p><span class="verse-num">4&ndash;5</span>And the serpent said unto the woman, Ye shall not surely die: For God doth know that in the day ye eat thereof, then your eyes shall be opened, and ye shall be as gods, knowing good and evil.</p>
       <p><span class="verse-num">6</span>And when the woman saw that the tree was good for food, and that it was pleasant to the eyes, and a tree to be desired to make one wise, she took of the fruit thereof, and did eat, and gave also unto her husband with her; and he did eat.</p>
       <p><span class="verse-num">7</span>And the eyes of them both were opened, and they knew that they were naked; and they sewed fig leaves together, and made themselves aprons.</p>
-      <p><span class="verse-num">8&ndash;19</span>And they heard the voice of the LORD God walking in the garden in the cool of the day... unto Adam he said, Because thou hearkened unto the voice of thy wife, and hast eaten of the tree... cursed is the ground for thy sake; in sorrow shalt thou eat of it all the days of thy life...</p>
+      <p><span class="verse-num">8&ndash;19</span>And they heard the voice of the LORD God walking in the garden in the cool of the day: and Adam and his wife hid themselves from the presence of the LORD God amongst the trees of the garden. And the LORD God called unto Adam, and said unto him, Where art thou? And he said, I heard thy voice in the garden, and I was afraid, because I was naked; and I hid myself. And he said, Who told thee that thou wast naked? Hast thou eaten of the tree, whereof I commanded thee that thou shouldest not eat? And the man said, The woman whom thou gavest to be with me, she gave me of the tree, and I did eat. And the LORD God said unto the woman, What is this that thou hast done? And the woman said, The serpent beguiled me, and I did eat. And the LORD God said unto the serpent, Because thou hast done this, thou art cursed above all cattle, and above every beast of the field; upon thy belly shalt thou go, and dust shalt thou eat all the days of thy life: And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head, and thou shalt bruise his heel. Unto the woman he said, I will greatly multiply thy sorrow and thy conception; in sorrow thou shalt bring forth children; and thy desire shall be to thy husband, and he shall rule over thee. And unto Adam he said, Because thou hast hearkened unto the voice of thy wife, and hast eaten of the tree, of which I commanded thee, saying, Thou shalt not eat of it: cursed is the ground for thy sake; in sorrow shalt thou eat of it all the days of thy life; Thorns also and thistles shall it bring forth to thee; and thou shalt eat the herb of the field; In the sweat of thy face shalt thou eat bread, till thou return unto the ground; for out of it wast thou taken: for dust thou art, and unto dust shalt thou return.</p>
       <p><span class="verse-num">23&ndash;24</span>Therefore the LORD God sent him forth from the garden of Eden, to till the ground from whence he was taken. So he drove out the man; and he placed at the east of the garden of Eden Cherubims, and a flaming sword which turned every way, to keep the way of the tree of life.</p>
     `
   );
@@ -603,9 +757,38 @@ async function executeEdenSequence(seqId) {
   veilEl.style.transition = 'background 1.5s ease';
   veilEl.style.background = 'rgba(0,0,0,0)';
   
-  if (!await stepText('And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed.', 3400, 'Narrator')) return;
+  if (!await stepText('And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed.', 4000, 'Narrator')) return;
   if (!await stepText('And out of the ground made the LORD God to grow every tree that is pleasant to the sight, and good for food...', 3600, 'Narrator')) return;
   if (!await stepText('The tree of life also in the midst of the garden, and the tree of knowledge of good and evil.', 3600, 'Narrator')) return;
+  
+  if (!await stepText('And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it.', 4000, 'Narrator')) return;
+  if (!await stepText('And the LORD God commanded the man, saying, Of every tree of the garden thou mayest freely eat...', 4500, 'Narrator')) return;
+  if (!await stepText('But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.', 5500, 'Narrator')) return;
+  
+  if (!await stepText('And the LORD God said, It is not good that the man should be alone; I will make him an help meet for him.', 4500, 'God')) return;
+  
+  if (seqId !== currentSequenceId) return;
+  const namingPromise = sceneEngine.animateNamingAnimals();
+  if (!await stepText('And out of the ground the LORD God formed every beast of the field, and every fowl of the air...', 4500, 'Narrator')) return;
+  if (!await stepText('And brought them unto Adam to see what he would call them...', 4000, 'Narrator')) return;
+  await namingPromise;
+  
+  if (!await stepText('And Adam gave names to all cattle, and to the fowl of the air, and to every beast of the field...', 4500, 'Narrator')) return;
+  if (!await stepText('But for Adam there was not found an help meet for him.', 4000, 'Narrator')) return;
+
+  if (seqId !== currentSequenceId) return;
+  const sleepPromise = sceneEngine.animateDeepSleep();
+  if (!await stepText('And the LORD God caused a deep sleep to fall upon Adam, and he slept...', 4500, 'Narrator')) return;
+  await sleepPromise;
+  
+  if (seqId !== currentSequenceId) return;
+  const eveCreationPromise = sceneEngine.animateCreationOfEve();
+  if (!await stepText('And he took one of his ribs, and closed up the flesh instead thereof...', 4500, 'Narrator')) return;
+  if (!await stepText('And the rib, which the LORD God had taken from man, made he a woman, and brought her unto the man.', 4500, 'Narrator')) return;
+  await eveCreationPromise;
+
+  if (!await stepSpeech('Adam', 'This is now bone of my bones, and flesh of my flesh: she shall be called Woman, because she was taken out of Man.', 5500)) return;
+  if (!await stepText('Therefore shall a man leave his father and his mother, and shall cleave unto his wife: and they shall be one flesh.', 5000, 'Narrator')) return;
   
   clearNarration();
   if (seqId !== currentSequenceId) return;
@@ -617,8 +800,8 @@ async function executeEdenSequence(seqId) {
   enableBirdSounds = true;
   enableAnimalSounds = true;
   
-  if (!await stepText('Walk up to the center Tree of Knowledge to witness the Fall.', 4000, 'Narrator')) return;
-  clearNarration();
+  if (seqId !== currentSequenceId) return;
+  showInstruction('Walk up to the center Tree of Knowledge to witness the Fall.', 'Narrator');
   
   // Proximity monitor loop
   let proximityCheck = true;
@@ -635,6 +818,8 @@ async function executeEdenSequence(seqId) {
       proximityCheck = false;
     }
   }
+  
+  clearInstruction();
   
   if (seqId !== currentSequenceId) return;
   sceneEngine.movementEnabled = false;
@@ -670,7 +855,7 @@ async function executeEdenSequence(seqId) {
   if (!await stepSpeech('Eve', 'We may eat of the fruit of the trees of the garden: But of the fruit of the tree which is in the midst of the garden, God hath said, Ye shall not eat of it, neither shall ye touch it, lest ye die.', 5800)) return;
   if (!await stepSpeech('Serpent', 'Ye shall not surely die: For God doth know that in the day ye eat thereof, then your eyes shall be opened, and ye shall be as gods, knowing good and evil.', 6200)) return;
   
-  if (!await stepText('The woman saw that the tree was good for food, and that it was pleasant to the eyes...', 3800, 'Narrator')) return;
+  if (!await stepText('And when the woman saw that the tree was good for food, and that it was pleasant to the eyes...', 3800, 'Narrator')) return;
   
   if (seqId !== currentSequenceId) return;
   // 1. Eve reaches out her right arm and a fruit drops to her hand
@@ -687,7 +872,7 @@ async function executeEdenSequence(seqId) {
   }
   if (!await stepDelay(2000)) return;
   
-  if (!await stepText('She took of the fruit thereof, and did eat...', 3200, 'Narrator')) return;
+  if (!await stepText('...she took of the fruit thereof, and did eat...', 3200, 'Narrator')) return;
   
   // Eve brings hand to head to simulate eating, then resets
   gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
@@ -840,14 +1025,14 @@ async function executeEdenSequence(seqId) {
   });
   if (!await stepDelay(3200)) return;
   
-  if (!await stepText('...and Adam and his wife hid themselves from the presence of the LORD God amongst the trees.', 3800, 'Narrator')) return;
+  if (!await stepText('...and Adam and his wife hid themselves from the presence of the LORD God amongst the trees of the garden.', 3800, 'Narrator')) return;
   
   // --- QUESTIONING DIALOGUE SEGMENT ---
   if (!await stepText('And the LORD God called unto Adam, and said unto him, "Where art thou?"', 4200, 'God')) return;
   
   if (!await stepSpeech('Adam', 'I heard thy voice in the garden, and I was afraid, because I was naked; and I hid myself.', 5200)) return;
   
-  if (!await stepText('And the LORD God said, "Who told thee that thou wast naked? Hast thou eaten of the tree whereof I commanded thee?"', 5500, 'God')) return;
+  if (!await stepText('And he said, "Who told thee that thou wast naked? Hast thou eaten of the tree, whereof I commanded thee that thou shouldest not eat?"', 5500, 'God')) return;
   
   if (!await stepSpeech('Adam', 'The woman whom thou gavest to be with me, she gave me of the tree, and I did eat.', 4800)) return;
   
@@ -858,11 +1043,11 @@ async function executeEdenSequence(seqId) {
   // --- PUNISHMENT ORDER: SERPENT FIRST, THEN EVE, THEN ADAM ---
   if (!await stepText('And the LORD God said unto the serpent, "Because thou hast done this, thou art cursed above all cattle, and above every beast of the field; upon thy belly shalt thou go, and dust shalt thou eat all the days of thy life..."', 6800, 'God')) return;
   
-  if (!await stepText('Unto the woman God said, "I will greatly multiply thy sorrow and thy conception; in sorrow thou shalt bring forth children..."', 5200, 'God')) return;
+  if (!await stepText('Unto the woman he said, "I will greatly multiply thy sorrow and thy conception; in sorrow thou shalt bring forth children..."', 5200, 'God')) return;
   
   if (!await stepText('And unto Adam he said, "Because thou hast hearkened unto the voice of thy wife, and hast eaten of the tree... cursed is the ground for thy sake; in sorrow shalt thou eat of it all the days of thy life..."', 5800, 'God')) return;
   
-  if (!await stepText('Therefore the LORD God sent him forth from the garden of Eden, to till the ground.', 3800, 'Narrator')) return;
+  if (!await stepText('Therefore the LORD God sent him forth from the garden of Eden, to till the ground from whence he was taken.', 3800, 'Narrator')) return;
   
   // Enable East Gate Cherubims & Flaming Sword
   if (seqId !== currentSequenceId) return;
@@ -966,14 +1151,14 @@ async function executeCainAbelSequence(seqId) {
       <p><span class="verse-num">3</span>And in process of time it came to pass, that Cain brought of the fruit of the ground an offering unto the LORD.</p>
       <p><span class="verse-num">4</span>And Abel, he also brought of the firstlings of his flock and of the fat thereof. And the LORD had respect unto Abel and to his offering:</p>
       <p><span class="verse-num">5</span>But unto Cain and to his offering he had not respect. And Cain was very wroth, and his countenance fell.</p>
-      <p><span class="verse-num">6&ndash;7</span>And the LORD said unto Cain, Why art thou wroth? and why is thy countenance fallen? If thou doest well, shalt thou not be accepted? and if thou doest not well, sin lieth at the door...</p>
+      <p><span class="verse-num">6&ndash;7</span>And the LORD said unto Cain, Why art thou wroth? and why is thy countenance fallen? If thou doest well, shalt thou not be accepted? and if thou doest not well, sin lieth at the door. And unto thee shall be his desire, and thou shalt rule over him.</p>
       <p><span class="verse-num">8</span>And Cain talked with Abel his brother: and it came to pass, when they were in the field, that Cain rose up against Abel his brother, and slew him.</p>
       <p><span class="verse-num">9</span>And the LORD said unto Cain, Where is Abel thy brother? And he said, I know not: Am I my brother's keeper?</p>
-      <p><span class="verse-num">10&ndash;12</span>And he said, What hast thou done? the voice of thy brother's blood crieth unto me from the ground. And now art thou cursed from the earth... When thou tillest the ground, it shall not henceforth yield unto thee her strength; a fugitive and a vagabond shalt thou be...</p>
-      <p><span class="verse-num">13&ndash;14</span>And Cain said unto the LORD, My punishment is greater than I can bear... every one that findeth me shall slay me.</p>
-      <p><span class="verse-num">15&ndash;16</span>And the LORD said unto him, Therefore whosoever slayeth Cain, vengeance shall be taken on him sevenfold. And the LORD set a mark upon Cain... And Cain went out from the presence of the LORD, and dwelt in the land of Nod, on the east of Eden.</p>
+      <p><span class="verse-num">10&ndash;12</span>And he said, What hast thou done? the voice of thy brother's blood crieth unto me from the ground. And now art thou cursed from the earth, which hath opened her mouth to receive thy brother's blood from thy hand; When thou tillest the ground, it shall not henceforth yield unto thee her strength; a fugitive and a vagabond shalt thou be in the earth.</p>
+      <p><span class="verse-num">13&ndash;14</span>And Cain said unto the LORD, My punishment is greater than I can bear. Behold, thou hast driven me out this day from the face of the earth; and from thy face shall I be hid; and I shall be a fugitive and a vagabond in the earth; and it shall come to pass, that every one that findeth me shall slay me.</p>
+      <p><span class="verse-num">15&ndash;16</span>And the LORD said unto him, Therefore whosoever slayeth Cain, vengeance shall be taken on him sevenfold. And the LORD set a mark upon Cain, lest any finding him should kill him. And Cain went out from the presence of the LORD, and dwelt in the land of Nod, on the east of Eden.</p>
       <p><span class="verse-num">25</span>And Adam knew his wife again; and she bare a son, and called his name Seth: For God, said she, hath appointed me another seed instead of Abel, whom Cain slew.</p>
-      <p><span class="verse-num">6:5&ndash;8</span>And GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually... And it repented the LORD that he had made man on the earth... But Noah found grace in the eyes of the LORD.</p>
+      <p><span class="verse-num">6:5&ndash;8</span>And GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually. And it repented the LORD that he had made man on the earth, and it grieved him at his heart. And the LORD said, I will destroy man whom I have created from the face of the earth; both man, and beast, and the creeping thing, and the fowls of the air; for it repenteth me that I have made them. But Noah found grace in the eyes of the LORD.</p>
     `
   );
 
@@ -991,7 +1176,7 @@ async function executeCainAbelSequence(seqId) {
 
   // Gen 4:2 - Birth of Abel & Growing Up
   if (!await stepText('And she again bare his brother Abel.', 3400, 'Narrator')) return;
-  if (!await stepText('And the brothers grew; Abel became a keeper of sheep, but Cain was a tiller of the ground.', 4200, 'Narrator')) return;
+  if (!await stepText('And Abel was a keeper of sheep, but Cain was a tiller of the ground.', 4200, 'Narrator')) return;
 
   // Transition to manhood (hide babies, show grown Cain & Abel)
   if (seqId !== currentSequenceId) return;
@@ -1024,8 +1209,8 @@ async function executeCainAbelSequence(seqId) {
   sceneEngine.unlockControls();
   movementHintEl.classList.add('show');
   
-  if (!await stepText('Walk to the central Altar of Stones to present your offering.', 4200, 'Narrator')) return;
-  clearNarration();
+  if (seqId !== currentSequenceId) return;
+  showInstruction('Walk to the central Altar of Stones to present your offering.', 'Narrator');
 
   // Wait for Cain to approach his altar
   let proximityCheck = true;
@@ -1042,6 +1227,8 @@ async function executeCainAbelSequence(seqId) {
       proximityCheck = false;
     }
   }
+
+  clearInstruction();
 
   // Lock movement controls for cinematic
   if (seqId !== currentSequenceId) return;
@@ -1106,7 +1293,7 @@ async function executeCainAbelSequence(seqId) {
   gsap.to(sceneEngine.cainArmR.rotation, { z: 0, duration: 0.8 });
   
   sceneEngine.cain.lookAt(sceneEngine.abel.position.x, sceneEngine.cain.position.y, sceneEngine.abel.position.z);
-  if (!await stepSpeech('Cain', 'Let us go into the field.', 3200)) return;
+  if (!await stepText('And Cain talked with Abel his brother:', 3200, 'Narrator')) return;
 
   // Walk into the field at (0, y, -12)
   if (seqId !== currentSequenceId) return;
@@ -1199,17 +1386,17 @@ async function executeCainAbelSequence(seqId) {
   if (!await stepSpeech('Cain', 'I know not: Am I my brother\'s keeper?', 3600)) return;
 
   // Gen 4:10-12 - Curses
-  if (!await stepText('And God said, "What hast thou done? the voice of thy brother\'s blood crieth unto me from the ground."', 5200, 'God')) return;
-  if (!await stepText('"And now art thou cursed from the earth, which hath opened her mouth to receive thy brother\'s blood..."', 5200, 'God')) return;
-  if (!await stepText('"When thou tillest the ground, it shall not henceforth yield unto thee her strength; a fugitive and a vagabond shalt thou be..."', 5600, 'God')) return;
+  if (!await stepText('And he said, "What hast thou done? the voice of thy brother\'s blood crieth unto me from the ground."', 5200, 'God')) return;
+  if (!await stepText('"And now art thou cursed from the earth, which hath opened her mouth to receive thy brother\'s blood from thy hand;"', 5200, 'God')) return;
+  if (!await stepText('"When thou tillest the ground, it shall not henceforth yield unto thee her strength; a fugitive and a vagabond shalt thou be in the earth."', 5600, 'God')) return;
 
   // Gen 4:13-14 - Cain's grief
   if (seqId !== currentSequenceId) return;
   gsap.to(sceneEngine.cain.position, { y: sceneEngine.getTerrainHeight(-0.6, -12.0) - 0.45, duration: 1.0 }); // Cain falls to knees
-  if (!await stepSpeech('Cain', 'My punishment is greater than I can bear. Behold, thou hast driven me out this day...', 5200)) return;
+  if (!await stepSpeech('Cain', 'My punishment is greater than I can bear. Behold, thou hast driven me out this day from the face of the earth;', 5200)) return;
 
   // Gen 4:15-16 - Setting the Mark
-  if (!await stepText('And the LORD said, "Therefore whosoever slayeth Cain, vengeance shall be taken on him sevenfold."', 4500, 'God')) return;
+  if (!await stepText('And the LORD said unto him, "Therefore whosoever slayeth Cain, vengeance shall be taken on him sevenfold."', 4500, 'God')) return;
 
   if (seqId !== currentSequenceId) return;
   // Fade in the warning mark above Cain's head
@@ -1304,7 +1491,7 @@ async function executeCainAbelSequence(seqId) {
   veilEl.style.background = 'rgba(0,0,0,0)';
   if (!await stepDelay(1800)) return;
 
-  if (!await stepText('And it came to pass, as men multiplied on the face of the earth...', 3600, 'Narrator')) return;
+  if (!await stepText('And it came to pass, when men began to multiply on the face of the earth...', 3600, 'Narrator')) return;
 
   // Camera pans slightly as they carouse
   gsap.to(camPos, {
@@ -1317,12 +1504,12 @@ async function executeCainAbelSequence(seqId) {
     }
   });
 
-  if (!await stepText('GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually.', 5200, 'Narrator')) return;
+  if (!await stepText('And GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually.', 5200, 'Narrator')) return;
   
-  if (!await stepText('And the earth was corrupt before God, and filled with violence.', 4200, 'Narrator')) return;
+  if (!await stepText('The earth also was corrupt before God, and the earth was filled with violence.', 4200, 'Narrator')) return;
 
   // God's voice expressing grief
-  if (!await stepText('"It repenteth me that I have made man on the earth, and it grieveth me at my heart."', 5200, 'God')) return;
+  if (!await stepText('And it repented the LORD that he had made man on the earth, and it grieved him at his heart.', 5200, 'Narrator')) return;
 
   // Fade to black
   if (seqId !== currentSequenceId) return;
@@ -1361,13 +1548,13 @@ async function executeNoahSequence(seqId) {
   loadScriptureScroll(
     `Genesis 6:13 &ndash; 9:13 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     `
-      <p><span class="verse-num">6:13&ndash;14</span>And God said unto Noah, The end of all flesh is come before me... Make thee an ark of gopher wood; rooms shalt thou make in the ark...</p>
+      <p><span class="verse-num">6:13&ndash;14</span>And God said unto Noah, The end of all flesh is come before me; for the earth is filled with violence through them; and, behold, I will destroy them with the earth. Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch.</p>
       <p><span class="verse-num">7:1</span>And the LORD said unto Noah, Come thou and all thy house into the ark; for thee have I seen righteous before me in this generation.</p>
-      <p><span class="verse-num">7:2&ndash;3</span>Of every clean beast thou shalt take to thee by sevens, the male and his female... of fowls also of the air by sevens...</p>
+      <p><span class="verse-num">7:2&ndash;3</span>Of every clean beast thou shalt take to thee by sevens, the male and his female: and of beasts that are not clean by two, the male and his female. Of fowls also of the air by sevens, the male and the female; to keep seed alive upon the face of all the earth.</p>
       <p><span class="verse-num">7:7</span>And Noah went in, and his sons, and his wife, and his sons' wives with him, into the ark, because of the waters of the flood.</p>
-      <p><span class="verse-num">7:11&ndash;12</span>...the same day were all the fountains of the great deep broken up, and the windows of heaven were opened. And the rain was upon the earth forty days and forty nights.</p>
-      <p><span class="verse-num">7:17&ndash;18</span>And the flood was forty days upon the earth... and the waters increased, and bare up the ark, and it was lift up above the earth.</p>
-      <p><span class="verse-num">8:1&ndash;3</span>And God remembered Noah, and every living thing... and the rain from heaven was restrained; And the waters returned from off the earth...</p>
+      <p><span class="verse-num">7:11&ndash;12</span>In the six hundredth year of Noah's life, in the second month, the seventeenth day of the month, the same day were all the fountains of the great deep broken up, and the windows of heaven were opened. And the rain was upon the earth forty days and forty nights.</p>
+      <p><span class="verse-num">7:17&ndash;18</span>And the flood was forty days upon the earth; and the waters increased, and bare up the ark, and it was lift up above the earth. And the waters prevailed, and were increased greatly upon the earth; and the ark went upon the face of the waters.</p>
+      <p><span class="verse-num">8:1&ndash;3</span>And God remembered Noah, and every living thing, and all the cattle that was with him in the ark: and God made a wind to pass over the earth, and the waters asswaged; The fountains also of the deep and the windows of heaven were stopped, and the rain from heaven was restrained; And the waters returned from off the earth continually: and after the end of the hundred and fifty days the waters were abated.</p>
       <p><span class="verse-num">9:13</span>I do set my bow in the cloud, and it shall be for a token of a covenant between me and the earth.</p>
     `
   );
@@ -1384,7 +1571,7 @@ async function executeNoahSequence(seqId) {
   if (!await stepText('And God said unto Noah, "The end of all flesh is come before me; for the earth is filled with violence through them..."', 5200, 'God')) return;
   if (!await stepText('"Make thee an ark of gopher wood; rooms shalt thou make in the ark, and shalt pitch it within and without with pitch."', 5600, 'God')) return;
 
-  if (!await stepSpeech('Noah', 'I will build it according to all that the LORD has commanded me.', 4000)) return;
+  if (!await stepText('And Noah did according unto all that the LORD commanded him.', 4000, 'Narrator')) return;
 
   // Visual Timelapse Building Phase
   if (seqId !== currentSequenceId) return;
@@ -1454,8 +1641,8 @@ async function executeNoahSequence(seqId) {
   sceneEngine.unlockControls();
   movementHintEl.classList.add('show');
 
-  if (!await stepText('Guide Noah closer to the marching animal pairs to bring them inside.', 4800, 'Narrator')) return;
-  clearNarration();
+  if (seqId !== currentSequenceId) return;
+  showInstruction('Guide Noah closer to the marching animal pairs to bring them inside.', 'Narrator');
 
   // Wait for Noah to approach the animal queue at (10.0, z)
   let proximityCheck = true;
@@ -1473,12 +1660,14 @@ async function executeNoahSequence(seqId) {
     }
   }
 
+  clearInstruction();
+
   // Lock controls for cinematic boarding
   if (seqId !== currentSequenceId) return;
   sceneEngine.movementEnabled = false;
   movementHintEl.classList.remove('show');
 
-  if (!await stepText('And Noah went in, and his wife with him, and the beasts after their kind into the ark.', 4800, 'Narrator')) return;
+  if (!await stepText('And Noah went in, and his sons, and his wife, and his sons\' wives with him, into the ark, because of the waters of the flood.', 4800, 'Narrator')) return;
 
   // Position camera for boarding wide shot
   gsap.to(camPos, {
@@ -1598,7 +1787,7 @@ async function executeNoahSequence(seqId) {
   });
 
   if (!await stepText('And the flood was forty days upon the earth; and the waters increased, and bare up the ark...', 4500, 'Narrator')) return;
-  if (!await stepText('And it was lift up above the earth, and the ark went upon the face of the waters.', 4500, 'Narrator')) return;
+  if (!await stepText('And the waters prevailed, and were increased greatly upon the earth; and the ark went upon the face of the waters.', 4500, 'Narrator')) return;
 
   // Wait for water to reach peak height
   let waterCheck = true;
@@ -1655,7 +1844,7 @@ async function executeNoahSequence(seqId) {
     ease: 'power1.out'
   });
   
-  if (!await stepText('And Noah sent forth a dove, to see if the waters were abated from off the face of the ground.', 4800, 'Narrator')) return;
+  if (!await stepText('Also he sent forth a dove from him, to see if the waters were abated from off the face of the ground;', 4800, 'Narrator')) return;
   if (!await stepText('And the dove came in to him in the evening; and, lo, in her mouth was an olive leaf pluckt off.', 4800, 'Narrator')) return;
   
   // Hide dove after returning
@@ -1718,7 +1907,7 @@ async function executeBabelSequence(seqId) {
       <p><span class="verse-num">3</span>And they said one to another, Go to, let us make brick, and burn them thoroughly. And they had brick for stone, and slime had they for morter.</p>
       <p><span class="verse-num">4</span>And they said, Go to, let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name, lest we be scattered abroad upon the face of the whole earth.</p>
       <p><span class="verse-num">5</span>And the LORD came down to see the city and the tower, which the children of men builded.</p>
-      <p><span class="verse-num">6</span>And the LORD said, Behold, the people is one, and they have all one language... and now nothing will be restrained from them...</p>
+      <p><span class="verse-num">6</span>And the LORD said, Behold, the people is one, and they have all one language; and this they begin to do: and now nothing will be restrained from them, which they have imagined to do.</p>
       <p><span class="verse-num">7</span>Go to, let us go down, and there confound their language, that they may not understand one another's speech.</p>
       <p><span class="verse-num">8</span>So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.</p>
       <p><span class="verse-num">9</span>Therefore is the name of it called Babel; because the LORD did there confound the language of all the earth...</p>
@@ -1764,7 +1953,7 @@ async function executeBabelSequence(seqId) {
   gsap.to(sceneEngine.scene.fog.color, { r: 1.0, g: 0.95, b: 0.85, duration: 0.8, yoyo: true, repeat: 1 });
   
   if (!await stepText('And the LORD came down to see the city and the tower, which the children of men builded.', 5200, 'Narrator')) return;
-  if (!await stepText('"Behold, the people is one, and they have all one language... Go to, let us go down, and there confound their language, that they may not understand one another\'s speech."', 7500, 'God')) return;
+  if (!await stepText('"Behold, the people is one, and they have all one language; and this they begin to do: and now nothing will be restrained from them, which they have imagined to do. Go to, let us go down, and there confound their language, that they may not understand one another\'s speech."', 10500, 'God')) return;
 
   // 3. CONFUSION: Confounding the languages
   if (seqId !== currentSequenceId) return;
@@ -1850,7 +2039,17 @@ function loadScene(sceneName) {
     if (thisSeqId !== currentSequenceId) return;
 
     destroyActiveScene();
+    
+    // Preload the first line of the new chapter if not already in cache
     activeSceneName = sceneName;
+    
+    const script = CHAPTER_SCRIPTS[sceneName];
+    if (script && script.length > 0) {
+      const firstLine = script[0];
+      const charKey = firstLine.character.toLowerCase();
+      const cleanFirstText = firstLine.text.replace(/["“”]/g, '');
+      ttsEngine.preload(cleanFirstText, charKey);
+    }
     
     eraButtons.forEach(btn => {
       if (btn.getAttribute('data-scene') === sceneName) {
@@ -2278,7 +2477,36 @@ document.addEventListener('DOMContentLoaded', () => {
     { threshold: 90, text: "Preparing Your Journey..." }
   ];
 
+  let ttsInitialized = false;
   const handleBegin = () => {
+    // Initialize TTS Engine in the background
+    ttsEngine.initialize('auto')
+      .then(async () => {
+        // Preload the first lines of all 5 chapters in parallel
+        const firstLines = [
+          { text: CHAPTER_SCRIPTS.creation[0].text, char: 'narrator' },
+          { text: CHAPTER_SCRIPTS.eden[0].text, char: 'narrator' },
+          { text: CHAPTER_SCRIPTS.cainabel[0].text, char: 'narrator' },
+          { text: CHAPTER_SCRIPTS.noah[0].text, char: 'god' },
+          { text: CHAPTER_SCRIPTS.babel[0].text, char: 'narrator' }
+        ];
+        
+        try {
+          await Promise.all(firstLines.map(line => 
+            ttsEngine.preload(line.text.replace(/["“”]/g, ''), line.char)
+          ));
+          console.log('[TTS] Preloaded first lines for all 5 chapters successfully');
+        } catch (e) {
+          console.warn('[TTS] Failed to preload first lines during startup:', e);
+        }
+        
+        ttsInitialized = true;
+      })
+      .catch(err => {
+        console.error('[TTS] Initialization error, using fallback:', err);
+        ttsInitialized = true; // allow progress to proceed anyway
+      });
+
     // 150-250ms physical pause before cover opens
     setTimeout(() => {
       // Initialize Audio context on user gesture
@@ -2415,6 +2643,14 @@ document.addEventListener('DOMContentLoaded', () => {
               }, 1200);
             }, 1000);
           } else {
+            // Hold progress at 90% if TTS has not completed initializing
+            if (progress >= 90 && !ttsInitialized) {
+              progress = 90;
+              loadingText.textContent = "Awakening Divine Voices...";
+              updateCrossProgress(90);
+              return;
+            }
+
             // Update cross clip segments
             updateCrossProgress(progress);
             

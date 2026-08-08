@@ -411,6 +411,8 @@ export class EdenScene {
     this.eve.add(eTorso, eHead, hair, this.eveArmL, this.eveArmR, eLegL, eLegR);
     this.eve.position.set(-7.0, this.getTerrainHeight(-7.0, 9.0), 9.0);
     this.eve.lookAt(0, this.eve.position.y, 0);
+    this.eve.visible = false;
+    this.eveActive = false; // Flag to control follow logic
     this.scene.add(this.eve);
     
     // Adam (Player)
@@ -442,7 +444,9 @@ export class EdenScene {
     aLegL.castShadow = true;
     const aLegR = aLegL.clone(); aLegR.position.x = 0.12;
     
-    this.adam.add(aTorso, aHead, aHair, this.adamArmL, this.adamArmR, aLegL, aLegR);
+    this.adamBody = new THREE.Group();
+    this.adamBody.add(aTorso, aHead, aHair, this.adamArmL, this.adamArmR, aLegL, aLegR);
+    this.adam.add(this.adamBody);
     this.adam.position.set(-9.0, this.getTerrainHeight(-9.0, 9.0), 9.0);
     this.adam.lookAt(0, this.adam.position.y, 0);
     this.scene.add(this.adam);
@@ -613,6 +617,93 @@ export class EdenScene {
     this.targetPitch = -0.15;
   }
   
+  async animateNamingAnimals() {
+    return new Promise(resolve => {
+      // Adam raises his arm to point
+      gsap.to(this.adamArmR.rotation, { x: -1.2, z: -0.2, duration: 1.5 });
+      
+      // Get a couple of animals from the scene
+      const animalsToName = this.animalGroup.children.slice(0, 3);
+      
+      animalsToName.forEach((animal, index) => {
+        // Move them towards Adam
+        const targetX = this.adam.position.x + (Math.cos(index * 2) * 2.5);
+        const targetZ = this.adam.position.z + (Math.sin(index * 2) * 2.5);
+        
+        gsap.to(animal.position, {
+          x: targetX,
+          z: targetZ,
+          duration: 3.0 + index,
+          onUpdate: () => {
+            animal.position.y = this.getTerrainHeight(animal.position.x, animal.position.z);
+            animal.lookAt(this.adam.position.x, animal.position.y, this.adam.position.z);
+          }
+        });
+      });
+      
+      // Adam lowers arm after a bit
+      setTimeout(() => {
+        gsap.to(this.adamArmR.rotation, { x: 0.1, z: 0, duration: 1.5, onComplete: resolve });
+      }, 5000);
+    });
+  }
+
+  async animateDeepSleep() {
+    return new Promise(resolve => {
+      // Adam lies down (sideways so he doesn't clip or go upside down)
+      gsap.to(this.adamBody.rotation, { z: Math.PI / 2, duration: 2.5, ease: 'power2.inOut' });
+      gsap.to(this.adam.position, { 
+        y: this.getTerrainHeight(this.adam.position.x, this.adam.position.z) + 0.25, 
+        duration: 2.5, 
+        ease: 'power2.inOut',
+        onComplete: resolve
+      });
+      
+      // Dim the lights slightly to simulate deep sleep focus
+      gsap.to(this.sunLight, { intensity: 0.6, duration: 2.5 });
+    });
+  }
+
+  async animateCreationOfEve() {
+    return new Promise(resolve => {
+      // Golden divine glow on Adam's side
+      const glowGeo = new THREE.SphereGeometry(1.2, 32, 32);
+      const glowMat = new THREE.MeshBasicMaterial({ color: 0xffeebb, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending });
+      const glow = new THREE.Mesh(glowGeo, glowMat);
+      glow.position.copy(this.adam.position);
+      glow.position.y += 0.5;
+      this.scene.add(glow);
+
+      gsap.to(glowMat, { opacity: 0.9, duration: 3.0, yoyo: true, repeat: 1 });
+      gsap.to(glow.scale, { x: 2.5, y: 2.5, z: 2.5, duration: 6.0 });
+
+      // After 3 seconds (peak of glow), Eve appears
+      setTimeout(() => {
+        this.eve.position.set(this.adam.position.x + 1.8, this.getTerrainHeight(this.adam.position.x + 1.8, this.adam.position.z), this.adam.position.z);
+        this.eve.lookAt(this.adam.position.x, this.eve.position.y, this.adam.position.z);
+        this.eve.visible = true;
+        
+        // Restore lights
+        gsap.to(this.sunLight, { intensity: 1.45, duration: 3.0 });
+      }, 3000);
+      
+      // Cleanup glow and wake Adam up
+      setTimeout(() => {
+        this.scene.remove(glow);
+        this.eveActive = true; // start following logic
+        
+        // Adam wakes up and stands
+        gsap.to(this.adamBody.rotation, { z: 0, duration: 2.5, ease: 'power2.out' });
+        gsap.to(this.adam.position, { 
+          y: this.getTerrainHeight(this.adam.position.x, this.adam.position.z) + 1.0, 
+          duration: 2.5, 
+          ease: 'power2.out',
+          onComplete: resolve
+        });
+      }, 6000);
+    });
+  }
+  
   update(time, dt) {
     const elapsed = time;
     
@@ -681,7 +772,7 @@ export class EdenScene {
     }
     
     // --- Companion Eve Follow System ---
-    if (this.movementEnabled && !this.isFallen && this.adam) {
+    if (!this.isFallen && this.eveActive) {
       const distToAdam = this.eve.position.distanceTo(this.adam.position);
       
       if (distToAdam > 2.8) {
@@ -762,31 +853,31 @@ export class EdenScene {
         this.adam.rotation.y = targetAngle;
         
         const swing = Math.sin(elapsed * 9.0) * 0.42;
-        this.adam.children[5].rotation.x = swing;
-        this.adam.children[6].rotation.x = -swing;
-        this.adam.children[3].rotation.x = -swing;
-        this.adam.children[4].rotation.x = swing;
+        this.adamBody.children[5].rotation.x = swing;
+        this.adamBody.children[6].rotation.x = -swing;
+        this.adamBody.children[3].rotation.x = -swing;
+        this.adamBody.children[4].rotation.x = swing;
       } else {
-        this.adam.children[5].rotation.x *= 0.85;
-        this.adam.children[6].rotation.x *= 0.85;
-        this.adam.children[3].rotation.x *= 0.85;
-        this.adam.children[4].rotation.x *= 0.85;
+        this.adamBody.children[5].rotation.x *= 0.85;
+        this.adamBody.children[6].rotation.x *= 0.85;
+        this.adamBody.children[3].rotation.x *= 0.85;
+        this.adamBody.children[4].rotation.x *= 0.85;
       }
-      
-      // Spring arm camera
-      const springArmDist = 5.0;
-      const camOffset = new THREE.Vector3(
-        Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
-        Math.sin(this.pitch) * springArmDist + 1.4,
-        Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
-      );
-      
-      const targetCamPos = this.adam.position.clone().add(camOffset);
-      this.camera.position.lerp(targetCamPos, 0.12);
-      
-      const lookTarget = new THREE.Vector3(this.adam.position.x, this.adam.position.y + 1.2, this.adam.position.z);
-      this.camera.lookAt(lookTarget);
     }
+    
+    // Spring arm camera ALWAYS follows Adam, even during cinematics
+    const springArmDist = 5.0;
+    const camOffset = new THREE.Vector3(
+      Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
+      Math.sin(this.pitch) * springArmDist + 1.4,
+      Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
+    );
+    
+    const targetCamPos = this.adam.position.clone().add(camOffset);
+    this.camera.position.lerp(targetCamPos, 0.12);
+    
+    const lookTarget = new THREE.Vector3(this.adam.position.x, this.adam.position.y + 1.2, this.adam.position.z);
+    this.camera.lookAt(lookTarget);
     
     this.renderer.render(this.scene, this.camera);
   }

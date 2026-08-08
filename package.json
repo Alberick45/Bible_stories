@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "gsap": "^3.12.2",
-    "three": "^0.158.0"
+    "three": "^0.158.0",
+    "kokoro-js": "^1.2.1",
+    "@realtimex/piper-tts-web": "^1.0.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"
