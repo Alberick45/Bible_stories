@@ -9,6 +9,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    include: ['three', 'three/addons/loaders/GLTFLoader.js', 'three/addons/postprocessing/EffectComposer.js', 'three/addons/postprocessing/RenderPass.js', 'three/addons/postprocessing/UnrealBloomPass.js', 'three/addons/postprocessing/OutputPass.js'],
     // Exclude these from pre-bundling — they are WASM-heavy and self-contained
     exclude: ['onnxruntime-web', 'kokoro-js', '@realtimex/piper-tts-web'],
   },
@@ -24,5 +25,8 @@ export default defineConfig({
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
+  },
+  worker: {
+    format: 'es',
   },
 });

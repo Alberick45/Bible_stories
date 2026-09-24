@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import { GrassField, TreeGroup, CharacterModel, PostProcessingManager } from './src/models/index.js';
 
 export class CainAbelScene {
   constructor(container) {
@@ -13,9 +14,9 @@ export class CainAbelScene {
     this.joystickVector = new THREE.Vector2(0, 0);
     
     this.yaw = Math.PI;
-    this.pitch = -0.15;
+    this.pitch = 0.28;
     this.targetYaw = Math.PI;
-    this.targetPitch = -0.15;
+    this.targetPitch = 0.28;
     
     this.isDragging = false;
     this.lastMouseX = 0;

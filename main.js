@@ -21,6 +21,9 @@ let soundIntervals = [];
 
 // Sequence synchronization to abort older loops on scene swap
 let currentSequenceId = 0;
+let currentSpeed = 1;
+let skipCallback = null;
+let isCinematicActive = false;
 
 // Speech bubble target tracking
 let bubbleTargetObject = null;
@@ -38,6 +41,8 @@ const closeScrollBtn = document.getElementById('close-scroll');
 const scrollTitleEl = document.getElementById('scroll-title');
 const scrollContentEl = document.getElementById('scroll-content');
 const speechBubbleEl = document.getElementById('speech-bubble');
+const speedToggleBtn = document.getElementById('speed-toggle-btn');
+const skipBtn = document.getElementById('skip-btn');
 
 // Hub elements
 const hubToggleBtn = document.getElementById('hub-toggle-btn');
@@ -270,7 +275,23 @@ function clearAllIntervals() {
 }
 
 // --- 2. Narrative Sequencing Helpers ---
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms / currentSpeed));
+
+function showSkipButton(callback) {
+  skipCallback = callback;
+  isCinematicActive = true;
+  if (skipBtn) {
+    skipBtn.style.display = 'block';
+  }
+}
+
+function hideSkipButton() {
+  skipCallback = null;
+  isCinematicActive = false;
+  if (skipBtn) {
+    skipBtn.style.display = 'none';
+  }
+}
 
 const CHAPTER_SCRIPTS = {
   creation: [
@@ -456,9 +477,9 @@ function showTextLine(text, holdBeforeHintMs = 2800, ttsCharacter = 'Narrator') 
           hintEl.classList.remove('show');
           narrationEl.classList.remove('show');
           ttsEngine.stop();
-          setTimeout(resolve, 850);
+          setTimeout(resolve, 850 / currentSpeed);
         };
-      }, holdBeforeHintMs);
+      }, holdBeforeHintMs / currentSpeed);
     });
   });
 }
@@ -500,7 +521,7 @@ function showSpeechBubble(characterName, text, holdBeforeHintMs = 2600) {
         speechBubbleEl.style.display = 'none';
         bubbleTargetObject = null;
         ttsEngine.stop();
-        setTimeout(resolve, 600);
+        setTimeout(resolve, 600 / currentSpeed);
       };
     });
   });
@@ -560,6 +581,7 @@ function destroyActiveScene() {
   isWaitingClick = false;
   advanceCallback = null;
   bubbleTargetObject = null;
+  hideSkipButton();
   
   ttsEngine.stop();
   
@@ -614,6 +636,10 @@ async function executeCreationSequence(seqId) {
     await delay(ms);
     return seqId === currentSequenceId;
   };
+
+  showSkipButton(() => {
+    skipCreationSequence();
+  }, 'Skip Intro');
 
   scriptureLabelEl.classList.remove('show');
   loadScriptureScroll(
@@ -709,6 +735,7 @@ async function executeCreationSequence(seqId) {
   if (!await stepDelay(1800)) return;
   
   if (seqId !== currentSequenceId) return;
+  hideSkipButton();
   sceneEngine.unlockControls();
   movementHintEl.classList.add('show');
   scriptureLabelEl.classList.add('show');
@@ -1898,6 +1925,10 @@ async function executeBabelSequence(seqId) {
     return seqId === currentSequenceId;
   };
 
+  showSkipButton(() => {
+    skipBabelSequence();
+  }, 'Skip Intro');
+
   scriptureLabelEl.classList.remove('show');
   loadScriptureScroll(
     `Genesis 11:1 &ndash; 9 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
@@ -2015,6 +2046,7 @@ async function executeBabelSequence(seqId) {
   camPos.set(bPos.x - 4, bPos.y + 2, bPos.z + 4);
   sceneEngine.camera.lookAt(bPos);
   
+  hideSkipButton();
   sceneEngine.unlockControls();
   movementHintEl.classList.add('show');
   
@@ -2023,6 +2055,106 @@ async function executeBabelSequence(seqId) {
   
   if (seqId !== currentSequenceId) return;
   scriptureLabelEl.classList.add('show');
+}
+
+async function skipBabelSequence() {
+  currentSequenceId++;
+  const seqId = currentSequenceId;
+  hideSkipButton();
+  ttsEngine.stop();
+  clearNarration();
+  clearInstruction();
+  
+  if (sceneEngine && activeSceneName === 'babel') {
+    veilEl.style.transition = 'background 0.8s ease';
+    veilEl.style.background = 'rgba(0,0,0,0)';
+    
+    gsap.killTweensOf(sceneEngine.camera.position);
+    if (sceneEngine.scene && sceneEngine.scene.background) {
+      gsap.killTweensOf(sceneEngine.scene.background);
+      sceneEngine.scene.background.setHex(0xded1bd);
+    }
+    if (sceneEngine.scene && sceneEngine.scene.fog && sceneEngine.scene.fog.color) {
+      gsap.killTweensOf(sceneEngine.scene.fog.color);
+      sceneEngine.scene.fog.color.setHex(0xded1bd);
+    }
+    
+    // Grow tower immediately
+    for (let i = 0; i < 4; i++) {
+      sceneEngine.growTowerTierImmediate(i);
+    }
+    
+    // Confound and scatter workers immediately
+    sceneEngine.confoundLanguagesImmediate();
+    sceneEngine.scatterWorkersImmediate();
+    
+    // Position camera
+    const bPos = sceneEngine.builder.position;
+    sceneEngine.camera.position.set(bPos.x - 4, bPos.y + 2, bPos.z + 4);
+    sceneEngine.camera.lookAt(bPos);
+    
+    // Unlock controls
+    sceneEngine.unlockControls();
+    movementHintEl.classList.add('show');
+    
+    await showTextLine('The construction has ceased. Explore the silent ruins of Babel.', 5000, 'Narrator');
+    if (seqId === currentSequenceId) {
+      clearNarration();
+      scriptureLabelEl.classList.add('show');
+    }
+  }
+}
+
+function skipCreationSequence() {
+  currentSequenceId++;
+  const seqId = currentSequenceId;
+  hideSkipButton();
+  ttsEngine.stop();
+  clearNarration();
+  clearInstruction();
+  
+  if (sceneEngine && activeSceneName === 'creation') {
+    veilEl.style.transition = 'background 0.8s ease';
+    veilEl.style.background = 'rgba(0,0,0,0)';
+    
+    gsap.killTweensOf(sceneEngine.camera.position);
+    gsap.killTweensOf(sceneEngine.hemiLight);
+    gsap.killTweensOf(sceneEngine.sunLight);
+    gsap.killTweensOf(sceneEngine.skyMat.color);
+    gsap.killTweensOf(sceneEngine.starsMat);
+    gsap.killTweensOf(sceneEngine.ground.position);
+    gsap.killTweensOf(sceneEngine.waterMat);
+    
+    sceneEngine.transitionDayOneImmediate();
+    sceneEngine.transitionDayTwoImmediate();
+    sceneEngine.transitionDayThreeImmediate();
+    sceneEngine.transitionDayFourImmediate();
+    sceneEngine.transitionDayFiveImmediate();
+    sceneEngine.transitionDaySixImmediate();
+    sceneEngine.formAdamImmediate();
+    
+    adjustWindIntensity(0.02, 180, 0.1);
+    enableBirdSounds = true;
+    enableAnimalSounds = true;
+    
+    // Position camera
+    sceneEngine.camera.position.set(0, sceneEngine.getTerrainHeight(0, 4) + 1.2, 7.5);
+    sceneEngine.camera.lookAt(0, sceneEngine.getTerrainHeight(0, 4), 4);
+    
+    sceneEngine.unlockControls();
+    movementHintEl.classList.add('show');
+    scriptureLabelEl.classList.add('show');
+  }
+}
+
+function skipCurrentScene() {
+  if (activeSceneName === 'babel') {
+    skipBabelSequence();
+  } else if (activeSceneName === 'creation') {
+    skipCreationSequence();
+  } else {
+    handleAdvance();
+  }
 }
 
 // --- 5. Scene Swap Loader ---
@@ -2369,6 +2501,25 @@ function initAmbientDust() {
 document.addEventListener('DOMContentLoaded', () => {
   initTouchControls();
   initAmbientDust();
+
+  if (speedToggleBtn) {
+    speedToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentSpeed = currentSpeed === 1 ? 2 : 1;
+      speedToggleBtn.textContent = `Speed: ${currentSpeed}x`;
+      ttsEngine.setSpeedMultiplier(currentSpeed);
+      gsap.globalTimeline.timeScale(currentSpeed);
+    });
+  }
+
+  if (skipBtn) {
+    skipBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (skipCallback) {
+        skipCallback();
+      }
+    });
+  }
 
   hubToggleBtn.addEventListener('click', () => {
     hubPanelEl.classList.add('show');

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import { GrassField, TreeGroup, CharacterModel, PostProcessingManager } from './src/models/index.js';
 
 export class CreationScene {
   constructor(container) {
@@ -14,9 +15,9 @@ export class CreationScene {
     
     // Third person camera follow variables
     this.yaw = Math.PI; // Camera horizontal rotation
-    this.pitch = -0.15; // Camera vertical tilt
+    this.pitch = 0.28; // Elevated camera angle looking down/forward
     this.targetYaw = Math.PI;
-    this.targetPitch = -0.15;
+    this.targetPitch = 0.28;
     
     this.isDragging = false;
     this.lastMouseX = 0;
@@ -66,13 +67,13 @@ export class CreationScene {
       const lh = 1.2 + (index % 3) * 0.5;
       let leavesMesh;
       if (index % 3 === 0) {
-        leavesMesh = new THREE.Mesh(new THREE.ConeGeometry(lh * 0.9, lh * 2.2, 5), leafyMat);
+        leavesMesh = new THREE.Mesh(new THREE.ConeGeometry(lh * 0.95, lh * 2.2, 7), leafyMat);
         leavesMesh.position.y = th + lh * 0.8;
       } else if (index % 3 === 1) {
-        leavesMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(lh, 1), leafyMat);
+        leavesMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(lh * 1.2, 1), leafyMat);
         leavesMesh.position.y = th + lh * 0.7;
       } else {
-        leavesMesh = new THREE.Mesh(new THREE.BoxGeometry(lh * 1.5, lh * 1.5, lh * 1.5), leafyMat);
+        leavesMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(lh * 1.35, 1), leafyMat);
         leavesMesh.position.y = th + lh * 0.75;
       }
       leavesMesh.castShadow = true;
@@ -295,6 +296,31 @@ export class CreationScene {
     this.ground.position.y = -60; // Hidden initially
     this.ground.receiveShadow = true;
     this.scene.add(this.ground);
+
+    // Modular Instanced Grass Field with Wind Shader
+    this.grassField = new GrassField({
+      count: 55000,
+      radius: 150,
+      heightAt: (x, z) => this.getSurfaceHeight(x, z),
+      baseColor: 0x4e8533
+    });
+    this.grassField.addTo(this.scene);
+
+    // Modular Organic Instanced Trees Group
+    this.organicTrees = new TreeGroup({
+      count: 75,
+      radius: 130,
+      minDistFromCenter: 10,
+      heightAt: (x, z) => this.getSurfaceHeight(x, z)
+    });
+    this.organicTrees.addTo(this.scene);
+
+    // Modular Post-Processing Pipeline
+    this.postFX = new PostProcessingManager(this.renderer, this.scene, this.camera, {
+      bloomStrength: 0.38,
+      bloomRadius: 0.35,
+      bloomThreshold: 0.85
+    });
     
     // 7. Water Plane
     this.waterMat = new THREE.MeshStandardMaterial({
@@ -518,34 +544,18 @@ export class CreationScene {
     this.scene.add(this.animalGroup);
     
     // 13. Adam (Day 6) - Parent container for player character mesh
-    this.adam = new THREE.Group();
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xcc9c78, roughness: 0.8, flatShading: true });
-    
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), skinMat);
-    torso.position.y = 1.05;
-    torso.castShadow = true;
-    
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMat);
-    head.position.y = 1.72;
-    head.castShadow = true;
-    
-    const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.9, 6), skinMat);
-    armL.position.set(-0.35, 1.1, 0);
-    armL.castShadow = true;
-    
-    const armR = armL.clone();
-    armR.position.x = 0.35;
-    
-    const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.95, 6), skinMat);
-    legL.position.set(-0.13, 0.48, 0);
-    legL.castShadow = true;
-    
-    const legR = legL.clone();
-    legR.position.x = 0.13;
-    
-    this.adam.add(torso, head, armL, armR, legL, legR);
+    // 13. Adam (Sculpted PBR CharacterModel)
+    this.adamCharacter = new CharacterModel({
+      name: 'Adam',
+      gender: 'male',
+      skinTone: 0xdcb896,
+      hairColor: 0x2b1d0c,
+      clothesColor: 0x3d5a80
+    });
+    this.adam = this.adamCharacter.group;
     this.adam.position.set(0, this.getTerrainHeight(0, 4), 4);
     this.adam.rotation.y = Math.PI;
+    this.adam.visible = false;
     this.adam.visible = false;
     this.scene.add(this.adam);
     
@@ -562,11 +572,14 @@ export class CreationScene {
     window.addEventListener('keyup', e => this.keys[e.code] = false);
   }
   
+  getSurfaceHeight(x, z) {
+    return Math.sin(x * 0.015) * Math.cos(z * 0.015) * 6.5 + 
+           Math.sin(x * 0.05 + z * 0.03) * 1.8 +
+           Math.cos(x * 0.1) * Math.sin(z * 0.08) * 0.5;
+  }
+
   getTerrainHeight(x, z) {
-    const h = Math.sin(x * 0.015) * Math.cos(z * 0.015) * 6.5 + 
-              Math.sin(x * 0.05 + z * 0.03) * 1.8 +
-              Math.cos(x * 0.1) * Math.sin(z * 0.08) * 0.5;
-    return h + this.ground.position.y;
+    return this.getSurfaceHeight(x, z) + this.ground.position.y;
   }
   
   onWindowResize() {
@@ -752,6 +765,68 @@ export class CreationScene {
     this.targetPitch = -0.15;
   }
   
+  transitionDayOneImmediate() {
+    this.hemiLight.intensity = 0.65;
+    this.skyMat.color.setHex(0x2b3a52);
+    this.scene.fog.color.set(0x2b3a52);
+  }
+  
+  transitionDayTwoImmediate() {
+    this.skyMat.color.setHex(0x446687);
+    this.scene.fog.color.set(0x446687);
+  }
+  
+  transitionDayThreeImmediate() {
+    this.ground.position.y = 0;
+    this.waterMat.opacity = 0.52;
+    this.treeGroup.visible = true;
+    this.treeGroup.children.forEach(tree => {
+      const originalScale = tree.userData.originalScale;
+      tree.scale.set(originalScale, originalScale, originalScale);
+      tree.position.y = this.getTerrainHeight(tree.position.x, tree.position.z);
+    });
+    this.foliageGroup.visible = true;
+    this.foliageGroup.children.forEach(foliage => {
+      const originalScale = foliage.userData.originalScale;
+      foliage.scale.set(originalScale, originalScale, originalScale);
+      foliage.position.y = this.getTerrainHeight(foliage.position.x, foliage.position.z);
+    });
+  }
+  
+  transitionDayFourImmediate() {
+    this.sunDisc.visible = true;
+    this.moonDisc.visible = true;
+    this.sunDisc.position.set(120, 180, 220);
+    this.moonDisc.position.set(-140, 120, 260);
+    this.sunLight.intensity = 1.3;
+    this.starsMat.opacity = 0.85;
+    this.skyMat.color.setHex(0x607d9e);
+    this.scene.fog.color.set(0x607d9e);
+  }
+  
+  transitionDayFiveImmediate() {
+    this.birdGroup.visible = true;
+    this.birdGroup.children.forEach(birdHolder => {
+      birdHolder.scale.set(1.0, 1.0, 1.0);
+    });
+    this.fishGroup.visible = true;
+    this.fishGroup.children.forEach(fish => {
+      fish.scale.set(1.0, 1.0, 1.0);
+    });
+  }
+  
+  transitionDaySixImmediate() {
+    this.animalGroup.visible = true;
+    this.animalGroup.children.forEach(animal => {
+      animal.scale.set(1.0, 1.0, 1.0);
+    });
+  }
+  
+  formAdamImmediate() {
+    this.adam.visible = true;
+    this.adam.position.y = this.getTerrainHeight(0, 4);
+  }
+  
   update(time, dt) {
     const elapsed = time;
     
@@ -896,18 +971,16 @@ export class CreationScene {
         const targetAngle = Math.atan2(move.x, move.z);
         this.adam.rotation.y = targetAngle;
         
-        // Limb walk animation swings
         const swing = Math.sin(elapsed * 9.0) * 0.42;
-        this.adam.children[4].rotation.x = swing;  // Left Leg
-        this.adam.children[5].rotation.x = -swing; // Right Leg
-        this.adam.children[2].rotation.x = -swing; // Left Arm
-        this.adam.children[3].rotation.x = swing;  // Right Arm
+        if (this.adamCharacter && this.adamCharacter.joints) {
+          if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
+          if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x = -swing;
+        }
       } else {
-        // Return limbs smoothly to standing position
-        this.adam.children[4].rotation.x *= 0.85;
-        this.adam.children[5].rotation.x *= 0.85;
-        this.adam.children[2].rotation.x *= 0.85;
-        this.adam.children[3].rotation.x *= 0.85;
+        if (this.adamCharacter && this.adamCharacter.joints) {
+          if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;
+          if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x *= 0.85;
+        }
       }
       
       // Spring arm camera calculation (maintain distance of 4.5 units behind Adam)
@@ -926,6 +999,21 @@ export class CreationScene {
       this.camera.lookAt(lookTarget);
     }
     
-    this.renderer.render(this.scene, this.camera);
+    // Update modular models and sync elevation with ground plane
+    if (this.grassField) {
+      this.grassField.group.position.y = this.ground.position.y;
+      this.grassField.update(elapsed);
+    }
+    if (this.organicTrees) {
+      this.organicTrees.group.position.y = this.ground.position.y;
+      this.organicTrees.update(dt, elapsed);
+    }
+    if (this.adamCharacter) this.adamCharacter.update(dt, elapsed);
+
+    if (this.postFX) {
+      this.postFX.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 }

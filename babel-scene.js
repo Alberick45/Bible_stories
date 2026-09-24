@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import { GrassField, TreeGroup, CharacterModel, PostProcessingManager } from './src/models/index.js';
 
 export class BabelScene {
   constructor(container) {
@@ -14,9 +15,9 @@ export class BabelScene {
     
     // Camera follow variables
     this.yaw = Math.PI * 0.75;
-    this.pitch = -0.18;
+    this.pitch = 0.28;
     this.targetYaw = Math.PI * 0.75;
-    this.targetPitch = -0.18;
+    this.targetPitch = 0.28;
     
     this.isDragging = false;
     this.lastMouseX = 0;
@@ -388,6 +389,41 @@ export class BabelScene {
     this.movementEnabled = true;
     this.targetYaw = Math.PI * 0.75;
     this.targetPitch = -0.18;
+  }
+  
+  growTowerTierImmediate(tierIndex) {
+    if (tierIndex < 0 || tierIndex >= this.towerTiers.length) return;
+    this.currentTier = tierIndex + 1;
+    const tierG = this.towerTiers[tierIndex];
+    tierG.visible = true;
+    gsap.killTweensOf(tierG.scale);
+    gsap.killTweensOf(tierG.rotation);
+    tierG.scale.set(1.0, 1.0, 1.0);
+    tierG.rotation.y = Math.PI * 2;
+  }
+  
+  confoundLanguagesImmediate() {
+    this.workers.forEach((w, idx) => {
+      gsap.killTweensOf(w.children[2].rotation);
+      gsap.killTweensOf(w.children[3].rotation);
+      w.children[2].rotation.set(-Math.PI * 0.9, (idx % 2 === 0 ? 0.3 : -0.3), 0);
+      w.children[3].rotation.set(-Math.PI * 0.9, (idx % 2 === 0 ? -0.3 : 0.3), 0);
+    });
+  }
+  
+  scatterWorkersImmediate() {
+    this.workers.forEach((w, idx) => {
+      w.userData.isActive = false;
+      gsap.killTweensOf(w.children[2].rotation);
+      gsap.killTweensOf(w.children[3].rotation);
+      gsap.killTweensOf(w.position);
+      
+      const brick = w.getObjectByName('brick');
+      if (brick) {
+        w.remove(brick);
+      }
+      w.visible = false;
+    });
   }
   
   destroy() {

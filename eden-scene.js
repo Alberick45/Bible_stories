@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import { GrassField, TreeGroup, CharacterModel, PostProcessingManager } from './src/models/index.js';
 
 export class EdenScene {
   constructor(container) {
@@ -13,9 +14,9 @@ export class EdenScene {
     this.joystickVector = new THREE.Vector2(0, 0);
     
     this.yaw = Math.PI;
-    this.pitch = -0.15;
+    this.pitch = 0.28;
     this.targetYaw = Math.PI;
-    this.targetPitch = -0.15;
+    this.targetPitch = 0.28;
     
     this.isDragging = false;
     this.lastMouseX = 0;
@@ -83,6 +84,31 @@ export class EdenScene {
     this.ground = new THREE.Mesh(groundGeo, this.groundMat);
     this.ground.receiveShadow = true;
     this.scene.add(this.ground);
+
+    // Modular Instanced Grass Field with Vertex Wind Shader
+    this.grassField = new GrassField({
+      count: 45000,
+      radius: 120,
+      heightAt: (x, z) => this.getTerrainHeight(x, z),
+      baseColor: 0x4e8533
+    });
+    this.grassField.addTo(this.scene);
+
+    // Modular Organic Instanced Trees Group
+    this.organicTrees = new TreeGroup({
+      count: 65,
+      radius: 115,
+      minDistFromCenter: 12,
+      heightAt: (x, z) => this.getTerrainHeight(x, z)
+    });
+    this.organicTrees.addTo(this.scene);
+
+    // Modular Post-Processing FX (Bloom, ACES Filmic Tone Mapping)
+    this.postFX = new PostProcessingManager(this.renderer, this.scene, this.camera, {
+      bloomStrength: 0.38,
+      bloomRadius: 0.35,
+      bloomThreshold: 0.85
+    });
     
     // Four Rivers of Eden
     this.waterMat = new THREE.MeshStandardMaterial({
@@ -381,72 +407,35 @@ export class EdenScene {
     
     // Eve (NPC Companion)
     this.eve = new THREE.Group();
-    this.eve.name = 'Eve';
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xebb494, roughness: 0.85 });
-    const hairMat = new THREE.MeshStandardMaterial({ color: 0xe6c875, roughness: 0.9 });
-    
-    const eTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.0, 8), skinMat);
-    eTorso.position.y = 1.0;
-    eTorso.castShadow = true;
-    
-    const eHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
-    eHead.position.y = 1.62;
-    eHead.castShadow = true;
-    
-    const hair = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.6, 0.24), hairMat);
-    hair.position.set(0, 1.5, -0.06);
-    
-    this.eveArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.85), skinMat);
-    this.eveArmL.position.set(-0.3, 1.0, 0);
-    this.eveArmL.castShadow = true;
-    
-    this.eveArmR = this.eveArmL.clone();
-    this.eveArmR.position.x = 0.3;
-    
-    const eLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.9, 6), skinMat);
-    eLegL.position.set(-0.1, 0.45, 0);
-    eLegL.castShadow = true;
-    const eLegR = eLegL.clone(); eLegR.position.x = 0.1;
-    
-    this.eve.add(eTorso, eHead, hair, this.eveArmL, this.eveArmR, eLegL, eLegR);
+    // Eve (Sculpted PBR CharacterModel)
+    this.eveCharacter = new CharacterModel({
+      name: 'Eve',
+      gender: 'female',
+      skinTone: 0xf2cbac,
+      hairColor: 0xd4a373,
+      clothesColor: 0x6b705c
+    });
+    this.eve = this.eveCharacter.group;
+    this.eveArmL = this.eveCharacter.joints.shoulderLeft;
+    this.eveArmR = this.eveCharacter.joints.shoulderRight;
     this.eve.position.set(-7.0, this.getTerrainHeight(-7.0, 9.0), 9.0);
     this.eve.lookAt(0, this.eve.position.y, 0);
     this.eve.visible = false;
     this.eveActive = false; // Flag to control follow logic
     this.scene.add(this.eve);
     
-    // Adam (Player)
-    this.adam = new THREE.Group();
-    this.adam.name = 'Adam';
-    const skinMatAdam = new THREE.MeshStandardMaterial({ color: 0xcc9c78, roughness: 0.8, flatShading: true });
-    const hairMatAdam = new THREE.MeshStandardMaterial({ color: 0x422f25, roughness: 0.9 });
-    
-    const aTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), skinMatAdam);
-    aTorso.position.y = 1.05;
-    aTorso.castShadow = true;
-    
-    const aHead = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMatAdam);
-    aHead.position.y = 1.72;
-    aHead.castShadow = true;
-    
-    const aHair = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.26), hairMatAdam);
-    aHair.position.set(0, 1.84, 0);
-    
-    this.adamArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.9, 6), skinMatAdam);
-    this.adamArmL.position.set(-0.35, 1.1, 0);
-    this.adamArmL.castShadow = true;
-    
-    this.adamArmR = this.adamArmL.clone();
-    this.adamArmR.position.x = 0.35;
-    
-    const aLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.95, 6), skinMatAdam);
-    aLegL.position.set(-0.12, 0.48, 0);
-    aLegL.castShadow = true;
-    const aLegR = aLegL.clone(); aLegR.position.x = 0.12;
-    
-    this.adamBody = new THREE.Group();
-    this.adamBody.add(aTorso, aHead, aHair, this.adamArmL, this.adamArmR, aLegL, aLegR);
-    this.adam.add(this.adamBody);
+    // Adam (Player Sculpted PBR CharacterModel)
+    this.adamCharacter = new CharacterModel({
+      name: 'Adam',
+      gender: 'male',
+      skinTone: 0xdcb896,
+      hairColor: 0x2b1d0c,
+      clothesColor: 0x3d5a80
+    });
+    this.adam = this.adamCharacter.group;
+    this.adamBody = this.adamCharacter.joints.hip;
+    this.adamArmL = this.adamCharacter.joints.shoulderLeft;
+    this.adamArmR = this.adamCharacter.joints.shoulderRight;
     this.adam.position.set(-9.0, this.getTerrainHeight(-9.0, 9.0), 9.0);
     this.adam.lookAt(0, this.adam.position.y, 0);
     this.scene.add(this.adam);
@@ -853,17 +842,25 @@ export class EdenScene {
         this.adam.rotation.y = targetAngle;
         
         const swing = Math.sin(elapsed * 9.0) * 0.42;
-        this.adamBody.children[5].rotation.x = swing;
-        this.adamBody.children[6].rotation.x = -swing;
-        this.adamBody.children[3].rotation.x = -swing;
-        this.adamBody.children[4].rotation.x = swing;
+        if (this.adamCharacter && this.adamCharacter.joints) {
+          if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
+          if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x = -swing;
+          if (this.adamCharacter.joints.shoulderLeft) this.adamCharacter.joints.shoulderLeft.rotation.x = -swing;
+          if (this.adamCharacter.joints.shoulderRight) this.adamCharacter.joints.shoulderRight.rotation.x = swing;
+        }
       } else {
-        this.adamBody.children[5].rotation.x *= 0.85;
-        this.adamBody.children[6].rotation.x *= 0.85;
-        this.adamBody.children[3].rotation.x *= 0.85;
-        this.adamBody.children[4].rotation.x *= 0.85;
+        if (this.adamCharacter && this.adamCharacter.joints) {
+          if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;
+          if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x *= 0.85;
+        }
       }
     }
+    
+    // Update modular models
+    if (this.grassField) this.grassField.update(elapsed);
+    if (this.organicTrees) this.organicTrees.update(dt, elapsed);
+    if (this.adamCharacter) this.adamCharacter.update(dt, elapsed);
+    if (this.eveCharacter) this.eveCharacter.update(dt, elapsed);
     
     // Spring arm camera ALWAYS follows Adam, even during cinematics
     const springArmDist = 5.0;
@@ -879,6 +876,19 @@ export class EdenScene {
     const lookTarget = new THREE.Vector3(this.adam.position.x, this.adam.position.y + 1.2, this.adam.position.z);
     this.camera.lookAt(lookTarget);
     
-    this.renderer.render(this.scene, this.camera);
+    if (this.postFX) {
+      this.postFX.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
+
+  onWindowResize = () => {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.camera.aspect = this.width / this.height;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(this.width, this.height);
+    if (this.postFX) this.postFX.setSize(this.width, this.height);
+  };
 }
