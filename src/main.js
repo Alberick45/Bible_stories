@@ -35,7 +35,7 @@ const skipBtn = document.getElementById('skip-btn');
 const hubToggleBtn = document.getElementById('hub-toggle-btn');
 const hubPanelEl = document.getElementById('hub-panel');
 const closeHubBtn = document.getElementById('close-hub');
-const eraButtons = document.querySelectorAll('.era-card');
+const eraButtons = document.querySelectorAll('.era-btn, .era-card');
 
 // Audio states
 let audioContext = null;
@@ -434,33 +434,61 @@ function createInstructionBanner() {
   return div;
 }
 
-function setupScriptureContent(sceneName) {
-  if (sceneName === 'creation') {
-    loadScriptureScroll(
-      `Genesis 1:1 &ndash; 2:7 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
-      document.querySelector('#creation-scripture-content')?.innerHTML || ''
-    );
-  } else if (sceneName === 'eden') {
-    loadScriptureScroll(
-      `Genesis 2:1 &ndash; 3:24 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
-      document.querySelector('#eden-scripture-content')?.innerHTML || ''
-    );
-  } else if (sceneName === 'cainabel') {
-    loadScriptureScroll(
-      `Genesis 4:1 &ndash; 16 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
-      document.querySelector('#cainabel-scripture-content')?.innerHTML || ''
-    );
-  } else if (sceneName === 'noah') {
-    loadScriptureScroll(
-      `Genesis 6 &ndash; 9 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
-      document.querySelector('#noah-scripture-content')?.innerHTML || ''
-    );
-  } else if (sceneName === 'babel') {
-    loadScriptureScroll(
-      `Genesis 11:1 &ndash; 9 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
-      document.querySelector('#babel-scripture-content')?.innerHTML || ''
-    );
+const SCRIPTURE_TEXTS = {
+  creation: {
+    title: `Genesis 1:1 &ndash; 2:7 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">1:1</span>In the beginning God created the heaven and the earth.</p>
+      <p><span class="verse-num">1:2</span>And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.</p>
+      <p><span class="verse-num">1:3</span>And God said, Let there be light: and there was light.</p>
+      <p><span class="verse-num">1:4</span>And God saw the light, that it was good: and God divided the light from the darkness.</p>
+      <p><span class="verse-num">1:9-13</span>And God said, Let the waters under the heaven be gathered together unto one place, and let the dry land appear: and it was so. And God called the dry land Earth; and the gathering together of the waters called he Seas: and God saw that it was good.</p>
+      <p><span class="verse-num">1:26-27</span>And God said, Let us make man in our image, after our likeness: and let them have dominion over the fish of the sea, and over the fowl of the air... So God created man in his own image, in the image of God created he him; male and female created he them.</p>
+      <p><span class="verse-num">2:7</span>And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.</p>
+    `
+  },
+  eden: {
+    title: `Genesis 2:8 &ndash; 3:24 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">2:8-9</span>And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed. And out of the ground made the LORD God to grow every tree that is pleasant to the sight, and good for food; the tree of life also in the midst of the garden, and the tree of knowledge of good and evil.</p>
+      <p><span class="verse-num">2:15-17</span>And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it. And the LORD God commanded the man, saying, Of every tree of the garden thou mayest freely eat: But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.</p>
+      <p><span class="verse-num">2:19-22</span>And out of the ground the LORD God formed every beast of the field, and every fowl of the air; and brought them unto Adam to see what he would call them... And the LORD God caused a deep sleep to fall upon Adam... and he took one of his ribs, and closed up the flesh instead thereof; And the rib, which the LORD God had taken from man, made he a woman.</p>
+      <p><span class="verse-num">3:1-6</span>Now the serpent was more subtil than any beast of the field which the LORD God had made. And he said unto the woman, Yea, hath God said, Ye shall not eat of every tree of the garden?... And when the woman saw that the tree was good for food, and that it was pleasant to the eyes... she took of the fruit thereof, and did eat, and gave also unto her husband with her; and he did eat.</p>
+      <p><span class="verse-num">3:23-24</span>Therefore the LORD God sent him forth from the garden of Eden, to till the ground from whence he was taken. So he drove out the man; and he placed at the east of the garden of Eden Cherubims, and a flaming sword which turned every way, to keep the way of the tree of life.</p>
+    `
+  },
+  cainabel: {
+    title: `Genesis 4:1 &ndash; 16 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">4:1-2</span>And Adam knew Eve his wife; and she conceived, and bare Cain... And she again bare his brother Abel. And Abel was a keeper of sheep, but Cain was a tiller of the ground.</p>
+      <p><span class="verse-num">4:3-5</span>And in process of time it came to pass, that Cain brought of the fruit of the ground an offering unto the LORD. And Abel, he also brought of the firstlings of his flock and of the fat thereof. And the LORD had respect unto Abel and to his offering: But unto Cain and to his offering he had not respect. And Cain was very wroth, and his countenance fell.</p>
+      <p><span class="verse-num">4:8-10</span>And Cain talked with Abel his brother: and it came to pass, when they were in the field, that Cain rose up against Abel his brother, and slew him. And the LORD said unto Cain, Where is Abel thy brother? And he said, I know not: Am I my brother's keeper? And he said, What hast thou done? the voice of thy brother's blood crieth unto me from the ground.</p>
+      <p><span class="verse-num">4:15-16</span>And the LORD set a mark upon Cain, lest any finding him should kill him. And Cain went out from the presence of the LORD, and dwelt in the land of Nod, on the east of Eden.</p>
+    `
+  },
+  noah: {
+    title: `Genesis 6:5 &ndash; 9:17 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">6:5-8</span>And God saw that the wickedness of man was great in the earth... But Noah found grace in the eyes of the LORD.</p>
+      <p><span class="verse-num">6:14-19</span>Make thee an ark of gopher wood... And of every living thing of all flesh, two of every sort shalt thou bring into the ark, to keep them alive with thee; they shall be male and female.</p>
+      <p><span class="verse-num">7:11-12</span>In the six hundredth year of Noah's life... were all the fountains of the great deep broken up, and the windows of heaven were opened. And the rain was upon the earth forty days and forty nights.</p>
+      <p><span class="verse-num">8:10-11</span>And he stayed yet other seven days; and again he sent forth the dove out of the ark; And the dove came in to him in the evening; and, lo, in her mouth was an olive leaf pluckt off: so Noah knew that the waters were abated from off the earth.</p>
+      <p><span class="verse-num">9:12-13</span>And God said, This is the token of the covenant which I make between me and you... I do set my bow in the cloud, and it shall be for a token of a covenant between me and the earth.</p>
+    `
+  },
+  babel: {
+    title: `Genesis 11:1 &ndash; 9 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">11:1-4</span>And the whole earth was of one language, and of one speech... And they said, Go to, let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name, lest we be scattered abroad upon the face of the whole earth.</p>
+      <p><span class="verse-num">11:5-7</span>And the LORD came down to see the city and the tower, which the children of men builded. And the LORD said, Behold, the people is one, and they have all one language... Go to, let us go down, and there confound their language, that they may not understand one another's speech.</p>
+      <p><span class="verse-num">11:8-9</span>So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city. Therefore is the name of it called Babel; because the LORD did there confound the language of all the earth.</p>
+    `
   }
+};
+
+function setupScriptureContent(sceneName) {
+  const scripture = SCRIPTURE_TEXTS[sceneName] || SCRIPTURE_TEXTS.creation;
+  loadScriptureScroll(scripture.title, scripture.content);
 }
 
 // ==========================================
