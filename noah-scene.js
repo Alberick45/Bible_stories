@@ -19,6 +19,9 @@ export class NoahScene {
     this.targetYaw = Math.PI;
     this.targetPitch = 0.28;
     
+    // Camera mode ('thirdPerson' or 'firstPerson')
+    this.cameraMode = 'thirdPerson';
+    
     this.isDragging = false;
     this.lastMouseX = 0;
     this.lastMouseY = 0;
@@ -498,8 +501,24 @@ export class NoahScene {
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     
-    window.addEventListener('keydown', e => this.keys[e.code] = true);
+    window.addEventListener('keydown', e => {
+      this.keys[e.code] = true;
+      if (e.code === 'KeyV' && !e.repeat) {
+        this.toggleCameraMode();
+      }
+    });
     window.addEventListener('keyup', e => this.keys[e.code] = false);
+  }
+  
+  toggleCameraMode() {
+    this.cameraMode = (this.cameraMode === 'firstPerson') ? 'thirdPerson' : 'firstPerson';
+    if (window.showCameraToast) {
+      window.showCameraToast(
+        this.cameraMode === 'firstPerson'
+          ? 'First Person View (Human\'s POV)'
+          : 'Third Person View (Full View)'
+      );
+    }
   }
   
   completeArk() {
@@ -799,30 +818,64 @@ export class NoahScene {
         const targetAngle = Math.atan2(move.x, move.z);
         this.noah.rotation.y = targetAngle;
         
-        const swing = Math.sin(elapsed * 9.0) * 0.42;
-        this.noah.children[5].rotation.x = swing;
-        this.noah.children[6].rotation.x = -swing;
-        this.noah.children[3].rotation.x = -swing;
-        this.noah.children[4].rotation.x = swing;
+        if (this.noahCharacter) {
+          if (this.noahCharacter.mixer) {
+            this.noahCharacter.playAnimation('Walk');
+          } else if (this.noahCharacter.joints) {
+            const swing = Math.sin(elapsed * 9.0) * 0.42;
+            if (this.noahCharacter.joints.hipLeft) this.noahCharacter.joints.hipLeft.rotation.x = swing;
+            if (this.noahCharacter.joints.hipRight) this.noahCharacter.joints.hipRight.rotation.x = -swing;
+          }
+        } else if (this.noah.children && this.noah.children.length > 6) {
+          const swing = Math.sin(elapsed * 9.0) * 0.42;
+          this.noah.children[5].rotation.x = swing;
+          this.noah.children[6].rotation.x = -swing;
+          this.noah.children[3].rotation.x = -swing;
+          this.noah.children[4].rotation.x = swing;
+        }
       } else {
-        this.noah.children[5].rotation.x *= 0.85;
-        this.noah.children[6].rotation.x *= 0.85;
-        this.noah.children[3].rotation.x *= 0.85;
-        this.noah.children[4].rotation.x *= 0.85;
+        if (this.noahCharacter) {
+          if (this.noahCharacter.mixer) {
+            this.noahCharacter.playAnimation('Idle');
+          } else if (this.noahCharacter.joints) {
+            if (this.noahCharacter.joints.hipLeft) this.noahCharacter.joints.hipLeft.rotation.x *= 0.85;
+            if (this.noahCharacter.joints.hipRight) this.noahCharacter.joints.hipRight.rotation.x *= 0.85;
+          }
+        } else if (this.noah.children && this.noah.children.length > 6) {
+          this.noah.children[5].rotation.x *= 0.85;
+          this.noah.children[6].rotation.x *= 0.85;
+          this.noah.children[3].rotation.x *= 0.85;
+          this.noah.children[4].rotation.x *= 0.85;
+        }
       }
       
-      const springArmDist = 6.8;
-      const camOffset = new THREE.Vector3(
-        Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
-        Math.sin(this.pitch) * springArmDist + 1.8,
-        Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
-      );
-      
-      const targetCamPos = this.noah.position.clone().add(camOffset);
-      this.camera.position.lerp(targetCamPos, 0.12);
-      
-      const lookTarget = new THREE.Vector3(this.noah.position.x, this.noah.position.y + 1.2, this.noah.position.z);
-      this.camera.lookAt(lookTarget);
+      if (this.cameraMode === 'firstPerson') {
+        this.noah.visible = false;
+        const eyePos = new THREE.Vector3(this.noah.position.x, this.noah.position.y + 1.65, this.noah.position.z);
+        this.camera.position.lerp(eyePos, 0.25);
+        
+        const forwardDir = new THREE.Vector3(
+          -Math.sin(this.yaw) * Math.cos(this.pitch),
+          -Math.sin(this.pitch),
+          -Math.cos(this.yaw) * Math.cos(this.pitch)
+        );
+        const lookTarget = eyePos.clone().add(forwardDir.multiplyScalar(10.0));
+        this.camera.lookAt(lookTarget);
+      } else {
+        this.noah.visible = true;
+        const springArmDist = 6.8;
+        const camOffset = new THREE.Vector3(
+          Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
+          Math.sin(this.pitch) * springArmDist + 2.4, // Elevated height to stay clear of grass
+          Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
+        );
+        
+        const targetCamPos = this.noah.position.clone().add(camOffset);
+        this.camera.position.lerp(targetCamPos, 0.15);
+        
+        const lookTarget = new THREE.Vector3(this.noah.position.x, this.noah.position.y + 1.4, this.noah.position.z);
+        this.camera.lookAt(lookTarget);
+      }
     }
     
     this.renderer.render(this.scene, this.camera);

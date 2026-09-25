@@ -19,6 +19,9 @@ export class BabelScene {
     this.targetYaw = Math.PI * 0.75;
     this.targetPitch = 0.28;
     
+    // Camera mode ('thirdPerson' or 'firstPerson')
+    this.cameraMode = 'thirdPerson';
+    
     this.isDragging = false;
     this.lastMouseX = 0;
     this.lastMouseY = 0;
@@ -255,8 +258,24 @@ export class BabelScene {
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     
-    window.addEventListener('keydown', e => this.keys[e.code] = true);
+    window.addEventListener('keydown', e => {
+      this.keys[e.code] = true;
+      if (e.code === 'KeyV' && !e.repeat) {
+        this.toggleCameraMode();
+      }
+    });
     window.addEventListener('keyup', e => this.keys[e.code] = false);
+  }
+  
+  toggleCameraMode() {
+    this.cameraMode = (this.cameraMode === 'firstPerson') ? 'thirdPerson' : 'firstPerson';
+    if (window.showCameraToast) {
+      window.showCameraToast(
+        this.cameraMode === 'firstPerson'
+          ? 'First Person View (Human\'s POV)'
+          : 'Third Person View (Full View)'
+      );
+    }
   }
   
   getTerrainHeight(x, z) {
@@ -505,30 +524,64 @@ export class BabelScene {
         const targetAngle = Math.atan2(move.x, move.z);
         this.builder.rotation.y = targetAngle;
         
-        const swing = Math.sin(elapsed * 9.0) * 0.42;
-        this.builder.children[4].rotation.x = swing;
-        this.builder.children[5].rotation.x = -swing;
-        this.builder.children[2].rotation.x = -swing;
-        this.builder.children[3].rotation.x = swing;
+        if (this.builderCharacter) {
+          if (this.builderCharacter.mixer) {
+            this.builderCharacter.playAnimation('Walk');
+          } else if (this.builderCharacter.joints) {
+            const swing = Math.sin(elapsed * 9.0) * 0.42;
+            if (this.builderCharacter.joints.hipLeft) this.builderCharacter.joints.hipLeft.rotation.x = swing;
+            if (this.builderCharacter.joints.hipRight) this.builderCharacter.joints.hipRight.rotation.x = -swing;
+          }
+        } else if (this.builder.children && this.builder.children.length > 5) {
+          const swing = Math.sin(elapsed * 9.0) * 0.42;
+          this.builder.children[4].rotation.x = swing;
+          this.builder.children[5].rotation.x = -swing;
+          this.builder.children[2].rotation.x = -swing;
+          this.builder.children[3].rotation.x = swing;
+        }
       } else {
-        this.builder.children[4].rotation.x *= 0.85;
-        this.builder.children[5].rotation.x *= 0.85;
-        this.builder.children[2].rotation.x *= 0.85;
-        this.builder.children[3].rotation.x *= 0.85;
+        if (this.builderCharacter) {
+          if (this.builderCharacter.mixer) {
+            this.builderCharacter.playAnimation('Idle');
+          } else if (this.builderCharacter.joints) {
+            if (this.builderCharacter.joints.hipLeft) this.builderCharacter.joints.hipLeft.rotation.x *= 0.85;
+            if (this.builderCharacter.joints.hipRight) this.builderCharacter.joints.hipRight.rotation.x *= 0.85;
+          }
+        } else if (this.builder.children && this.builder.children.length > 5) {
+          this.builder.children[4].rotation.x *= 0.85;
+          this.builder.children[5].rotation.x *= 0.85;
+          this.builder.children[2].rotation.x *= 0.85;
+          this.builder.children[3].rotation.x *= 0.85;
+        }
       }
       
-      const springArmDist = 6.2;
-      const camOffset = new THREE.Vector3(
-        Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
-        Math.sin(this.pitch) * springArmDist + 1.6,
-        Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
-      );
-      
-      const targetCamPos = this.builder.position.clone().add(camOffset);
-      this.camera.position.lerp(targetCamPos, 0.12);
-      
-      const lookTarget = new THREE.Vector3(this.builder.position.x, this.builder.position.y + 1.1, this.builder.position.z);
-      this.camera.lookAt(lookTarget);
+      if (this.cameraMode === 'firstPerson') {
+        this.builder.visible = false;
+        const eyePos = new THREE.Vector3(this.builder.position.x, this.builder.position.y + 1.65, this.builder.position.z);
+        this.camera.position.lerp(eyePos, 0.25);
+        
+        const forwardDir = new THREE.Vector3(
+          -Math.sin(this.yaw) * Math.cos(this.pitch),
+          -Math.sin(this.pitch),
+          -Math.cos(this.yaw) * Math.cos(this.pitch)
+        );
+        const lookTarget = eyePos.clone().add(forwardDir.multiplyScalar(10.0));
+        this.camera.lookAt(lookTarget);
+      } else {
+        this.builder.visible = true;
+        const springArmDist = 6.2;
+        const camOffset = new THREE.Vector3(
+          Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
+          Math.sin(this.pitch) * springArmDist + 2.2, // Elevated height to stay clear of grass
+          Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
+        );
+        
+        const targetCamPos = this.builder.position.clone().add(camOffset);
+        this.camera.position.lerp(targetCamPos, 0.15);
+        
+        const lookTarget = new THREE.Vector3(this.builder.position.x, this.builder.position.y + 1.4, this.builder.position.z);
+        this.camera.lookAt(lookTarget);
+      }
     }
     
     this.renderer.render(this.scene, this.camera);

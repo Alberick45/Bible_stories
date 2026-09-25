@@ -18,6 +18,9 @@ export class EdenScene {
     this.targetYaw = Math.PI;
     this.targetPitch = 0.28;
     
+    // Camera mode ('thirdPerson' or 'firstPerson')
+    this.cameraMode = 'thirdPerson';
+    
     this.isDragging = false;
     this.lastMouseX = 0;
     this.lastMouseY = 0;
@@ -501,8 +504,24 @@ export class EdenScene {
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     
-    window.addEventListener('keydown', e => this.keys[e.code] = true);
+    window.addEventListener('keydown', e => {
+      this.keys[e.code] = true;
+      if (e.code === 'KeyV' && !e.repeat) {
+        this.toggleCameraMode();
+      }
+    });
     window.addEventListener('keyup', e => this.keys[e.code] = false);
+  }
+  
+  toggleCameraMode() {
+    this.cameraMode = (this.cameraMode === 'firstPerson') ? 'thirdPerson' : 'firstPerson';
+    if (window.showCameraToast) {
+      window.showCameraToast(
+        this.cameraMode === 'firstPerson'
+          ? 'First Person View (Human\'s POV)'
+          : 'Third Person View (Full View)'
+      );
+    }
   }
   
   getTerrainHeight(x, z) {
@@ -841,17 +860,25 @@ export class EdenScene {
         const targetAngle = Math.atan2(move.x, move.z);
         this.adam.rotation.y = targetAngle;
         
-        const swing = Math.sin(elapsed * 9.0) * 0.42;
-        if (this.adamCharacter && this.adamCharacter.joints) {
-          if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
-          if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x = -swing;
-          if (this.adamCharacter.joints.shoulderLeft) this.adamCharacter.joints.shoulderLeft.rotation.x = -swing;
-          if (this.adamCharacter.joints.shoulderRight) this.adamCharacter.joints.shoulderRight.rotation.x = swing;
+        if (this.adamCharacter) {
+          if (this.adamCharacter.mixer) {
+            this.adamCharacter.playAnimation('Walk');
+          } else if (this.adamCharacter.joints) {
+            const swing = Math.sin(elapsed * 9.0) * 0.42;
+            if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
+            if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x = -swing;
+            if (this.adamCharacter.joints.shoulderLeft) this.adamCharacter.joints.shoulderLeft.rotation.x = -swing;
+            if (this.adamCharacter.joints.shoulderRight) this.adamCharacter.joints.shoulderRight.rotation.x = swing;
+          }
         }
       } else {
-        if (this.adamCharacter && this.adamCharacter.joints) {
-          if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;
-          if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x *= 0.85;
+        if (this.adamCharacter) {
+          if (this.adamCharacter.mixer) {
+            this.adamCharacter.playAnimation('Idle');
+          } else if (this.adamCharacter.joints) {
+            if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;
+            if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x *= 0.85;
+          }
         }
       }
     }
@@ -862,19 +889,33 @@ export class EdenScene {
     if (this.adamCharacter) this.adamCharacter.update(dt, elapsed);
     if (this.eveCharacter) this.eveCharacter.update(dt, elapsed);
     
-    // Spring arm camera ALWAYS follows Adam, even during cinematics
-    const springArmDist = 5.0;
-    const camOffset = new THREE.Vector3(
-      Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
-      Math.sin(this.pitch) * springArmDist + 1.4,
-      Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
-    );
-    
-    const targetCamPos = this.adam.position.clone().add(camOffset);
-    this.camera.position.lerp(targetCamPos, 0.12);
-    
-    const lookTarget = new THREE.Vector3(this.adam.position.x, this.adam.position.y + 1.2, this.adam.position.z);
-    this.camera.lookAt(lookTarget);
+    if (this.cameraMode === 'firstPerson') {
+      this.adam.visible = false;
+      const eyePos = new THREE.Vector3(this.adam.position.x, this.adam.position.y + 1.65, this.adam.position.z);
+      this.camera.position.lerp(eyePos, 0.25);
+      
+      const forwardDir = new THREE.Vector3(
+        -Math.sin(this.yaw) * Math.cos(this.pitch),
+        -Math.sin(this.pitch),
+        -Math.cos(this.yaw) * Math.cos(this.pitch)
+      );
+      const lookTarget = eyePos.clone().add(forwardDir.multiplyScalar(10.0));
+      this.camera.lookAt(lookTarget);
+    } else {
+      this.adam.visible = true;
+      const springArmDist = 5.0;
+      const camOffset = new THREE.Vector3(
+        Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
+        Math.sin(this.pitch) * springArmDist + 2.2, // Elevated height to stay clear of grass
+        Math.cos(this.yaw) * Math.cos(this.pitch) * springArmDist
+      );
+      
+      const targetCamPos = this.adam.position.clone().add(camOffset);
+      this.camera.position.lerp(targetCamPos, 0.15);
+      
+      const lookTarget = new THREE.Vector3(this.adam.position.x, this.adam.position.y + 1.4, this.adam.position.z);
+      this.camera.lookAt(lookTarget);
+    }
     
     if (this.postFX) {
       this.postFX.render();

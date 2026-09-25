@@ -502,12 +502,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // Custom instruction banner setup
   createInstructionBanner();
 
-  // Non-blocking interrupt listeners (Space, Enter, Click on narration or hint)
+  // Camera Toast Notification System
+  let cameraToastTimeout = null;
+  window.showCameraToast = function(text) {
+    let toastEl = document.getElementById('camera-toast');
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.id = 'camera-toast';
+      toastEl.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(18,24,38,0.9);color:#e2d4b7;border:1px solid rgba(212,175,55,0.5);padding:8px 22px;border-radius:20px;font-family:"Cinzel",serif;font-size:13px;letter-spacing:1px;z-index:9999;pointer-events:none;transition:opacity 0.3s ease;box-shadow:0 4px 15px rgba(0,0,0,0.5);text-transform:uppercase;';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = text;
+    toastEl.style.opacity = '1';
+    clearTimeout(cameraToastTimeout);
+    cameraToastTimeout = setTimeout(() => {
+      toastEl.style.opacity = '0';
+    }, 2200);
+  };
+
+  // Non-blocking interrupt listeners (Space, Enter, Click on narration or hint) & Camera toggle (V)
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code === 'Enter') {
       if (orchestrator.isPlaying) {
         e.preventDefault();
         orchestrator.interrupt();
+      }
+    } else if (e.code === 'KeyV' && !e.repeat) {
+      if (window.sceneEngine && typeof window.sceneEngine.toggleCameraMode === 'function') {
+        window.sceneEngine.toggleCameraMode();
       }
     }
   });

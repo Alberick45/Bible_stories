@@ -15,6 +15,7 @@ export class CharacterModel {
     this.hairColor = options.hairColor || 0x2b1d0c;
     this.gltfUrl = options.gltfUrl || null;
     this.scale = options.scale || 1.0;
+    this.forwardOffset = options.forwardOffset !== undefined ? options.forwardOffset : Math.PI;
     
     this.group = new THREE.Group();
     this.group.name = this.name;
@@ -57,6 +58,7 @@ export class CharacterModel {
         (gltf) => {
           const model = gltf.scene;
           model.scale.setScalar(this.scale);
+          model.rotation.y = this.forwardOffset;
           model.traverse((o) => {
             if (o.isMesh || o.isSkinnedMesh) {
               o.castShadow = true;
@@ -67,15 +69,12 @@ export class CharacterModel {
           this.group.add(model);
 
           if (gltf.animations && gltf.animations.length > 0) {
+            console.log(`[CharacterModel] Loaded GLTF asset '${this.name}' with ${gltf.animations.length} clips:`, gltf.animations.map(a => a.name));
             this.mixer = new THREE.AnimationMixer(model);
             for (const clip of gltf.animations) {
               this.actions[clip.name] = this.mixer.clipAction(clip);
             }
-            if (this.actions['Idle']) this.playAnimation('Idle');
-            else if (Object.keys(this.actions).length > 0) {
-              const first = Object.keys(this.actions)[0];
-              this.playAnimation(first);
-            }
+            this.playAnimation('Idle');
           }
           resolve(gltf);
         },
@@ -291,14 +290,39 @@ export class CharacterModel {
     });
   }
 
-  playAnimation(name, fade = 0.25) {
-    if (this.mixer && this.actions[name]) {
-      const next = this.actions[name];
-      if (next === this.activeAction) return;
-      next.reset().fadeIn(fade).play();
-      if (this.activeAction) this.activeAction.fadeOut(fade);
-      this.activeAction = next;
+  findAction(name) {
+    if (!this.actions || Object.keys(this.actions).length === 0) return null;
+    if (this.actions[name]) return this.actions[name];
+
+    const lowerName = name.toLowerCase();
+    const aliases = {
+      walk: ['walk', 'walking', 'walkcycle', 'run', 'running', 'mixamo.com'],
+      idle: ['idle', 'standing', 'stand', 'take 001', 'default'],
+      run: ['run', 'running', 'sprint', 'walk', 'walking']
+    };
+
+    const targets = aliases[lowerName] || [lowerName];
+
+    for (const key of Object.keys(this.actions)) {
+      const keyLower = key.toLowerCase();
+      for (const target of targets) {
+        if (keyLower.includes(target) || target.includes(keyLower)) {
+          return this.actions[key];
+        }
+      }
     }
+
+    return this.actions[Object.keys(this.actions)[0]] || null;
+  }
+
+  playAnimation(name, fade = 0.25) {
+    if (!this.mixer) return;
+    const next = this.findAction(name);
+    if (!next || next === this.activeAction) return;
+
+    next.reset().fadeIn(fade).play();
+    if (this.activeAction) this.activeAction.fadeOut(fade);
+    this.activeAction = next;
   }
 
   walkTo(targetX, targetZ, speed = 3.2, dt = 0.016) {
@@ -341,8 +365,9 @@ export class CharacterModel {
   }
 
   update(dt, elapsed) {
+    const safeDt = (typeof dt === 'number' && dt > 0 && dt < 0.5) ? dt : 0.016;
     if (this.mixer) {
-      this.mixer.update(dt);
+      this.mixer.update(safeDt);
     } else if (this.isProcedural && this.joints.hip) {
       // Breathing & Gentle Body Sway
       const breath = Math.sin(elapsed * 2.2) * 0.015;
