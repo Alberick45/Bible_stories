@@ -17,7 +17,10 @@ export const CHARACTERS = {
   man2: '/src/models/characters/man2.fbx',
   noah: '/src/models/characters/adam_white.fbx',
   builder: '/src/models/characters/man1.fbx',
-  soldier: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb'
+  soldier: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb',
+  swordsman: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb',
+  cherub: '/src/models/characters/adam_white.fbx',
+  angel: '/src/models/characters/adam_white.fbx'
 };
 
 export const ANIMATIONS = {
@@ -37,7 +40,10 @@ export const ANIMATIONS = {
   waving: '/src/animation/movements/Waving Gesture.fbx',
   hook_punch: '/src/animation/movements/Hook Punch.fbx',
   kicking: '/src/animation/movements/Kicking.fbx',
-  jump: '/src/animation/movements/Jump.fbx'
+  jump: '/src/animation/movements/Jump.fbx',
+  sword_idle: '/src/animation/movements/Standing Block Start.fbx',
+  sword: '/src/animation/movements/Standing Block Start.fbx',
+  standing_block: '/src/animation/movements/Standing Block Start.fbx'
 };
 
 export const GLTF_ASSETS = {

@@ -363,15 +363,19 @@ export class EdenScene {
       emissiveIntensity: 0.15
     });
     
+    this.cherubimCharacters = [];
     for (let c = 0; c < 2; c++) {
-      const cherubim = new THREE.Group();
-      // Body
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 1.8, 8), goldArmorMat);
-      body.position.y = 0.9;
-      body.castShadow = true;
-      
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), goldArmorMat);
-      head.position.y = 1.95;
+      const cherubChar = new CharacterModel({
+        name: `Cherub_${c + 1}`,
+        character: 'cherub',
+        gender: 'male',
+        skinTone: 0xffdfa0,
+        clothesColor: 0xd4af37,
+        hairColor: 0xffd700,
+        scale: 1.05
+      });
+      const cherubim = cherubChar.group;
+      this.cherubimCharacters.push(cherubChar);
       
       // Large golden wings
       const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.6, 0.65), goldArmorMat);
@@ -384,7 +388,7 @@ export class EdenScene {
       wingR.rotation.y = -0.3;
       wingR.rotation.z = 0.25;
       
-      cherubim.add(body, head, wingL, wingR);
+      cherubim.add(wingL, wingR);
       cherubim.position.set(0, 0, c === 0 ? -2.8 : 2.8);
       cherubim.lookAt(0, 0, 0); // Looking inwards towards the path
       this.eastGateGroup.add(cherubim);
@@ -1033,6 +1037,7 @@ export class EdenScene {
     if (this.organicTrees) this.organicTrees.update(dt, elapsed);
     if (this.adamCharacter) this.adamCharacter.update(dt, elapsed);
     if (this.eveCharacter) this.eveCharacter.update(dt, elapsed);
+    if (this.cherubimCharacters) this.cherubimCharacters.forEach(c => c.update(dt, elapsed));
     
     if (this.cameraMode === 'firstPerson') {
       this.adam.visible = false;

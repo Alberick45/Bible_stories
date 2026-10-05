@@ -342,77 +342,34 @@ export class CainAbelScene {
     this.eve.lookAt(-16, this.eve.position.y, 12);
     this.scene.add(this.eve);
     
-    // Cain
-    this.cain = new THREE.Group();
-    this.cain.name = 'Cain';
-    this.cain.visible = false; // Hidden at start during infant prologue
-    const cainTunicMat = new THREE.MeshStandardMaterial({ color: 0x6e4e37, roughness: 0.9 });
-    
-    const cTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.05, 8), cainTunicMat);
-    cTorso.position.y = 1.05;
-    const cHead = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 10), skinMat);
-    cHead.position.y = 1.7;
-    const cHair = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.24, 0.26), hairMatAdam);
-    cHair.position.set(0, 1.8, 0);
-    
-    this.cainArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.85), skinMat);
-    this.cainArmL.position.set(-0.32, 1.05, 0);
-    
-    this.cainArmR = this.cainArmL.clone();
-    this.cainArmR.position.x = 0.32;
-    
-    // Cain's farming hoe / weapon tool
-    this.weaponGroup = new THREE.Group();
-    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.4, 6), fenceMat);
-    handle.rotation.z = Math.PI / 2;
-    const bladePart = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, 0.06), stoneMat);
-    bladePart.position.set(-0.7, 0.1, 0);
-    this.weaponGroup.add(handle, bladePart);
-    this.weaponGroup.position.set(0.2, -0.4, 0.25);
-    this.weaponGroup.rotation.y = -0.3;
-    this.cainArmR.add(this.weaponGroup);
-    
-    const cLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.9, 6), skinMat);
-    cLegL.position.set(-0.1, 0.45, 0);
-    const cLegR = cLegL.clone(); cLegR.position.x = 0.1;
-    
-    this.cain.add(cTorso, cHead, cHair, this.cainArmL, this.cainArmR, cLegL, cLegR);
+    // Cain (Playable CharacterModel)
+    this.cainCharacter = new CharacterModel({
+      name: 'Cain',
+      character: 'cain',
+      gender: 'male',
+      skinTone: 0xdcb896,
+      hairColor: 0x2b1d0c,
+      clothesColor: 0x6e4e37
+    });
+    this.cain = this.cainCharacter.group;
     this.cain.position.set(-13, this.getTerrainHeight(-13, 8), 8);
     this.cain.lookAt(0, this.cain.position.y, 0);
+    this.cain.visible = false; // Hidden at start during infant prologue
     this.scene.add(this.cain);
     
-    // Abel
-    this.abel = new THREE.Group();
-    this.abel.name = 'Abel';
-    this.abel.visible = false; // Hidden at start
-    const abelTunicMat = new THREE.MeshStandardMaterial({ color: 0xcdcfc4, roughness: 0.95 });
-    
-    const abTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 1.0, 8), abelTunicMat);
-    abTorso.position.y = 1.0;
-    const abHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
-    abHead.position.y = 1.62;
-    const abHair = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.24), hairMatEve);
-    abHair.position.set(0, 1.65, 0);
-    
-    this.abelArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.85), skinMat);
-    this.abelArmL.position.set(-0.3, 1.0, 0);
-    
-    this.abelArmR = this.abelArmL.clone();
-    this.abelArmR.position.x = 0.3;
-    
-    // Abel's shepherd staff
-    const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 1.5, 6), fenceMat);
-    staff.position.set(0.18, -0.2, 0.2);
-    staff.rotation.x = 0.1;
-    this.abelArmR.add(staff);
-    
-    const abLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.9, 6), skinMat);
-    abLegL.position.set(-0.1, 0.45, 0);
-    const abLegR = abLegL.clone(); abLegR.position.x = 0.1;
-    
-    this.abel.add(abTorso, abHead, abHair, this.abelArmL, this.abelArmR, abLegL, abLegR);
+    // Abel (CharacterModel)
+    this.abelCharacter = new CharacterModel({
+      name: 'Abel',
+      character: 'abel',
+      gender: 'male',
+      skinTone: 0xe0a96d,
+      hairColor: 0x3b2d19,
+      clothesColor: 0xcdcfc4
+    });
+    this.abel = this.abelCharacter.group;
     this.abel.position.set(-11, this.getTerrainHeight(-11, 7.5), 7.5);
     this.abel.lookAt(0, this.abel.position.y, 0);
+    this.abel.visible = false; // Hidden at start
     this.scene.add(this.abel);
     
     // Glowing warning Mark of Cain (floating red circle target)
@@ -629,8 +586,17 @@ export class CainAbelScene {
     return false;
   }
   
+  triggerPlayerAction(animName) {
+    if (this.cainCharacter && this.cainCharacter.playAnimation) {
+      const isLooping = (animName === 'talking' || animName === 'pray' || animName === 'praying');
+      this.cainCharacter.playAnimation(animName, { loop: isLooping, clampWhenFinished: !isLooping, force: true });
+    }
+  }
+
   update(time, dt) {
     const elapsed = time;
+    if (this.cainCharacter) this.cainCharacter.update(dt, elapsed);
+    if (this.abelCharacter) this.abelCharacter.update(dt, elapsed);
     
     // Rotate the flaming sword block in background
     if (this.flamingSword) {
