@@ -780,7 +780,8 @@ export class NoahScene {
     this.pitch += (this.targetPitch - this.pitch) * 0.1;
     
     if (this.movementEnabled && this.noah.visible) {
-      const speed = 2.4 * dt;
+      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift']);
+      const speed = (isRunning ? 5.2 : 2.4) * dt;
       
       const camForward = new THREE.Vector3();
       this.camera.getWorldDirection(camForward);
@@ -792,12 +793,12 @@ export class NoahScene {
       
       const move = new THREE.Vector3();
       
-      if (this.keys['KeyW']) move.add(camForward);
-      if (this.keys['KeyS']) move.sub(camForward);
-      if (this.keys['KeyD']) move.add(camRight);
-      if (this.keys['KeyA']) move.sub(camRight);
+      if (this.keys['KeyW'] || this.keys['ArrowUp']) move.add(camForward);
+      if (this.keys['KeyS'] || this.keys['ArrowDown']) move.sub(camForward);
+      if (this.keys['KeyD'] || this.keys['ArrowRight']) move.add(camRight);
+      if (this.keys['KeyA'] || this.keys['ArrowLeft']) move.sub(camRight);
       
-      if (this.joystickVector.lengthSq() > 0) {
+      if (this.joystickVector && this.joystickVector.lengthSq() > 0) {
         const joyForward = camForward.clone().multiplyScalar(this.joystickVector.y);
         const joyRight = camRight.clone().multiplyScalar(this.joystickVector.x);
         move.add(joyForward).add(joyRight);
@@ -820,9 +821,9 @@ export class NoahScene {
         
         if (this.noahCharacter) {
           if (this.noahCharacter.mixer) {
-            this.noahCharacter.playAnimation('Walk');
+            this.noahCharacter.playAnimation(isRunning ? 'run' : 'walk', { force: true });
           } else if (this.noahCharacter.joints) {
-            const swing = Math.sin(elapsed * 9.0) * 0.42;
+            const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;
             if (this.noahCharacter.joints.hipLeft) this.noahCharacter.joints.hipLeft.rotation.x = swing;
             if (this.noahCharacter.joints.hipRight) this.noahCharacter.joints.hipRight.rotation.x = -swing;
           }

@@ -419,15 +419,13 @@ export class EdenScene {
       clothesColor: 0x6b705c
     });
     this.eve = this.eveCharacter.group;
-    this.eveArmL = this.eveCharacter.joints.shoulderLeft;
-    this.eveArmR = this.eveCharacter.joints.shoulderRight;
     this.eve.position.set(-7.0, this.getTerrainHeight(-7.0, 9.0), 9.0);
     this.eve.lookAt(0, this.eve.position.y, 0);
     this.eve.visible = false;
     this.eveActive = false; // Flag to control follow logic
     this.scene.add(this.eve);
     
-    // Adam (Player Sculpted PBR CharacterModel)
+    // Adam (Player CharacterModel)
     this.adamCharacter = new CharacterModel({
       name: 'Adam',
       gender: 'male',
@@ -436,9 +434,6 @@ export class EdenScene {
       clothesColor: 0x3d5a80
     });
     this.adam = this.adamCharacter.group;
-    this.adamBody = this.adamCharacter.joints.hip;
-    this.adamArmL = this.adamCharacter.joints.shoulderLeft;
-    this.adamArmR = this.adamCharacter.joints.shoulderRight;
     this.adam.position.set(-9.0, this.getTerrainHeight(-9.0, 9.0), 9.0);
     this.adam.lookAt(0, this.adam.position.y, 0);
     this.scene.add(this.adam);
@@ -508,9 +503,26 @@ export class EdenScene {
       this.keys[e.code] = true;
       if (e.code === 'KeyV' && !e.repeat) {
         this.toggleCameraMode();
+      } else if (e.code === 'KeyT' && !e.repeat) {
+        this.triggerPlayerAction('talking');
+      } else if (e.code === 'KeyP' && !e.repeat) {
+        this.triggerPlayerAction('pray');
+      } else if (e.code === 'KeyJ' && !e.repeat) {
+        this.triggerPlayerAction('jump');
+      } else if (e.code === 'KeyK' && !e.repeat) {
+        this.triggerPlayerAction('kicking');
+      } else if (e.code === 'KeyR' && !e.repeat) {
+        this.triggerPlayerAction('angry');
       }
     });
     window.addEventListener('keyup', e => this.keys[e.code] = false);
+  }
+
+  triggerPlayerAction(animName) {
+    if (this.adamCharacter && this.adamCharacter.playAnimation) {
+      const isLooping = (animName === 'talking' || animName === 'pray' || animName === 'praying');
+      this.adamCharacter.playAnimation(animName, { loop: isLooping, clampWhenFinished: !isLooping, force: true });
+    }
   }
   
   toggleCameraMode() {
@@ -569,12 +581,129 @@ export class EdenScene {
     this.lastMouseY = e.clientY;
   }
   
+  get eveArmL() { return (this.eveCharacter && this.eveCharacter.joints) ? this.eveCharacter.joints.shoulderLeft : this.eve; }
+  get eveArmR() { return (this.eveCharacter && this.eveCharacter.joints) ? this.eveCharacter.joints.shoulderRight : this.eve; }
+  get adamArmL() { return (this.adamCharacter && this.adamCharacter.joints) ? this.adamCharacter.joints.shoulderLeft : this.adam; }
+  get adamArmR() { return (this.adamCharacter && this.adamCharacter.joints) ? this.adamCharacter.joints.shoulderRight : this.adam; }
+  get adamBody() { return (this.adamCharacter && this.adamCharacter.joints) ? this.adamCharacter.joints.hip : this.adam; }
+
   coverThemselves() {
-    gsap.to(this.eveArmL.rotation, { z: 0.65, x: -0.3, duration: 1.5 });
-    gsap.to(this.eveArmR.rotation, { z: -0.65, x: -0.3, duration: 1.5 });
+    if (this.eveArmL && this.eveArmL.rotation) gsap.to(this.eveArmL.rotation, { z: 0.65, x: -0.3, duration: 1.5 });
+    if (this.eveArmR && this.eveArmR.rotation) gsap.to(this.eveArmR.rotation, { z: -0.65, x: -0.3, duration: 1.5 });
     
-    gsap.to(this.adamArmL.rotation, { z: 0.65, x: -0.3, duration: 1.5 });
-    gsap.to(this.adamArmR.rotation, { z: -0.65, x: -0.3, duration: 1.5 });
+    if (this.adamArmL && this.adamArmL.rotation) gsap.to(this.adamArmL.rotation, { z: 0.65, x: -0.3, duration: 1.5 });
+    if (this.adamArmR && this.adamArmR.rotation) gsap.to(this.adamArmR.rotation, { z: -0.65, x: -0.3, duration: 1.5 });
+  }
+
+  async animateHiding() {
+    return new Promise(resolve => {
+      this.movementEnabled = false;
+      const hideX = 10.0;
+      const hideZ = -10.0;
+      const hideY = this.getTerrainHeight(hideX, hideZ);
+
+      this.adam.lookAt(hideX, hideY, hideZ);
+      this.eve.lookAt(hideX + 1.2, hideY, hideZ + 0.8);
+
+      gsap.to(this.adam.position, {
+        x: hideX,
+        z: hideZ,
+        duration: 3.5,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          this.adam.position.y = this.getTerrainHeight(this.adam.position.x, this.adam.position.z);
+        }
+      });
+
+      gsap.to(this.eve.position, {
+        x: hideX + 1.4,
+        z: hideZ + 1.0,
+        duration: 3.5,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          this.eve.position.y = this.getTerrainHeight(this.eve.position.x, this.eve.position.z);
+        },
+        onComplete: () => {
+          this.coverThemselves();
+          resolve();
+        }
+      });
+
+      if (this.camera) {
+        gsap.to(this.camera.position, {
+          x: hideX - 4.5,
+          y: hideY + 3.2,
+          z: hideZ + 8.0,
+          duration: 3.8,
+          onUpdate: () => {
+            this.camera.lookAt(hideX + 0.7, hideY + 1.2, hideZ + 0.5);
+          }
+        });
+      }
+    });
+  }
+
+  async animateGodCalling() {
+    return new Promise(resolve => {
+      const hideX = 10.0;
+      const hideZ = -10.0;
+      const hideY = this.getTerrainHeight(hideX, hideZ);
+
+      if (this.presenceLight) {
+        this.presenceLight.position.set(hideX, hideY + 16, hideZ);
+        if (this.presenceLight.target) {
+          this.presenceLight.target.position.set(hideX + 0.7, hideY, hideZ + 0.5);
+        }
+        gsap.to(this.presenceLight, { intensity: 3.5, duration: 2.0 });
+        gsap.to(this.presenceLight, { angle: Math.PI / 4, duration: 2.0, onComplete: resolve });
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  async animateExpulsion() {
+    return new Promise(resolve => {
+      this.eastGateGroup.visible = true;
+      const gateX = 22.0;
+      const gateZ = 0.0;
+
+      this.adam.lookAt(gateX, this.adam.position.y, gateZ - 0.5);
+      this.eve.lookAt(gateX, this.eve.position.y, gateZ + 0.5);
+
+      gsap.to(this.adam.position, {
+        x: gateX,
+        z: gateZ - 0.8,
+        duration: 5.5,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          this.adam.position.y = this.getTerrainHeight(this.adam.position.x, this.adam.position.z);
+        }
+      });
+
+      gsap.to(this.eve.position, {
+        x: gateX,
+        z: gateZ + 0.8,
+        duration: 5.5,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          this.eve.position.y = this.getTerrainHeight(this.eve.position.x, this.eve.position.z);
+        },
+        onComplete: resolve
+      });
+
+      if (this.camera) {
+        gsap.to(this.camera.position, {
+          x: 16.0,
+          y: 4.0,
+          z: 7.0,
+          duration: 5.5,
+          onUpdate: () => {
+            this.camera.lookAt(gateX, 1.6, gateZ);
+          }
+        });
+      }
+    });
   }
   
   triggerTheFall() {
@@ -820,9 +949,10 @@ export class EdenScene {
     this.yaw += (this.targetYaw - this.yaw) * 0.1;
     this.pitch += (this.targetPitch - this.pitch) * 0.1;
     
-    // WASD movement processing
+    // WASD / Arrow keys movement processing
     if (this.movementEnabled) {
-      const speed = 2.4 * dt;
+      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift']);
+      const speed = (isRunning ? 5.2 : 2.4) * dt;
       
       const camForward = new THREE.Vector3();
       this.camera.getWorldDirection(camForward);
@@ -834,10 +964,10 @@ export class EdenScene {
       
       const move = new THREE.Vector3();
       
-      if (this.keys['KeyW']) move.add(camForward);
-      if (this.keys['KeyS']) move.sub(camForward);
-      if (this.keys['KeyD']) move.add(camRight);
-      if (this.keys['KeyA']) move.sub(camRight);
+      if (this.keys['KeyW'] || this.keys['ArrowUp']) move.add(camForward);
+      if (this.keys['KeyS'] || this.keys['ArrowDown']) move.sub(camForward);
+      if (this.keys['KeyD'] || this.keys['ArrowRight']) move.add(camRight);
+      if (this.keys['KeyA'] || this.keys['ArrowLeft']) move.sub(camRight);
       
       if (this.joystickVector && this.joystickVector.lengthSq() > 0) {
         const joyForward = camForward.clone().multiplyScalar(this.joystickVector.y);
@@ -861,8 +991,8 @@ export class EdenScene {
         this.adam.rotation.y = targetAngle;
         
         if (this.adamCharacter) {
-          if (this.adamCharacter.mixer) {
-            this.adamCharacter.playAnimation('Walk');
+          if (this.adamCharacter.playAnimation) {
+            this.adamCharacter.playAnimation(isRunning ? 'run' : 'walk', { force: true });
           } else if (this.adamCharacter.joints) {
             const swing = Math.sin(elapsed * 9.0) * 0.42;
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
@@ -873,8 +1003,11 @@ export class EdenScene {
         }
       } else {
         if (this.adamCharacter) {
-          if (this.adamCharacter.mixer) {
-            this.adamCharacter.playAnimation('Idle');
+          if (this.adamCharacter.playAnimation) {
+            const active = this.adamCharacter.activeActionName;
+            if (!active || !['talking', 'pray', 'praying', 'jump', 'kicking', 'angry'].includes(active)) {
+              this.adamCharacter.playAnimation('idle');
+            }
           } else if (this.adamCharacter.joints) {
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;
             if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x *= 0.85;

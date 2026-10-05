@@ -575,9 +575,26 @@ export class CreationScene {
       this.keys[e.code] = true;
       if (e.code === 'KeyV' && !e.repeat) {
         this.toggleCameraMode();
+      } else if (e.code === 'KeyT' && !e.repeat) {
+        this.triggerPlayerAction('talking');
+      } else if (e.code === 'KeyP' && !e.repeat) {
+        this.triggerPlayerAction('pray');
+      } else if (e.code === 'KeyJ' && !e.repeat) {
+        this.triggerPlayerAction('jump');
+      } else if (e.code === 'KeyK' && !e.repeat) {
+        this.triggerPlayerAction('kicking');
+      } else if (e.code === 'KeyR' && !e.repeat) {
+        this.triggerPlayerAction('angry');
       }
     });
     window.addEventListener('keyup', e => this.keys[e.code] = false);
+  }
+
+  triggerPlayerAction(animName) {
+    if (this.adamCharacter && this.adamCharacter.playAnimation) {
+      const isLooping = (animName === 'talking' || animName === 'pray' || animName === 'praying');
+      this.adamCharacter.playAnimation(animName, { loop: isLooping, clampWhenFinished: !isLooping, force: true });
+    }
   }
   
   toggleCameraMode() {
@@ -955,7 +972,8 @@ export class CreationScene {
     
     // WASD movement processing (Third person follow mechanics)
     if (this.movementEnabled) {
-      const speed = 2.4 * dt; // Decreased speed for natural character walking control
+      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift']);
+      const speed = (isRunning ? 5.2 : 2.4) * dt;
       
       // Calculate horizontal camera vectors
       const camForward = new THREE.Vector3();
@@ -968,10 +986,10 @@ export class CreationScene {
       
       const move = new THREE.Vector3();
       
-      if (this.keys['KeyW']) move.add(camForward);
-      if (this.keys['KeyS']) move.sub(camForward);
-      if (this.keys['KeyD']) move.add(camRight);
-      if (this.keys['KeyA']) move.sub(camRight);
+      if (this.keys['KeyW'] || this.keys['ArrowUp']) move.add(camForward);
+      if (this.keys['KeyS'] || this.keys['ArrowDown']) move.sub(camForward);
+      if (this.keys['KeyD'] || this.keys['ArrowRight']) move.add(camRight);
+      if (this.keys['KeyA'] || this.keys['ArrowLeft']) move.sub(camRight);
       
       if (this.joystickVector && this.joystickVector.lengthSq() > 0) {
         const joyForward = camForward.clone().multiplyScalar(this.joystickVector.y);
@@ -986,15 +1004,15 @@ export class CreationScene {
         // Lock Adam to terrain height
         this.adam.position.y = this.getTerrainHeight(this.adam.position.x, this.adam.position.z);
         
-        // Rotate Adam to face movement direction (adding Math.PI to turn him around correctly)
+        // Rotate Adam to face movement direction
         const targetAngle = Math.atan2(move.x, move.z);
         this.adam.rotation.y = targetAngle;
         
         if (this.adamCharacter) {
           if (this.adamCharacter.mixer) {
-            this.adamCharacter.playAnimation('Walk');
+            this.adamCharacter.playAnimation(isRunning ? 'run' : 'walk', { force: true });
           } else if (this.adamCharacter.joints) {
-            const swing = Math.sin(elapsed * 9.0) * 0.42;
+            const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
             if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x = -swing;
           }

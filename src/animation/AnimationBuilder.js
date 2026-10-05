@@ -87,6 +87,7 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
   }
 
   // ==========================================
+  // ==========================================
   // EDEN ANIMATIONS
   // ==========================================
   else if (scene.chapterId === 'eden') {
@@ -113,10 +114,14 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
         // Pivot Eve and Adam to face the tree and serpent
         tl.call(() => {
           sceneEngine.movementEnabled = false;
-          sceneEngine.eve.position.set(1.2, sceneEngine.getTerrainHeight(1.2, 1.4), 1.4);
-          sceneEngine.eve.lookAt(0, sceneEngine.eve.position.y, 0);
-          sceneEngine.adam.position.set(-1.2, sceneEngine.getTerrainHeight(-1.2, 1.4), 1.4);
-          sceneEngine.adam.lookAt(0, sceneEngine.adam.position.y, 0);
+          if (sceneEngine.eve) {
+            sceneEngine.eve.position.set(1.2, sceneEngine.getTerrainHeight(1.2, 1.4), 1.4);
+            sceneEngine.eve.lookAt(0, sceneEngine.eve.position.y, 0);
+          }
+          if (sceneEngine.adam) {
+            sceneEngine.adam.position.set(-1.2, sceneEngine.getTerrainHeight(-1.2, 1.4), 1.4);
+            sceneEngine.adam.lookAt(0, sceneEngine.adam.position.y, 0);
+          }
           
           if (camPos) {
             gsap.to(camPos, {
@@ -127,10 +132,36 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
         }, null, 0);
         break;
 
+      case 34: // Serpent speaks: "Yea, hath God said..."
+        tl.call(() => {
+          if (sceneEngine.eve) sceneEngine.eve.lookAt(0, sceneEngine.eve.position.y, 0);
+          if (sceneEngine.adam) sceneEngine.adam.lookAt(0, sceneEngine.adam.position.y, 0);
+        }, null, 0);
+        break;
+
+      case 35: // Eve speaks: "We may eat of the fruit..."
+        tl.call(() => {
+          if (sceneEngine.eveCharacter) {
+            sceneEngine.eveCharacter.playAnimation('talking');
+          }
+          if (sceneEngine.eve) sceneEngine.eve.lookAt(0, sceneEngine.eve.position.y, 0);
+        }, null, 0);
+        break;
+
+      case 36: // Serpent speaks: "Ye shall not surely die..."
+        tl.call(() => {
+          if (sceneEngine.eveCharacter) {
+            sceneEngine.eveCharacter.playAnimation('idle');
+          }
+        }, null, 0);
+        break;
+
       case 37: // "And when the woman saw..." Eve reaching
         tl.call(() => {
-          gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 2.2, duration: 1.2 });
-          const fruit = sceneEngine.forbiddenFruits.children[0];
+          if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+            gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 2.2, duration: 1.2 });
+          }
+          const fruit = sceneEngine.forbiddenFruits ? sceneEngine.forbiddenFruits.children[0] : null;
           if (fruit) {
             gsap.to(fruit.position, { x: 1.2, y: 0.95, z: 1.5, duration: 1.8, ease: 'bounce.out' });
           }
@@ -139,53 +170,56 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
 
       case 38: // "...she took of the fruit thereof, and did eat..."
         tl.call(() => {
-          gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
+          if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+            gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
+          }
         }, null, 0);
         tl.call(() => {
-          gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.6 });
+          if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+            gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.6 });
+          }
         }, null, 0.9);
 
         // Eve walks to Adam
         tl.call(() => {
-          const swingInterval = setInterval(() => {
-            if (window.sceneEngine && window.sceneEngine.eve) {
-              const swing = Math.sin(performance.now() * 0.01) * 0.45;
-              sceneEngine.eve.children[5].rotation.x = swing;
-              sceneEngine.eve.children[6].rotation.x = -swing;
-            } else {
-              clearInterval(swingInterval);
-            }
-          }, 30);
+          if (sceneEngine.eveCharacter && sceneEngine.eveCharacter.playAnimation) {
+            sceneEngine.eveCharacter.playAnimation('Walk');
+          }
+          if (sceneEngine.eve) {
+            gsap.to(sceneEngine.eve.position, {
+              x: -0.4, z: 1.4, duration: 2.0,
+              onComplete: () => {
+                if (sceneEngine.eveCharacter && sceneEngine.eveCharacter.playAnimation) {
+                  sceneEngine.eveCharacter.playAnimation('Idle');
+                }
+              }
+            });
+            sceneEngine.eve.lookAt(-1.2, sceneEngine.eve.position.y, 1.4);
+          }
 
-          gsap.to(sceneEngine.eve.position, {
-            x: -0.4, z: 1.4, duration: 2.0,
-            onComplete: () => {
-              clearInterval(swingInterval);
-              sceneEngine.eve.children[5].rotation.x = 0;
-              sceneEngine.eve.children[6].rotation.x = 0;
-            }
-          });
-
-          const fruit = sceneEngine.forbiddenFruits.children[0];
+          const fruit = sceneEngine.forbiddenFruits ? sceneEngine.forbiddenFruits.children[0] : null;
           if (fruit) {
             gsap.to(fruit.position, { x: -0.8, y: 0.95, z: 1.4, duration: 2.0 });
           }
-          sceneEngine.eve.lookAt(-1.2, sceneEngine.eve.position.y, 1.4);
         }, null, 1.5);
         break;
 
       case 40: // "...and gave also unto her husband..." Adam eating
         tl.call(() => {
-          gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 2.2, duration: 1.0 });
-          const fruit = sceneEngine.forbiddenFruits.children[0];
+          if (sceneEngine.adamArmR && sceneEngine.adamArmR.rotation) {
+            gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 2.2, duration: 1.0 });
+          }
+          const fruit = sceneEngine.forbiddenFruits ? sceneEngine.forbiddenFruits.children[0] : null;
           if (fruit) {
             gsap.to(fruit.position, { x: -1.2, y: 0.95, z: 1.4, duration: 0.8 });
           }
         }, null, 0);
 
         tl.call(() => {
-          gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
-          const fruit = sceneEngine.forbiddenFruits.children[0];
+          if (sceneEngine.adamArmR && sceneEngine.adamArmR.rotation) {
+            gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
+          }
+          const fruit = sceneEngine.forbiddenFruits ? sceneEngine.forbiddenFruits.children[0] : null;
           if (fruit) {
             gsap.to(fruit.position, { x: -1.2, y: 1.6, z: 1.3, duration: 0.6 });
             gsap.to(fruit.scale, { x: 0, y: 0, z: 0, duration: 0.6, delay: 0.2 });
@@ -193,8 +227,15 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
         }, null, 1.1);
 
         tl.call(() => {
-          gsap.to(sceneEngine.adamArmR.rotation, { x: 0, duration: 0.8 });
-          gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.8 });
+          if (sceneEngine.adamArmR && sceneEngine.adamArmR.rotation) {
+            gsap.to(sceneEngine.adamArmR.rotation, { x: 0, duration: 0.8 });
+          }
+          if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+            gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.8 });
+          }
+          if (sceneEngine.triggerTheFall) {
+            sceneEngine.triggerTheFall();
+          }
         }, null, 2.1);
 
         // Flash of red
@@ -210,42 +251,28 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
         }, null, 2.9);
         break;
 
-      case 53: // "...expulsion..."
-        // Adam & Eve walk away East of Eden
+      case 43: // "...and Adam and his wife hid themselves..."
         tl.call(() => {
-          const walkAwayInterval = setInterval(() => {
-            if (window.sceneEngine && window.sceneEngine.adam) {
-              const swing = Math.sin(performance.now() * 0.01) * 0.45;
-              sceneEngine.eve.children[5].rotation.x = swing;
-              sceneEngine.eve.children[6].rotation.x = -swing;
-              sceneEngine.adam.children[5].rotation.x = -swing;
-              sceneEngine.adam.children[6].rotation.x = swing;
-            } else {
-              clearInterval(walkAwayInterval);
-            }
-          }, 30);
-
-          sceneEngine.eve.lookAt(25, sceneEngine.eve.position.y, 0.5);
-          sceneEngine.adam.lookAt(25, sceneEngine.adam.position.y, -0.5);
-
-          gsap.to(sceneEngine.eve.position, {
-            x: 25.0, z: 0.5, duration: 6.0,
-            onUpdate: () => { sceneEngine.eve.position.y = sceneEngine.getTerrainHeight(sceneEngine.eve.position.x, sceneEngine.eve.position.z); }
-          });
-          gsap.to(sceneEngine.adam.position, {
-            x: 25.0, z: -0.5, duration: 6.0,
-            onUpdate: () => { sceneEngine.adam.position.y = sceneEngine.getTerrainHeight(sceneEngine.adam.position.x, sceneEngine.adam.position.z); },
-            onComplete: () => { clearInterval(walkAwayInterval); }
-          });
-
-          // Camera pan
-          if (camPos) {
-            gsap.to(camPos, {
-              x: 18.0, y: 3.5, z: 5.0, duration: 6.0,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(12.0, 1.2, 0); }
-            });
+          if (sceneEngine.animateHiding) {
+            sceneEngine.animateHiding();
           }
+        }, null, 0);
+        break;
 
+      case 44: // "Where art thou?"
+        tl.call(() => {
+          if (sceneEngine.animateGodCalling) {
+            sceneEngine.animateGodCalling();
+          }
+        }, null, 0);
+        break;
+
+      case 53: // "...expulsion... Therefore the LORD God sent him forth..."
+      case 54: // "...placed Cherubims and a flaming sword..."
+        tl.call(() => {
+          if (sceneEngine.animateExpulsion) {
+            sceneEngine.animateExpulsion();
+          }
           if (veilEl) {
             veilEl.style.transition = 'background 5.0s ease';
             veilEl.style.background = '#000000';

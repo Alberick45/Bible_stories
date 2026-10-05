@@ -882,6 +882,38 @@ canvas {
   transition: opacity 0.5s ease;
 }
 
+/* On-Screen Action Bar for Hotkey Animations */
+#action-bar {
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  background: rgba(18, 14, 10, 0.75);
+  border: 1px solid rgba(201, 185, 138, 0.4);
+  color: #e2c992;
+  padding: 8px 14px;
+  font-family: 'Cinzel Decorative', Georgia, serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.action-btn:hover {
+  background: rgba(201, 185, 138, 0.25);
+  border-color: #ffd880;
+  transform: translateY(-2px);
+}
+
 /* Mobile Virtual Joystick Overlay */
 #joystick-zone {
   position: fixed;
@@ -942,6 +974,12 @@ canvas {
 
   #joystick-zone {
     display: block; /* Show virtual joystick on mobile viewports */
+  }
+}
+
+@media (pointer: coarse) {
+  #joystick-zone {
+    display: block; /* Show virtual joystick on touch screen devices */
   }
 }
 

@@ -527,9 +527,25 @@ export class CainAbelScene {
       this.keys[e.code] = true;
       if (e.code === 'KeyV' && !e.repeat) {
         this.toggleCameraMode();
+      } else if (e.code === 'KeyT' && !e.repeat) {
+        this.triggerPlayerAction('talking');
+      } else if (e.code === 'KeyP' && !e.repeat) {
+        this.triggerPlayerAction('pray');
+      } else if (e.code === 'KeyJ' && !e.repeat) {
+        this.triggerPlayerAction('jump');
+      } else if (e.code === 'KeyK' && !e.repeat) {
+        this.triggerPlayerAction('kicking');
+      } else if (e.code === 'KeyR' && !e.repeat) {
+        this.triggerPlayerAction('angry');
       }
     });
     window.addEventListener('keyup', e => this.keys[e.code] = false);
+  }
+
+  triggerPlayerAction(animName) {
+    if (this.cainCharacter && this.cainCharacter.playAnimation) {
+      this.cainCharacter.playAnimation(animName, { loop: false, clampWhenFinished: true });
+    }
   }
   
   toggleCameraMode() {
@@ -707,7 +723,8 @@ export class CainAbelScene {
     
     // Player controls (WASD controls Cain when active)
     if (this.movementEnabled && this.cain.visible) {
-      const speed = 2.4 * dt;
+      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift']);
+      const speed = (isRunning ? 5.2 : 2.4) * dt;
       
       const camForward = new THREE.Vector3();
       this.camera.getWorldDirection(camForward);
@@ -719,10 +736,10 @@ export class CainAbelScene {
       
       const move = new THREE.Vector3();
       
-      if (this.keys['KeyW']) move.add(camForward);
-      if (this.keys['KeyS']) move.sub(camForward);
-      if (this.keys['KeyD']) move.add(camRight);
-      if (this.keys['KeyA']) move.sub(camRight);
+      if (this.keys['KeyW'] || this.keys['ArrowUp']) move.add(camForward);
+      if (this.keys['KeyS'] || this.keys['ArrowDown']) move.sub(camForward);
+      if (this.keys['KeyD'] || this.keys['ArrowRight']) move.add(camRight);
+      if (this.keys['KeyA'] || this.keys['ArrowLeft']) move.sub(camRight);
       
       if (this.joystickVector && this.joystickVector.lengthSq() > 0) {
         const joyForward = camForward.clone().multiplyScalar(this.joystickVector.y);
@@ -747,9 +764,9 @@ export class CainAbelScene {
         
         if (this.cainCharacter) {
           if (this.cainCharacter.mixer) {
-            this.cainCharacter.playAnimation('Walk');
+            this.cainCharacter.playAnimation(isRunning ? 'run' : 'walk', { force: true });
           } else if (this.cainCharacter.joints) {
-            const swing = Math.sin(elapsed * 9.0) * 0.42;
+            const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;
             if (this.cainCharacter.joints.hipLeft) this.cainCharacter.joints.hipLeft.rotation.x = swing;
             if (this.cainCharacter.joints.hipRight) this.cainCharacter.joints.hipRight.rotation.x = -swing;
           }

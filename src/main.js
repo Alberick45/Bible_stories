@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { orchestrator } from './scenes/SceneOrchestrator.js';
 import { ttsEngine } from './tts/TTSEngine.js';
 import { makeCacheKey } from './scenes/SceneData.js';
@@ -531,8 +532,44 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.sceneEngine && typeof window.sceneEngine.toggleCameraMode === 'function') {
         window.sceneEngine.toggleCameraMode();
       }
+    } else if (e.code === 'KeyT' && !e.repeat) {
+      triggerActivePlayerAnimation('talking');
+    } else if (e.code === 'KeyP' && !e.repeat) {
+      triggerActivePlayerAnimation('pray');
+    } else if (e.code === 'KeyJ' && !e.repeat) {
+      triggerActivePlayerAnimation('jump');
+    } else if (e.code === 'KeyK' && !e.repeat) {
+      triggerActivePlayerAnimation('kicking');
+    } else if (e.code === 'KeyR' && !e.repeat) {
+      triggerActivePlayerAnimation('angry');
+    } else if (e.code === 'KeyL' && !e.repeat) {
+      triggerActivePlayerAnimation('male_laying');
     }
   });
+
+  // Action bar buttons click handler
+  document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const actionName = btn.getAttribute('data-action');
+      if (actionName) {
+        triggerActivePlayerAnimation(actionName);
+      }
+    });
+  });
+
+  function triggerActivePlayerAnimation(animName) {
+    if (!window.sceneEngine) return;
+    if (typeof window.sceneEngine.triggerPlayerAction === 'function') {
+      window.sceneEngine.triggerPlayerAction(animName);
+    } else {
+      const char = window.sceneEngine.adamCharacter || window.sceneEngine.eveCharacter || window.sceneEngine.cainCharacter || window.sceneEngine.noahCharacter || window.sceneEngine.builderCharacter;
+      if (char && char.playAnimation) {
+        const isLooping = (animName === 'talking' || animName === 'pray' || animName === 'praying');
+        char.playAnimation(animName, { loop: isLooping, clampWhenFinished: !isLooping, force: true });
+      }
+    }
+  }
 
   if (hintEl) {
     hintEl.addEventListener('click', (e) => {
@@ -784,28 +821,25 @@ function initTouchControls() {
   const joystickBase = document.getElementById('joystick-base');
   const joystickKnob = document.getElementById('joystick-knob');
   
-  if (!joystickZone) return;
+  if (!joystickZone || !joystickBase || !joystickKnob) return;
   
   let joystickActive = false;
   let joystickStartPos = { x: 0, y: 0 };
-  
-  joystickZone.addEventListener('touchstart', (e) => {
-    e.preventDefault();
+
+  const handleStart = (clientX, clientY) => {
     const rect = joystickBase.getBoundingClientRect();
     joystickStartPos = {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2
     };
     joystickActive = true;
-  });
-  
-  joystickZone.addEventListener('touchmove', (e) => {
-    e.preventDefault();
+  };
+
+  const handleMove = (clientX, clientY) => {
     if (!joystickActive || !window.sceneEngine) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - joystickStartPos.x;
-    const dy = touch.clientY - joystickStartPos.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dx = clientX - joystickStartPos.x;
+    const dy = clientY - joystickStartPos.y;
+    const dist = Math.hypot(dx, dy);
     const maxRadius = 35;
     
     let moveX = dx;
@@ -822,15 +856,49 @@ function initTouchControls() {
       window.sceneEngine.joystickVector.x = moveX / maxRadius;
       window.sceneEngine.joystickVector.y = -moveY / maxRadius;
     }
-  });
-  
-  joystickZone.addEventListener('touchend', (e) => {
-    e.preventDefault();
+  };
+
+  const handleEnd = () => {
     joystickActive = false;
     joystickKnob.style.transform = 'translate(0px, 0px)';
     if (window.sceneEngine && window.sceneEngine.joystickVector) {
       window.sceneEngine.joystickVector.set(0, 0);
     }
+  };
+
+  // Touch Events
+  joystickZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (e.touches.length > 0) handleStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  joystickZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length > 0) handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  joystickZone.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    handleEnd();
+  }, { passive: false });
+
+  // Pointer Events for mobile browsers / hybrid devices
+  joystickZone.addEventListener('pointerdown', (e) => {
+    joystickZone.setPointerCapture(e.pointerId);
+    handleStart(e.clientX, e.clientY);
+  });
+
+  joystickZone.addEventListener('pointermove', (e) => {
+    handleMove(e.clientX, e.clientY);
+  });
+
+  joystickZone.addEventListener('pointerup', (e) => {
+    try { joystickZone.releasePointerCapture(e.pointerId); } catch (_) {}
+    handleEnd();
+  });
+
+  joystickZone.addEventListener('pointercancel', (e) => {
+    handleEnd();
   });
 }
 
@@ -965,6 +1033,52 @@ function playProceduralPageRustle() {
   noiseNode.stop(now + 1.3);
 }
 
+window.swapCharacterSkin = async function(charName, skinKey) {
+  if (!window.sceneEngine) return;
+  const lowerName = charName.toLowerCase();
+  let targetModel = null;
+
+  if (lowerName === 'adam' && window.sceneEngine.adamCharacter) {
+    targetModel = window.sceneEngine.adamCharacter;
+  } else if (lowerName === 'eve' && window.sceneEngine.eveCharacter) {
+    targetModel = window.sceneEngine.eveCharacter;
+  } else if (lowerName === 'cain' && window.sceneEngine.cainCharacter) {
+    targetModel = window.sceneEngine.cainCharacter;
+  } else if (lowerName === 'abel' && window.sceneEngine.abelCharacter) {
+    targetModel = window.sceneEngine.abelCharacter;
+  } else if (lowerName === 'noah' && window.sceneEngine.noahCharacter) {
+    targetModel = window.sceneEngine.noahCharacter;
+  } else if (lowerName === 'builder' && window.sceneEngine.builderCharacter) {
+    targetModel = window.sceneEngine.builderCharacter;
+  }
+
+  if (targetModel) {
+    await targetModel.swapSkin(skinKey);
+    console.log(`[SkinSwap] Swapped '${charName}' to '${skinKey}'`);
+  } else {
+    console.warn(`[SkinSwap] Character '${charName}' not found in active scene.`);
+  }
+};
+
+function initActionBarListeners() {
+  const actionBtns = document.querySelectorAll('.action-btn');
+  actionBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const animName = btn.getAttribute('data-action');
+      if (window.sceneEngine && window.sceneEngine.triggerPlayerAction) {
+        window.sceneEngine.triggerPlayerAction(animName);
+      } else if (window.sceneEngine) {
+        const char = window.sceneEngine.adamCharacter || window.sceneEngine.cainCharacter || window.sceneEngine.noahCharacter || window.sceneEngine.builderCharacter;
+        if (char && char.playAnimation) {
+          char.playAnimation(animName, { loop: false, clampWhenFinished: true });
+        }
+      }
+    });
+  });
+}
+
 window.addEventListener('load', () => {
   initAmbientDust();
+  initTouchControls();
+  initActionBarListeners();
 });
