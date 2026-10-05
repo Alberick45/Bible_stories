@@ -579,6 +579,7 @@ export class CainAbelScene {
       if (this.abelIsDead) {
         if (this.abelCharacter.mixer) {
           this.abelCharacter.update(dt, elapsed);
+          this.abel.rotation.x = 0;
         } else {
           this.abel.rotation.x = Math.PI / 2;
         }

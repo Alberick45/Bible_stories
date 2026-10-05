@@ -441,8 +441,10 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
           }
           sceneEngine.abelCharacter.isDead = true;
         }
-        if (sceneEngine.abel) {
+        if (sceneEngine.abel && !sceneEngine.abelCharacter) {
           gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.6, ease: 'power2.in' });
+        } else if (sceneEngine.abel) {
+          sceneEngine.abel.rotation.x = 0;
         }
 
         if (sceneEngine.bloodPuddle && sceneEngine.bloodPuddle.material && sceneEngine.abel) {
