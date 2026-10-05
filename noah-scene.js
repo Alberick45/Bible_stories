@@ -749,7 +749,12 @@ export class NoahScene {
         if (!this.checkCollision(newX, newZ)) {
           this.noah.position.x = newX;
           this.noah.position.z = newZ;
-          this.noah.position.y = this.getTerrainHeight(this.noah.position.x, this.noah.position.z);
+          let targetY = this.getTerrainHeight(newX, newZ);
+          const distToHouse = Math.sqrt((newX - 18.0) * (newX - 18.0) + (newZ - 12.0) * (newZ - 12.0));
+          if (distToHouse < 3.2) {
+            targetY = Math.max(targetY, this.getTerrainHeight(18.0, 12.0) + 0.2);
+          }
+          this.noah.position.y = targetY;
         }
         
         const targetAngle = Math.atan2(move.x, move.z);
@@ -773,7 +778,7 @@ export class NoahScene {
       } else {
         if (this.noahCharacter) {
           if (this.noahCharacter.mixer) {
-            this.noahCharacter.playAnimation('Idle');
+            this.noahCharacter.playAnimation('idle');
           } else if (this.noahCharacter.joints) {
             if (this.noahCharacter.joints.hipLeft) this.noahCharacter.joints.hipLeft.rotation.x *= 0.85;
             if (this.noahCharacter.joints.hipRight) this.noahCharacter.joints.hipRight.rotation.x *= 0.85;

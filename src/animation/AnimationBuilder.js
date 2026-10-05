@@ -433,8 +433,13 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
       // Abel struck down & blood puddle appears
       tl.call(() => {
         sceneEngine.abelIsDead = true;
-        if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
-          sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
+        if (sceneEngine.abelCharacter) {
+          sceneEngine.abelCharacter.isDead = true;
+          if (typeof sceneEngine.abelCharacter.die === 'function') {
+            sceneEngine.abelCharacter.die({ force: true });
+          } else {
+            sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
+          }
         } else if (sceneEngine.abel) {
           gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
         }

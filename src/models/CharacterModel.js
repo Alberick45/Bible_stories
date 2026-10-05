@@ -233,7 +233,17 @@ export class CharacterModel {
    * Options: { fade: 0.25, loop: true/false, clampWhenFinished: boolean, timeScale: number, force: boolean }
    */
   async playAnimation(name, options = {}) {
+    if (this.isDead && !options.resurrect) {
+      return; // Dead characters stay dead in their clamped pose
+    }
+
     const lowerName = name.toLowerCase();
+    if (lowerName === 'dying' || lowerName === 'die') {
+      this.isDead = true;
+      options.loop = false;
+      options.clampWhenFinished = true;
+    }
+
     let action = this.findAction(lowerName);
 
     // If clip not loaded yet, attempt lazy loading from ANIMATIONS registry
@@ -275,13 +285,15 @@ export class CharacterModel {
       action.setLoop(THREE.LoopOnce, 1);
       action.clampWhenFinished = clamp;
 
-      // Auto-return to idle when one-shot animation finishes
+      // Auto-return to idle when one-shot animation finishes (unless clamped or dead)
       if (this.mixer) {
         const onFinished = (e) => {
           if (e.action === action) {
             this.mixer.removeEventListener('finished', onFinished);
-            this.isOneShotPlaying = false;
-            this.playAnimation('idle', { force: true });
+            if (!clamp && !this.isDead && lowerName !== 'dying' && lowerName !== 'die') {
+              this.isOneShotPlaying = false;
+              this.playAnimation('idle', { force: true });
+            }
           }
         };
         this.mixer.addEventListener('finished', onFinished);
