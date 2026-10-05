@@ -369,39 +369,87 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
         }
       }, null, 0);
     }
+    else if (id === 67 || text.includes('talked with abel')) { // Cain talked with Abel
+      tl.call(() => {
+        sceneEngine.movementEnabled = false;
+        const targetZ = -6.0;
+        const targetY = typeof sceneEngine.getTerrainHeight === 'function' ? sceneEngine.getTerrainHeight(0, targetZ) : 0;
+        
+        if (sceneEngine.abel) {
+          sceneEngine.abel.position.set(0.6, targetY, targetZ);
+          sceneEngine.abel.lookAt(-0.6, targetY, targetZ);
+          if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
+            sceneEngine.abelCharacter.playAnimation('idle', { force: true });
+          }
+        }
+        if (sceneEngine.cain) {
+          sceneEngine.cain.position.set(-0.6, targetY, targetZ);
+          sceneEngine.cain.lookAt(0.6, targetY, targetZ);
+          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+            sceneEngine.cainCharacter.playAnimation('talking', { force: true });
+          }
+        }
+        if (camPos) {
+          gsap.to(camPos, {
+            x: 0.0, y: targetY + 1.8, z: targetZ + 3.2, duration: 2.0,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0.0, targetY + 1.1, targetZ); }
+          });
+        }
+      }, null, 0);
+    }
     else if (id === 68 || text.includes('slew him') || text.includes('rose up against abel')) { // Murder
       tl.call(() => {
-        if (sceneEngine.cain && sceneEngine.abel) {
-          sceneEngine.cain.lookAt(sceneEngine.abel.position.x, sceneEngine.cain.position.y, sceneEngine.abel.position.z);
+        sceneEngine.movementEnabled = false;
+        const targetZ = -6.0;
+        const targetY = typeof sceneEngine.getTerrainHeight === 'function' ? sceneEngine.getTerrainHeight(0, targetZ) : 0;
+
+        // Position Abel & Cain facing each other in close combat proximity
+        if (sceneEngine.abel) {
+          sceneEngine.abel.position.set(0.4, targetY, targetZ);
+          sceneEngine.abel.lookAt(-0.3, targetY, targetZ);
         }
+        if (sceneEngine.cain) {
+          // Cain steps right up to Abel
+          gsap.to(sceneEngine.cain.position, {
+            x: -0.3, y: targetY, z: targetZ, duration: 0.4
+          });
+          sceneEngine.cain.lookAt(0.4, targetY, targetZ);
+        }
+        if (camPos) {
+          gsap.to(camPos, {
+            x: 0.0, y: targetY + 1.6, z: targetZ + 2.8, duration: 1.0,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0.0, targetY + 1.0, targetZ); }
+          });
+        }
+      }, null, 0);
+
+      // Cain delivers punch
+      tl.call(() => {
         if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
           sceneEngine.cainCharacter.playAnimation('hook_punch', { loop: false, force: true });
-        } else if (sceneEngine.cainArmR && sceneEngine.cainArmR.rotation) {
-          gsap.to(sceneEngine.cainArmR.rotation, { x: -Math.PI / 1.1, duration: 0.7 });
         }
-      }, null, 0.5);
+      }, null, 0.4);
 
-      // Strike down
+      // Abel struck down
       tl.call(() => {
         if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
           sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
         } else if (sceneEngine.abel) {
           gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
-          gsap.to(sceneEngine.abel.position, { y: sceneEngine.getTerrainHeight(0.6, -12.0) + 0.1, duration: 0.5 });
         }
 
         if (veilEl) {
           veilEl.style.transition = 'background 0.05s ease';
           veilEl.style.background = '#4a0808';
         }
-      }, null, 1.3);
+      }, null, 1.1);
 
       tl.call(() => {
         if (veilEl) {
           veilEl.style.transition = 'background 2.5s ease';
           veilEl.style.background = 'rgba(0,0,0,0)';
         }
-      }, null, 1.4);
+      }, null, 1.25);
     }
     else if (id === 74 || text.includes('greater than i can bear')) { // Cain falls to knees / confronted
       tl.call(() => {

@@ -294,52 +294,28 @@ export class CainAbelScene {
     this.scene.add(this.edenGate);
     
     // --- Characters ---
-    this.adam = new THREE.Group();
-    this.adam.name = 'Adam';
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xcc9c78, roughness: 0.85 });
-    const hairMatAdam = new THREE.MeshStandardMaterial({ color: 0x422f25, roughness: 0.9 });
-    
-    const aTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), skinMat);
-    aTorso.position.y = 1.05;
-    const aHead = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMat);
-    aHead.position.y = 1.72;
-    const aHair = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.26), hairMatAdam);
-    aHair.position.set(0, 1.84, 0);
-    
-    this.adamArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.9, 6), skinMat);
-    this.adamArmL.position.set(-0.35, 1.1, 0);
-    this.adamArmR = this.adamArmL.clone(); this.adamArmR.position.x = 0.35;
-    
-    const aLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.95, 6), skinMat);
-    aLegL.position.set(-0.12, 0.48, 0);
-    const aLegR = aLegL.clone(); aLegR.position.x = 0.12;
-    
-    this.adam.add(aTorso, aHead, aHair, this.adamArmL, this.adamArmR, aLegL, aLegR);
+    // Adam (Sculpted PBR CharacterModel with greyish hair for age)
+    this.adamCharacter = new CharacterModel({
+      name: 'Adam',
+      gender: 'male',
+      skinTone: 0xdcb896,
+      hairColor: 0x888888,
+      clothesColor: 0x3d5a80
+    });
+    this.adam = this.adamCharacter.group;
     this.adam.position.set(-14.5, this.getTerrainHeight(-14.5, 10.0), 10.0);
     this.adam.lookAt(-16, this.adam.position.y, 12);
     this.scene.add(this.adam);
     
-    // Eve
-    this.eve = new THREE.Group();
-    this.eve.name = 'Eve';
-    const hairMatEve = new THREE.MeshStandardMaterial({ color: 0xe6c875, roughness: 0.9 });
-    
-    const eTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.0, 8), skinMat);
-    eTorso.position.y = 1.0;
-    const eHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
-    eHead.position.y = 1.62;
-    const eHair = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.6, 0.24), hairMatEve);
-    eHair.position.set(0, 1.5, -0.06);
-    
-    this.eveArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.85), skinMat);
-    this.eveArmL.position.set(-0.3, 1.0, 0);
-    this.eveArmR = this.eveArmL.clone(); this.eveArmR.position.x = 0.3;
-    
-    const eLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.9, 6), skinMat);
-    eLegL.position.set(-0.1, 0.45, 0);
-    const eLegR = eLegL.clone(); eLegR.position.x = 0.1;
-    
-    this.eve.add(eTorso, eHead, eHair, this.eveArmL, this.eveArmR, eLegL, eLegR);
+    // Eve (Sculpted PBR CharacterModel with silver blonde hair for age)
+    this.eveCharacter = new CharacterModel({
+      name: 'Eve',
+      gender: 'female',
+      skinTone: 0xf2cbac,
+      hairColor: 0xcccccc,
+      clothesColor: 0x6b705c
+    });
+    this.eve = this.eveCharacter.group;
     this.eve.position.set(-15.5, this.getTerrainHeight(-15.5, 10.0), 10.0);
     this.eve.lookAt(-16, this.eve.position.y, 12);
     this.scene.add(this.eve);
@@ -383,71 +359,37 @@ export class CainAbelScene {
     this.cainMark.position.y = 2.15;
     this.cain.add(this.cainMark);
     
-    // Seth (child mesh)
-    this.seth = new THREE.Group();
-    this.seth.name = 'Seth';
-    this.seth.visible = false;
-    this.seth.scale.setScalar(0.55); // Child size
-    
-    const sTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 1.0, 8), new THREE.MeshStandardMaterial({ color: 0x8a9c7d, roughness: 0.9 }));
-    sTorso.position.y = 0.5;
-    const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
-    sHead.position.y = 1.12;
-    const sLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.5, 6), skinMat);
-    sLegL.position.set(-0.1, 0.25, 0);
-    const sLegR = sLegL.clone(); sLegR.position.x = 0.1;
-    this.seth.add(sTorso, sHead, sLegL, sLegR);
+    // Seth (CharacterModel child/youth)
+    this.sethCharacter = new CharacterModel({
+      name: 'Seth',
+      gender: 'male',
+      scale: 0.7,
+      skinTone: 0xdcb896,
+      hairColor: 0x2b1d0c,
+      clothesColor: 0x8a9c7d
+    });
+    this.seth = this.sethCharacter.group;
     this.seth.position.set(-15.0, this.getTerrainHeight(-15.0, 11.5), 11.5);
     this.seth.lookAt(-16, this.seth.position.y, 12);
+    this.seth.visible = false;
     this.scene.add(this.seth);
     
-    // Wicked Bystanders (for Genesis 6 transition)
+    // Wicked Bystanders (CharacterModels for Genesis 6 transition)
     this.wickedPeople = new THREE.Group();
     this.wickedPeople.visible = false;
     
-    const wickedColors = [0x544033, 0x483a3c, 0x2f3e46];
-    
-    // Wicked Person 1 (Drinking)
-    this.wicked1 = new THREE.Group();
-    const w1Torso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.0, 8), new THREE.MeshStandardMaterial({ color: wickedColors[0], roughness: 0.9 }));
-    w1Torso.position.y = 1.0;
-    const w1Head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 10), skinMat);
-    w1Head.position.y = 1.62;
-    this.w1ArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.8), skinMat);
-    this.w1ArmR.position.set(0.3, 1.2, 0);
-    this.w1ArmR.rotation.x = -Math.PI / 2.5; // Raised arm
-    
-    // Wooden Cup
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.18, 6), fenceMat);
-    cup.position.set(0, -0.4, 0);
-    this.w1ArmR.add(cup);
-    
-    this.wicked1.add(w1Torso, w1Head, this.w1ArmR);
+    this.wicked1Character = new CharacterModel({ name: 'Wicked1', gender: 'male', clothesColor: 0x544033 });
+    this.wicked1 = this.wicked1Character.group;
     this.wicked1.position.set(-8.0, this.getTerrainHeight(-8.0, -10.0), -10.0);
     this.wicked1.lookAt(-5.0, this.wicked1.position.y, -10.0);
     
-    // Wicked Person 2 & 3 (Fighting/Shoving)
-    this.wicked2 = new THREE.Group();
-    const w2Torso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.0, 8), new THREE.MeshStandardMaterial({ color: wickedColors[1], roughness: 0.9 }));
-    w2Torso.position.y = 1.0;
-    const w2Head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 10), skinMat);
-    w2Head.position.y = 1.62;
-    this.w2ArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.8), skinMat);
-    this.w2ArmR.position.set(0.3, 1.1, 0);
-    this.w2ArmR.rotation.x = -Math.PI / 2.0; // Pointing forward (shoving)
-    this.wicked2.add(w2Torso, w2Head, this.w2ArmR);
+    this.wicked2Character = new CharacterModel({ name: 'Wicked2', gender: 'male', clothesColor: 0x483a3c });
+    this.wicked2 = this.wicked2Character.group;
     this.wicked2.position.set(-4.0, this.getTerrainHeight(-4.0, -11.0), -11.0);
     this.wicked2.lookAt(-2.5, this.wicked2.position.y, -11.0);
     
-    this.wicked3 = new THREE.Group();
-    const w3Torso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.0, 8), new THREE.MeshStandardMaterial({ color: wickedColors[2], roughness: 0.9 }));
-    w3Torso.position.y = 1.0;
-    const w3Head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 10), skinMat);
-    w3Head.position.y = 1.62;
-    this.w3ArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.8), skinMat);
-    this.w3ArmR.position.set(-0.3, 1.1, 0);
-    this.w3ArmR.rotation.x = -Math.PI / 2.0; // Pointing forward (shoving back)
-    this.wicked3.add(w3Torso, w3Head, this.w3ArmR);
+    this.wicked3Character = new CharacterModel({ name: 'Wicked3', gender: 'female', clothesColor: 0x2f3e46 });
+    this.wicked3 = this.wicked3Character.group;
     this.wicked3.position.set(-2.5, this.getTerrainHeight(-2.5, -11.0), -11.0);
     this.wicked3.lookAt(-4.0, this.wicked3.position.y, -11.0);
     
@@ -599,18 +541,17 @@ export class CainAbelScene {
     const elapsed = time;
     if (this.cainCharacter) this.cainCharacter.update(dt, elapsed);
     if (this.abelCharacter) this.abelCharacter.update(dt, elapsed);
+    if (this.adamCharacter) this.adamCharacter.update(dt, elapsed);
+    if (this.eveCharacter) this.eveCharacter.update(dt, elapsed);
+    if (this.sethCharacter) this.sethCharacter.update(dt, elapsed);
+    if (this.wicked1Character) this.wicked1Character.update(dt, elapsed);
+    if (this.wicked2Character) this.wicked2Character.update(dt, elapsed);
+    if (this.wicked3Character) this.wicked3Character.update(dt, elapsed);
     
     // Rotate the flaming sword block in background
     if (this.flamingSword) {
       this.flamingSword.rotation.y += dt * 4.2;
       this.flamingSword.position.y = 1.6 + Math.sin(elapsed * 3.5) * 0.12;
-    }
-    
-    // Animate Wicked People drinking/fighting
-    if (this.wickedPeople && this.wickedPeople.visible) {
-      this.w1ArmR.rotation.x = -Math.PI / 2.4 + Math.sin(elapsed * 2.8) * 0.22;
-      this.w2ArmR.rotation.x = -Math.PI / 2.0 + Math.sin(elapsed * 4.5) * 0.35;
-      this.w3ArmR.rotation.x = -Math.PI / 2.0 - Math.sin(elapsed * 4.5) * 0.35;
     }
     
     // Sheep wanders
