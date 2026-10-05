@@ -434,14 +434,15 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
       tl.call(() => {
         sceneEngine.abelIsDead = true;
         if (sceneEngine.abelCharacter) {
-          sceneEngine.abelCharacter.isDead = true;
           if (typeof sceneEngine.abelCharacter.die === 'function') {
-            sceneEngine.abelCharacter.die({ force: true });
+            sceneEngine.abelCharacter.die({ force: true, resurrect: true });
           } else {
-            sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
+            sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true, resurrect: true });
           }
-        } else if (sceneEngine.abel) {
-          gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
+          sceneEngine.abelCharacter.isDead = true;
+        }
+        if (sceneEngine.abel) {
+          gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.6, ease: 'power2.in' });
         }
 
         if (sceneEngine.bloodPuddle && sceneEngine.bloodPuddle.material && sceneEngine.abel) {

@@ -213,6 +213,7 @@ export class SceneOrchestrator {
 
     if (scene.type === 'interactive') {
       // Pause automatic narration play and let player take control
+      this.isPlaying = false;
       if (this.onInteractiveStart) this.onInteractiveStart(scene);
       return;
     }
@@ -306,6 +307,8 @@ export class SceneOrchestrator {
 
   interrupt() {
     console.log('[Orchestrator] Interrupt requested by user input.');
+    const scene = this.scenes.get(this.currentId);
+    if (scene && scene.type === 'interactive') return;
     if (this.isPlaying) {
       this.sync.stop();
       ttsEngine.stop();

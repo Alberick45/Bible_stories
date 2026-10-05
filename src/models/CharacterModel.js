@@ -233,12 +233,14 @@ export class CharacterModel {
    * Options: { fade: 0.25, loop: true/false, clampWhenFinished: boolean, timeScale: number, force: boolean }
    */
   async playAnimation(name, options = {}) {
-    if (this.isDead && !options.resurrect) {
+    const lowerName = name.toLowerCase();
+    const isDyingAnim = (lowerName === 'dying' || lowerName === 'die');
+
+    if (this.isDead && !options.resurrect && !isDyingAnim) {
       return; // Dead characters stay dead in their clamped pose
     }
 
-    const lowerName = name.toLowerCase();
-    if (lowerName === 'dying' || lowerName === 'die') {
+    if (isDyingAnim) {
       this.isDead = true;
       options.loop = false;
       options.clampWhenFinished = true;
