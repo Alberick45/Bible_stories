@@ -17,10 +17,11 @@ export const CHARACTERS = {
   man2: '/src/models/characters/man2.fbx',
   noah: '/src/models/characters/adam_white.fbx',
   builder: '/src/models/characters/man1.fbx',
-  soldier: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb',
-  swordsman: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb',
-  cherub: '/src/models/characters/adam_white.fbx',
-  angel: '/src/models/characters/adam_white.fbx'
+  soldier: '/src/models/characters/swordsman.fbx',
+  swordsman: '/src/models/characters/swordsman.fbx',
+  swordwoman: '/src/models/characters/swordwoman.fbx',
+  cherub: '/src/models/characters/swordsman.fbx',
+  angel: '/src/models/characters/swordsman.fbx'
 };
 
 export const ANIMATIONS = {

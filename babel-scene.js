@@ -183,51 +183,37 @@ export class BabelScene {
       }
     }
     
-    // 8. Interactive Playable Builder (Nimrod's Architect)
-    const builderColor = 0xb8860b; // Golden/yellow tunic
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xe0a890, roughness: 0.8 });
-    
-    this.builder = new THREE.Group();
-    const bTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.05, 8), new THREE.MeshStandardMaterial({ color: builderColor, roughness: 0.9 }));
-    bTorso.position.y = 1.0;
-    const bHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), skinMat);
-    bHead.position.y = 1.62;
-    
-    // Arms
-    this.bArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.85, 6), skinMat);
-    this.bArmL.position.set(-0.32, 1.05, 0);
-    this.bArmR = this.bArmL.clone(); this.bArmR.position.x = 0.32;
-    
-    // Legs
-    this.bLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.9, 6), skinMat);
-    this.bLegL.position.set(-0.11, 0.45, 0);
-    this.bLegR = this.bLegL.clone(); this.bLegR.position.x = 0.11;
-    
-    this.builder.add(bTorso, bHead, this.bArmL, this.bArmR, this.bLegL, this.bLegR);
+    // 8. Interactive Playable Builder (Nimrod)
+    this.builderCharacter = new CharacterModel({
+      name: 'Nimrod',
+      character: 'builder',
+      gender: 'male',
+      skinTone: 0xe0a890,
+      clothesColor: 0xb8860b
+    });
+    this.builder = this.builderCharacter.group;
     this.builder.position.set(-11, this.getTerrainHeight(-11, 11), 11);
     this.builder.lookAt(0, this.builder.position.y, 0);
     this.scene.add(this.builder);
     
-    // 9. Workers/Builders Group
+    // 9. Workers/Builders Group (CharacterModels)
     this.workersGroup = new THREE.Group();
     this.scene.add(this.workersGroup);
+    this.workers = [];
+    this.workerCharacters = [];
     
+    const availableWorkerKeys = ['man1', 'man2', 'megan', 'adam_black', 'adam_white', 'eve_white'];
     const workerColors = [0x556b2f, 0x8b4513, 0xcd853f, 0x5f9ea0, 0x708090, 0x8b7e66];
+    
     for (let w = 0; w < 6; w++) {
-      const worker = new THREE.Group();
-      
-      const wTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 1.0, 8), new THREE.MeshStandardMaterial({ color: workerColors[w], roughness: 0.9 }));
-      wTorso.position.y = 0.95;
-      const wHead = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 10), skinMat);
-      wHead.position.y = 1.55;
-      
-      // Arms up carrying position
-      const wArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6), skinMat);
-      wArmL.position.set(-0.3, 1.1, 0.15);
-      wArmL.rotation.x = -Math.PI / 3;
-      const wArmR = wArmL.clone(); wArmR.position.x = 0.3;
-      
-      worker.add(wTorso, wHead, wArmL, wArmR);
+      const charKey = availableWorkerKeys[w % availableWorkerKeys.length];
+      const workerChar = new CharacterModel({
+        name: `Worker_${w + 1}`,
+        character: charKey,
+        clothesColor: workerColors[w]
+      });
+      const worker = workerChar.group;
+      this.workerCharacters.push(workerChar);
       
       // Add a carrying brick
       const carryBrick = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.2, 0.28), darkBrickMat);
@@ -456,6 +442,9 @@ export class BabelScene {
   }
   
   update(elapsed, dt) {
+    if (this.builderCharacter) this.builderCharacter.update(dt, elapsed);
+    if (this.workerCharacters) this.workerCharacters.forEach(c => c.update(dt, elapsed));
+    
     // 1. Worker slight pacing/patrolling behavior if still active
     this.workers.forEach(w => {
       if (w.userData.isActive && w.visible) {

@@ -264,21 +264,29 @@ export class CainAbelScene {
     this.edenGate.position.set(-30, this.getTerrainHeight(-30, -35), -35);
     
     const goldArmorMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95, roughness: 0.1, emissive: 0xffb700, emissiveIntensity: 0.12 });
+    this.cherubimCharacters = [];
     for (let c = 0; c < 2; c++) {
-      const cherub = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 2.0, 6), goldArmorMat);
-      body.position.y = 1.0;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 6), goldArmorMat);
-      head.position.y = 2.1;
+      const cherubChar = new CharacterModel({
+        name: `Cherub_${c + 1}`,
+        character: 'swordsman',
+        gender: 'male',
+        skinTone: 0xffdfa0,
+        clothesColor: 0xd4af37,
+        hairColor: 0xffd700,
+        scale: 1.05
+      });
+      const cherubGroup = cherubChar.group;
+      this.cherubimCharacters.push(cherubChar);
+      
       const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.8, 0.65), goldArmorMat);
       wingL.position.set(-0.45, 1.4, -0.2);
       wingL.rotation.y = 0.3; wingL.rotation.z = -0.2;
       const wingR = wingL.clone(); wingR.position.x = 0.45; wingR.rotation.y = -0.3; wingR.rotation.z = 0.2;
       
-      cherub.add(body, head, wingL, wingR);
-      cherub.position.set(c === 0 ? -3.0 : 3.0, 0, 0);
-      cherub.lookAt(0, 0, 10);
-      this.edenGate.add(cherub);
+      cherubGroup.add(wingL, wingR);
+      cherubGroup.position.set(c === 0 ? -3.0 : 3.0, 0, 0);
+      cherubGroup.lookAt(0, 0, 10);
+      this.edenGate.add(cherubGroup);
     }
     
     // Spinning glowing sword of fire blocking Eden path
@@ -292,6 +300,22 @@ export class CainAbelScene {
     this.edenGate.add(this.flamingSword);
     
     this.scene.add(this.edenGate);
+    
+    // Abel's Blood Puddle on the ground (hidden by default)
+    this.bloodPuddle = new THREE.Mesh(
+      new THREE.RingGeometry(0.05, 0.85, 16),
+      new THREE.MeshStandardMaterial({
+        color: 0x5a0202,
+        roughness: 0.2,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.0,
+        side: THREE.DoubleSide
+      })
+    );
+    this.bloodPuddle.rotation.x = Math.PI / 2;
+    this.bloodPuddle.position.set(0, 0.02, 0);
+    this.scene.add(this.bloodPuddle);
     
     // --- Characters ---
     // Adam (Sculpted PBR CharacterModel with greyish hair for age)
@@ -540,13 +564,28 @@ export class CainAbelScene {
   update(time, dt) {
     const elapsed = time;
     if (this.cainCharacter) this.cainCharacter.update(dt, elapsed);
-    if (this.abelCharacter) this.abelCharacter.update(dt, elapsed);
     if (this.adamCharacter) this.adamCharacter.update(dt, elapsed);
     if (this.eveCharacter) this.eveCharacter.update(dt, elapsed);
     if (this.sethCharacter) this.sethCharacter.update(dt, elapsed);
     if (this.wicked1Character) this.wicked1Character.update(dt, elapsed);
     if (this.wicked2Character) this.wicked2Character.update(dt, elapsed);
     if (this.wicked3Character) this.wicked3Character.update(dt, elapsed);
+    if (this.cherubimCharacters) {
+      this.cherubimCharacters.forEach(c => c.update(dt, elapsed));
+    }
+    
+    // Abel update logic: if dead, preserve clamped dying pose
+    if (this.abelCharacter) {
+      if (this.abelIsDead) {
+        if (this.abelCharacter.mixer) {
+          this.abelCharacter.update(dt, elapsed);
+        } else {
+          this.abel.rotation.x = Math.PI / 2;
+        }
+      } else {
+        this.abelCharacter.update(dt, elapsed);
+      }
+    }
     
     // Rotate the flaming sword block in background
     if (this.flamingSword) {

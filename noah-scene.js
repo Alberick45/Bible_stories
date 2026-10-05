@@ -177,44 +177,24 @@ export class NoahScene {
     
     // --- WICKED CITIZENS ---
     this.wickedGroup = new THREE.Group();
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xcc9c78, roughness: 0.85 });
+    this.wickedCharacters = [];
     
-    this.wickedDrinker = new THREE.Group();
-    const wdTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x6b487a }));
-    wdTorso.position.y = 0.55;
-    const wdHead = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMat);
-    wdHead.position.y = 1.2;
-    this.wdArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.8, 6), skinMat);
-    this.wdArmR.position.set(0.35, 0.9, 0);
-    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 0.2, 4), woodMat);
-    cup.position.y = 0.4;
-    this.wdArmR.add(cup);
-    this.wickedDrinker.add(wdTorso, wdHead, this.wdArmR);
+    this.wickedDrinkerCharacter = new CharacterModel({ name: 'WickedDrinker', character: 'man1', gender: 'male', clothesColor: 0x6b487a });
+    this.wickedDrinker = this.wickedDrinkerCharacter.group;
     this.wickedDrinker.position.set(-11, this.getTerrainHeight(-11, -0.2), -0.2);
     this.wickedDrinker.lookAt(-11, this.wickedDrinker.position.y, -2.0);
     this.wickedGroup.add(this.wickedDrinker);
+    this.wickedCharacters.push(this.wickedDrinkerCharacter);
     
-    this.wickedFighter1 = new THREE.Group();
-    const wf1Torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0xa34b4b }));
-    wf1Torso.position.y = 0.55;
-    const wf1Head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMat);
-    wf1Head.position.y = 1.2;
-    this.wf1ArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.9, 6), skinMat);
-    this.wf1ArmL.position.set(-0.35, 0.9, 0.3);
-    this.wf1ArmL.rotation.x = Math.PI / 3.5;
-    this.wickedFighter1.add(wf1Torso, wf1Head, this.wf1ArmL);
+    this.wickedFighter1Character = new CharacterModel({ name: 'WickedFighter1', character: 'man2', gender: 'male', clothesColor: 0xa34b4b });
+    this.wickedFighter1 = this.wickedFighter1Character.group;
     this.wickedFighter1.position.set(-9.5, this.getTerrainHeight(-9.5, -4), -4);
+    this.wickedCharacters.push(this.wickedFighter1Character);
     
-    this.wickedFighter2 = new THREE.Group();
-    const wf2Torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x4ba397 }));
-    wf2Torso.position.y = 0.55;
-    const wf2Head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMat);
-    wf2Head.position.y = 1.2;
-    this.wf2ArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.9, 6), skinMat);
-    this.wf2ArmR.position.set(0.35, 0.9, 0.3);
-    this.wf2ArmR.rotation.x = Math.PI / 3.5;
-    this.wickedFighter2.add(wf2Torso, wf2Head, this.wf2ArmR);
+    this.wickedFighter2Character = new CharacterModel({ name: 'WickedFighter2', character: 'megan_black', gender: 'female', clothesColor: 0x4ba397 });
+    this.wickedFighter2 = this.wickedFighter2Character.group;
     this.wickedFighter2.position.set(-8.5, this.getTerrainHeight(-8.5, -3.8), -3.8);
+    this.wickedCharacters.push(this.wickedFighter2Character);
     
     this.wickedFighter1.lookAt(this.wickedFighter2.position.x, this.wickedFighter1.position.y, this.wickedFighter2.position.z);
     this.wickedFighter2.lookAt(this.wickedFighter1.position.x, this.wickedFighter2.position.y, this.wickedFighter1.position.z);
@@ -413,80 +393,43 @@ export class NoahScene {
     // --- 8 FAMILY MEMBERS INSTEAD OF 4 ---
     this.familyGroup = new THREE.Group();
     
-    // 1. Noah
-    this.noah = new THREE.Group();
-    const noahTunicMat = new THREE.MeshStandardMaterial({ color: 0x485c7a, roughness: 0.9 });
-    const beardMat = new THREE.MeshStandardMaterial({ color: 0xeaeaea, roughness: 0.9 });
-    
-    const nTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 1.1, 8), noahTunicMat);
-    nTorso.position.y = 1.05;
-    const nHead = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), skinMat);
-    nHead.position.y = 1.72;
-    const nBeard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.35, 0.24), beardMat);
-    nBeard.position.set(0.1, 1.55, 0);
-    
-    this.noahArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.9, 6), skinMat);
-    this.noahArmL.position.set(-0.35, 1.1, 0);
-    this.noahArmR = this.noahArmL.clone(); this.noahArmR.position.x = 0.35;
-    
-    const nLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.95, 6), skinMat);
-    nLegL.position.set(-0.12, 0.48, 0);
-    const nLegR = nLegL.clone(); nLegR.position.x = 0.12;
-    
-    this.hammer = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.35), new THREE.MeshStandardMaterial({ color: 0x5a554e }));
-    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 4), new THREE.MeshStandardMaterial({ color: 0x5c4033 }));
-    handle.position.y = -0.22;
-    this.hammer.add(handle);
-    this.hammer.position.set(0, -0.45, 0);
-    this.noahArmR.add(this.hammer);
-    
-    this.noah.add(nTorso, nHead, nBeard, this.noahArmL, this.noahArmR, nLegL, nLegR);
+    // 1. Noah (CharacterModel)
+    this.noahCharacter = new CharacterModel({
+      name: 'Noah',
+      character: 'noah',
+      gender: 'male',
+      skinTone: 0xdcb896,
+      hairColor: 0xeeeeee,
+      clothesColor: 0x485c7a
+    });
+    this.noah = this.noahCharacter.group;
     this.noah.position.set(18.0, this.getTerrainHeight(18.0, 10.0), 10.0);
     this.noah.lookAt(18, this.noah.position.y, 12);
     this.familyGroup.add(this.noah);
     
-    // Helper function to build standard family members
-    const buildPersonMesh = (tunicColor, headScale, hasHairLong) => {
-      const p = new THREE.Group();
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.0, 8), new THREE.MeshStandardMaterial({ color: tunicColor, roughness: 0.9 }));
-      torso.position.y = 1.0;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(headScale, 10, 10), skinMat);
-      head.position.y = 1.62;
-      p.add(torso, head);
-      if (hasHairLong) {
-        const hair = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.4, 0.22), new THREE.MeshStandardMaterial({ color: 0x1f1f1f }));
-        hair.position.set(0, 1.5, -0.06);
-        p.add(hair);
-      }
-      return p;
-    };
+    // 2. Family Members (CharacterModels)
+    this.familyCharacters = [];
+    const familyConfigs = [
+      { name: 'Wife', key: 'eve_white', color: 0x8c6b54, pos: [19.5, 9.5] },
+      { name: 'Shem', key: 'man1', color: 0x567d46, pos: [17.0, 8.5] },
+      { name: 'Ham', key: 'man2', color: 0x7d6a46, pos: [16.0, 9.0] },
+      { name: 'Japheth', key: 'adam_black', color: 0x466f7d, pos: [17.5, 7.5] },
+      { name: 'ShemWife', key: 'eve_white', color: 0x75526c, pos: [18.5, 8.0] },
+      { name: 'HamWife', key: 'megan_black', color: 0x52756d, pos: [16.5, 8.2] },
+      { name: 'JaphethWife', key: 'eve_white', color: 0x756b52, pos: [15.5, 7.8] }
+    ];
     
-    // 2. Wife
-    this.wife = buildPersonMesh(0x8c6b54, 0.18, true);
-    this.wife.position.set(19.5, this.getTerrainHeight(19.5, 9.5), 9.5);
-    this.familyGroup.add(this.wife);
-    
-    // 3. Shem
-    this.shem = buildPersonMesh(0x567d46, 0.19, false);
-    this.shem.position.set(17.0, this.getTerrainHeight(17.0, 8.5), 8.5);
-    // 4. Ham
-    this.ham = buildPersonMesh(0x7d6a46, 0.19, false);
-    this.ham.position.set(16.0, this.getTerrainHeight(16.0, 9.0), 9.0);
-    // 5. Japheth
-    this.japheth = buildPersonMesh(0x466f7d, 0.19, false);
-    this.japheth.position.set(17.5, this.getTerrainHeight(17.5, 7.5), 7.5);
-    
-    // 6. Shem's Wife
-    this.shemWife = buildPersonMesh(0x75526c, 0.18, true);
-    this.shemWife.position.set(18.5, this.getTerrainHeight(18.5, 8.0), 8.0);
-    // 7. Ham's Wife
-    this.hamWife = buildPersonMesh(0x52756d, 0.18, true);
-    this.hamWife.position.set(16.5, this.getTerrainHeight(16.5, 8.2), 8.2);
-    // 8. Japheth's Wife
-    this.japhethWife = buildPersonMesh(0x756b52, 0.18, true);
-    this.japhethWife.position.set(15.5, this.getTerrainHeight(15.5, 7.8), 7.8);
-    
-    this.familyGroup.add(this.shem, this.ham, this.japheth, this.shemWife, this.hamWife, this.japhethWife);
+    familyConfigs.forEach(fc => {
+      const char = new CharacterModel({
+        name: fc.name,
+        character: fc.key,
+        clothesColor: fc.color
+      });
+      const grp = char.group;
+      grp.position.set(fc.pos[0], this.getTerrainHeight(fc.pos[0], fc.pos[1]), fc.pos[1]);
+      this.familyGroup.add(grp);
+      this.familyCharacters.push(char);
+    });
     
     // Make everyone look at the house initially
     this.familyGroup.children.forEach(member => {
@@ -693,16 +636,9 @@ export class NoahScene {
   
   update(time, dt) {
     const elapsed = time;
-    
-    // Animate carousing bystanders
-    if (this.wickedDrinker) {
-      this.wdArmR.rotation.z = Math.sin(elapsed * 2.5) * 0.4 - 0.25;
-    }
-    if (this.wickedFighter1 && this.wickedFighter2) {
-      const shove = Math.sin(elapsed * 4.0) * 0.3;
-      this.wf1ArmL.rotation.x = Math.PI / 3.5 + shove;
-      this.wf2ArmR.rotation.x = Math.PI / 3.5 - shove;
-    }
+    if (this.noahCharacter) this.noahCharacter.update(dt, elapsed);
+    if (this.familyCharacters) this.familyCharacters.forEach(c => c.update(dt, elapsed));
+    if (this.wickedCharacters) this.wickedCharacters.forEach(c => c.update(dt, elapsed));
     
     // Rain lines
     if (this.rainActive) {

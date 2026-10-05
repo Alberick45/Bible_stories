@@ -430,12 +430,22 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
         }
       }, null, 0.4);
 
-      // Abel struck down
+      // Abel struck down & blood puddle appears
       tl.call(() => {
+        sceneEngine.abelIsDead = true;
         if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
           sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
         } else if (sceneEngine.abel) {
           gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
+        }
+
+        if (sceneEngine.bloodPuddle && sceneEngine.bloodPuddle.material && sceneEngine.abel) {
+          sceneEngine.bloodPuddle.position.set(
+            sceneEngine.abel.position.x,
+            (typeof sceneEngine.getTerrainHeight === 'function' ? sceneEngine.getTerrainHeight(sceneEngine.abel.position.x, sceneEngine.abel.position.z) : 0) + 0.02,
+            sceneEngine.abel.position.z
+          );
+          gsap.to(sceneEngine.bloodPuddle.material, { opacity: 0.88, duration: 1.5 });
         }
 
         if (veilEl) {
