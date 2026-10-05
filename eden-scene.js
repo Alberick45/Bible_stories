@@ -923,13 +923,25 @@ export class EdenScene {
         this.eve.position.add(dir);
         this.eve.position.y = this.getTerrainHeight(this.eve.position.x, this.eve.position.z);
         
-        const swing = Math.sin(elapsed * 8.5) * 0.4;
-        this.eve.children[5].rotation.x = swing;
-        this.eve.children[6].rotation.x = -swing;
+        if (this.eveCharacter) {
+          if (this.eveCharacter.mixer) {
+            this.eveCharacter.playAnimation('walk');
+          } else if (this.eveCharacter.joints) {
+            const swing = Math.sin(elapsed * 8.5) * 0.4;
+            if (this.eveCharacter.joints.hipLeft) this.eveCharacter.joints.hipLeft.rotation.x = swing;
+            if (this.eveCharacter.joints.hipRight) this.eveCharacter.joints.hipRight.rotation.x = -swing;
+          }
+        }
       } else {
         this.eve.lookAt(this.adam.position.x, this.eve.position.y, this.adam.position.z);
-        this.eve.children[5].rotation.x *= 0.85;
-        this.eve.children[6].rotation.x *= 0.85;
+        if (this.eveCharacter) {
+          if (this.eveCharacter.mixer) {
+            const active = this.eveCharacter.activeActionName;
+            if (!active || !['talking', 'pray', 'praying', 'jump', 'kicking', 'angry'].includes(active)) {
+              this.eveCharacter.playAnimation('idle');
+            }
+          }
+        }
       }
     }
     
