@@ -286,147 +286,149 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
   // CAIN & ABEL ANIMATIONS
   // ==========================================
   else if (scene.chapterId === 'cainabel') {
-    switch (scene.id) {
-      case 61: // Intro birth
-        tl.call(() => {
-          if (camPos) {
-            camPos.set(-11, 2.5, 14);
-            sceneEngine.camera.lookAt(-15.0, 1.3, 11.5);
-          }
-          // Show infants, hide grown Cain/Abel
-          sceneEngine.crib.visible = true;
-          sceneEngine.cain.visible = false;
-          sceneEngine.abel.visible = false;
-        }, null, 0);
-        break;
+    const text = (scene.text || '').toLowerCase();
+    const id = scene.id;
 
-      case 64: // Grown up
-        tl.call(() => {
-          if (camPos) {
-            gsap.to(camPos, {
-              x: -3, y: 3.0, z: 6, duration: 4.5,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 1.0, 0); }
-            });
-          }
-          sceneEngine.crib.visible = false;
-          sceneEngine.cain.visible = true;
-          sceneEngine.abel.visible = true;
+    if (id === 55 || text.includes('bare cain')) { // Intro birth
+      tl.call(() => {
+        if (camPos) {
+          camPos.set(-11, 2.5, 14);
+          sceneEngine.camera.lookAt(-15.0, 1.3, 11.5);
+        }
+        // Show infants, hide grown Cain/Abel
+        if (sceneEngine.crib) sceneEngine.crib.visible = true;
+        if (sceneEngine.cain) sceneEngine.cain.visible = false;
+        if (sceneEngine.abel) sceneEngine.abel.visible = false;
+      }, null, 0);
+    }
+    else if (id === 58 || text.includes('keeper of sheep')) { // Grown up
+      tl.call(() => {
+        if (camPos) {
+          gsap.to(camPos, {
+            x: -3, y: 3.0, z: 6, duration: 4.5,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 1.0, 0); }
+          });
+        }
+        if (sceneEngine.crib) sceneEngine.crib.visible = false;
+        if (sceneEngine.cain) sceneEngine.cain.visible = true;
+        if (sceneEngine.abel) sceneEngine.abel.visible = true;
 
-          // Set positions
+        // Set positions
+        if (sceneEngine.cain) {
           sceneEngine.cain.position.set(-12, sceneEngine.getTerrainHeight(-12, -2), -2);
           sceneEngine.cain.lookAt(-2.8, sceneEngine.cain.position.y, 0.0);
+        }
+        if (sceneEngine.abel) {
           sceneEngine.abel.position.set(14, sceneEngine.getTerrainHeight(14, 6), 6);
           sceneEngine.abel.lookAt(2.8, sceneEngine.abel.position.y, 0.0);
-        }, null, 0);
-        break;
+        }
+      }, null, 0);
+    }
+    else if (id === 62 || text.includes('respect unto abel')) { // Respect to Abel
+      tl.call(() => {
+        sceneEngine.movementEnabled = false;
+        if (sceneEngine.cain) sceneEngine.cain.lookAt(-2.8, sceneEngine.cain.position.y, 0.0);
+        if (sceneEngine.abel) sceneEngine.abel.lookAt(2.8, sceneEngine.abel.position.y, 0.0);
+        
+        if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+          sceneEngine.cainCharacter.playAnimation('pray', { force: true });
+        }
+        if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
+          sceneEngine.abelCharacter.playAnimation('pray', { force: true });
+        }
 
-      case 68: // Respect to Abel
-        tl.call(() => {
-          sceneEngine.movementEnabled = false;
-          sceneEngine.cain.lookAt(-2.8, sceneEngine.cain.position.y, 0.0);
-          sceneEngine.abel.lookAt(2.8, sceneEngine.abel.position.y, 0.0);
-          
-          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
-            sceneEngine.cainCharacter.playAnimation('pray', { force: true });
-          }
-          if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
-            sceneEngine.abelCharacter.playAnimation('pray', { force: true });
-          }
+        if (camPos) {
+          gsap.to(camPos, {
+            x: 0, y: 2.2, z: 5.5, duration: 3.5,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 1.1, 0); }
+          });
+        }
 
-          if (camPos) {
-            gsap.to(camPos, {
-              x: 0, y: 2.2, z: 5.5, duration: 3.5,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 1.1, 0); }
-            });
-          }
+        // Move offerings to altar safely
+        if (sceneEngine.cainOffering && sceneEngine.cainOffering.position) {
+          gsap.to(sceneEngine.cainOffering.position, { x: -0.7, y: 1.05, z: 0.0, duration: 1.5 });
+        }
+        if (sceneEngine.abelOffering && sceneEngine.abelOffering.position) {
+          gsap.to(sceneEngine.abelOffering.position, { x: 0.7, y: 1.05, z: 0.0, duration: 1.5 });
+        }
+      }, null, 0);
 
-          // Move offerings to altar safely
-          if (sceneEngine.cainOffering && sceneEngine.cainOffering.position) {
-            gsap.to(sceneEngine.cainOffering.position, { x: -0.7, y: 1.05, z: 0.0, duration: 1.5 });
-          }
-          if (sceneEngine.abelOffering && sceneEngine.abelOffering.position) {
-            gsap.to(sceneEngine.abelOffering.position, { x: 0.7, y: 1.05, z: 0.0, duration: 1.5 });
-          }
-        }, null, 0);
-
-        tl.call(() => {
-          if (typeof sceneEngine.igniteAbelOffering === 'function') {
-            sceneEngine.igniteAbelOffering();
-          }
-        }, null, 1.8);
-        break;
-
-      case 69: // But Cain offering no respect
-        tl.call(() => {
-          if (typeof sceneEngine.smolderCainOffering === 'function') {
-            sceneEngine.smolderCainOffering();
-          }
-          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
-            sceneEngine.cainCharacter.playAnimation('angry', { force: true });
-          }
-        }, null, 0);
-        break;
-
-      case 74: // "Cain rose up against Abel..." Murder
-        tl.call(() => {
+      tl.call(() => {
+        if (typeof sceneEngine.igniteAbelOffering === 'function') {
+          sceneEngine.igniteAbelOffering();
+        }
+      }, null, 1.8);
+    }
+    else if (id === 63 || text.includes('unto cain and to his offering he had not respect')) { // But Cain offering no respect
+      tl.call(() => {
+        if (typeof sceneEngine.smolderCainOffering === 'function') {
+          sceneEngine.smolderCainOffering();
+        }
+        if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+          sceneEngine.cainCharacter.playAnimation('angry', { force: true });
+        }
+      }, null, 0);
+    }
+    else if (id === 68 || text.includes('slew him') || text.includes('rose up against abel')) { // Murder
+      tl.call(() => {
+        if (sceneEngine.cain && sceneEngine.abel) {
           sceneEngine.cain.lookAt(sceneEngine.abel.position.x, sceneEngine.cain.position.y, sceneEngine.abel.position.z);
-          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
-            sceneEngine.cainCharacter.playAnimation('hook_punch', { loop: false, force: true });
-          } else if (sceneEngine.cainArmR && sceneEngine.cainArmR.rotation) {
-            gsap.to(sceneEngine.cainArmR.rotation, { x: -Math.PI / 1.1, duration: 0.7 });
-          }
-        }, null, 0.5);
+        }
+        if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+          sceneEngine.cainCharacter.playAnimation('hook_punch', { loop: false, force: true });
+        } else if (sceneEngine.cainArmR && sceneEngine.cainArmR.rotation) {
+          gsap.to(sceneEngine.cainArmR.rotation, { x: -Math.PI / 1.1, duration: 0.7 });
+        }
+      }, null, 0.5);
 
-        // Strike down
-        tl.call(() => {
-          if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
-            sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
-          } else {
-            gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
-            gsap.to(sceneEngine.abel.position, { y: sceneEngine.getTerrainHeight(0.6, -12.0) + 0.1, duration: 0.5 });
-          }
+      // Strike down
+      tl.call(() => {
+        if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
+          sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
+        } else if (sceneEngine.abel) {
+          gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
+          gsap.to(sceneEngine.abel.position, { y: sceneEngine.getTerrainHeight(0.6, -12.0) + 0.1, duration: 0.5 });
+        }
 
-          if (veilEl) {
-            veilEl.style.transition = 'background 0.05s ease';
-            veilEl.style.background = '#4a0808';
-          }
-        }, null, 1.3);
+        if (veilEl) {
+          veilEl.style.transition = 'background 0.05s ease';
+          veilEl.style.background = '#4a0808';
+        }
+      }, null, 1.3);
 
-        tl.call(() => {
-          if (veilEl) {
-            veilEl.style.transition = 'background 2.5s ease';
-            veilEl.style.background = 'rgba(0,0,0,0)';
-          }
-        }, null, 1.4);
-        break;
+      tl.call(() => {
+        if (veilEl) {
+          veilEl.style.transition = 'background 2.5s ease';
+          veilEl.style.background = 'rgba(0,0,0,0)';
+        }
+      }, null, 1.4);
+    }
+    else if (id === 74 || text.includes('greater than i can bear')) { // Cain falls to knees / confronted
+      tl.call(() => {
+        if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+          sceneEngine.cainCharacter.playAnimation('male_laying', { loop: false, clampWhenFinished: true, force: true });
+        } else if (sceneEngine.cain) {
+          gsap.to(sceneEngine.cain.position, { y: sceneEngine.getTerrainHeight(-0.6, -12.0) - 0.45, duration: 1.0 });
+        }
+      }, null, 0);
+    }
+    else if (id === 76 || text.includes('mark upon cain')) { // Set Mark on Cain
+      tl.call(() => {
+        if (sceneEngine.cainMark && sceneEngine.cainMark.material) {
+          gsap.to(sceneEngine.cainMark.material, { opacity: 0.9, duration: 1.5 });
+        }
+      }, null, 0);
+    }
+    else if (id === 77 || text.includes('land of nod')) { // Wander away NOD
+      tl.call(() => {
+        if (sceneEngine.cain) sceneEngine.cain.lookAt(20, sceneEngine.cain.position.y, -30);
+        if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+          sceneEngine.cainCharacter.playAnimation('walk', { force: true });
+        }
+      }, null, 0);
 
-      case 80: // Cain falls to knees / confronted
-        tl.call(() => {
-          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
-            sceneEngine.cainCharacter.playAnimation('male_laying', { loop: false, clampWhenFinished: true, force: true });
-          } else {
-            gsap.to(sceneEngine.cain.position, { y: sceneEngine.getTerrainHeight(-0.6, -12.0) - 0.45, duration: 1.0 });
-          }
-        }, null, 0);
-        break;
-
-      case 82: // Set Mark on Cain
-        tl.call(() => {
-          if (sceneEngine.cainMark && sceneEngine.cainMark.material) {
-            gsap.to(sceneEngine.cainMark.material, { opacity: 0.9, duration: 1.5 });
-          }
-        }, null, 0);
-        break;
-
-      case 83: // Wander away NOD
-        tl.call(() => {
-          sceneEngine.cain.lookAt(20, sceneEngine.cain.position.y, -30);
-          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
-            sceneEngine.cainCharacter.playAnimation('walk', { force: true });
-          }
-        }, null, 0);
-
-        tl.call(() => {
+      tl.call(() => {
+        if (sceneEngine.cain) {
           gsap.to(sceneEngine.cain.position, {
             x: 20, z: -30, duration: 6.0,
             onUpdate: () => { sceneEngine.cain.position.y = sceneEngine.getTerrainHeight(sceneEngine.cain.position.x, sceneEngine.cain.position.z); },
@@ -436,74 +438,75 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
               }
             }
           });
+        }
 
-          if (veilEl) {
-            veilEl.style.transition = 'background 5.0s ease';
-            veilEl.style.background = '#000000';
-          }
-        }, null, 0.9);
-        break;
+        if (veilEl) {
+          veilEl.style.transition = 'background 5.0s ease';
+          veilEl.style.background = '#000000';
+        }
+      }, null, 0.9);
+    }
+    else if (id === 78 || text.includes('called his name seth')) { // Seth Transition
+      tl.call(() => {
+        if (sceneEngine.cain) sceneEngine.cain.visible = false;
+        if (sceneEngine.abel) sceneEngine.abel.visible = false;
+        if (sceneEngine.seth) sceneEngine.seth.visible = true;
 
-      case 84: // Seth Transition
-        tl.call(() => {
-          sceneEngine.cain.visible = false;
-          sceneEngine.abel.visible = false;
-          sceneEngine.seth.visible = true;
-
+        if (sceneEngine.adam) {
           sceneEngine.adam.position.set(-14.5, sceneEngine.getTerrainHeight(-14.5, 10.0), 10.0);
           sceneEngine.adam.lookAt(-15.0, sceneEngine.adam.position.y, 11.5);
+        }
+        if (sceneEngine.eve) {
           sceneEngine.eve.position.set(-15.5, sceneEngine.getTerrainHeight(-15.5, 10.0), 10.0);
           sceneEngine.eve.lookAt(-15.0, sceneEngine.eve.position.y, 11.5);
+        }
 
-          if (camPos) {
-            camPos.set(-11, 2.5, 14);
-            sceneEngine.camera.lookAt(-15.0, 1.3, 11.5);
-          }
+        if (camPos) {
+          camPos.set(-11, 2.5, 14);
+          sceneEngine.camera.lookAt(-15.0, 1.3, 11.5);
+        }
 
-          if (veilEl) {
-            veilEl.style.transition = 'background 1.5s ease';
-            veilEl.style.background = 'rgba(0,0,0,0)';
-          }
-        }, null, 0);
-        break;
+        if (veilEl) {
+          veilEl.style.transition = 'background 1.5s ease';
+          veilEl.style.background = 'rgba(0,0,0,0)';
+        }
+      }, null, 0);
+    }
+    else if (id === 81 || text.includes('wickedness of man was great')) { // Wickedness of man
+      tl.call(() => {
+        if (sceneEngine.adam) sceneEngine.adam.visible = false;
+        if (sceneEngine.eve) sceneEngine.eve.visible = false;
+        if (sceneEngine.seth) sceneEngine.seth.visible = false;
+        if (sceneEngine.shelterGroup) sceneEngine.shelterGroup.visible = false;
+        if (sceneEngine.wickedPeople) sceneEngine.wickedPeople.visible = true;
 
-      case 86: // Wickedness of man
-        tl.call(() => {
-          sceneEngine.adam.visible = false;
-          sceneEngine.eve.visible = false;
-          sceneEngine.seth.visible = false;
-          sceneEngine.shelterGroup.visible = false;
-          sceneEngine.wickedPeople.visible = true;
+        if (camPos) {
+          camPos.set(-5.0, 2.0, -6.5);
+          sceneEngine.camera.lookAt(-5.0, 1.3, -11.0);
+        }
 
-          if (camPos) {
-            camPos.set(-5.0, 2.0, -6.5);
-            sceneEngine.camera.lookAt(-5.0, 1.3, -11.0);
-          }
+        if (veilEl) {
+          veilEl.style.transition = 'background 1.5s ease';
+          veilEl.style.background = 'rgba(0,0,0,0)';
+        }
+      }, null, 0);
 
-          if (veilEl) {
-            veilEl.style.transition = 'background 1.5s ease';
-            veilEl.style.background = 'rgba(0,0,0,0)';
-          }
-        }, null, 0);
-
-        tl.call(() => {
-          if (camPos) {
-            gsap.to(camPos, {
-              x: -3.0, duration: 5.0,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(-4.5, 1.3, -11.0); }
-            });
-          }
-        }, null, 1.5);
-        break;
-
-      case 89: // Fade to black for Noah grace
-        tl.call(() => {
-          if (veilEl) {
-            veilEl.style.transition = 'background 3.5s ease';
-            veilEl.style.background = '#000000';
-          }
-        }, null, 0);
-        break;
+      tl.call(() => {
+        if (camPos) {
+          gsap.to(camPos, {
+            x: -3.0, duration: 5.0,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(-4.5, 1.3, -11.0); }
+          });
+        }
+      }, null, 1.5);
+    }
+    else if (id === 84 || text.includes('noah found grace')) { // Fade to black for Noah grace
+      tl.call(() => {
+        if (veilEl) {
+          veilEl.style.transition = 'background 3.5s ease';
+          veilEl.style.background = '#000000';
+        }
+      }, null, 0);
     }
   }
 
@@ -511,74 +514,69 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
   // NOAH ANIMATIONS
   // ==========================================
   else if (scene.chapterId === 'noah') {
-    switch (scene.id) {
-      case 91: // Init Command
-        tl.call(() => {
-          if (veilEl) {
-            veilEl.style.transition = 'background 1.5s ease';
-            veilEl.style.background = 'rgba(0,0,0,0)';
-          }
-          if (camPos) {
-            camPos.set(-5, 4.2, 17);
-            sceneEngine.camera.lookAt(0, 1.3, 0);
-          }
-          sceneEngine.arkPreBuilt.visible = true;
-          sceneEngine.arkPostBuilt.visible = false;
+    const text = (scene.text || '').toLowerCase();
+    const id = scene.id;
+
+    if (id === 85 || text.includes('end of all flesh')) { // Init Command
+      tl.call(() => {
+        if (veilEl) {
+          veilEl.style.transition = 'background 1.5s ease';
+          veilEl.style.background = 'rgba(0,0,0,0)';
+        }
+        if (camPos) {
+          camPos.set(-5, 4.2, 17);
+          sceneEngine.camera.lookAt(0, 1.3, 0);
+        }
+        if (sceneEngine.arkPreBuilt) sceneEngine.arkPreBuilt.visible = true;
+        if (sceneEngine.arkPostBuilt) sceneEngine.arkPostBuilt.visible = false;
+        if (sceneEngine.noah) {
           sceneEngine.noah.visible = true;
           sceneEngine.noah.position.set(-1.0, sceneEngine.getTerrainHeight(-1.0, 6.0), 6.0);
-        }, null, 0);
-        break;
-
-      case 93: // Ark Building Complete
-        tl.call(() => {
-          // Camera zooms around Ark
-          if (camPos) {
-            gsap.to(camPos, {
-              x: 10, y: 7.2, z: 12, duration: 6.0,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 2.5, 0); }
-            });
-          }
-          sceneEngine.arkPreBuilt.visible = false;
-          sceneEngine.arkPostBuilt.visible = true;
-        }, null, 0);
-        break;
-
-      case 97: // Flood Rain starts
-        tl.call(() => {
-          sceneEngine.movementEnabled = false;
-          sceneEngine.animateRain();
-        }, null, 0);
-        break;
-
-      case 99: // Flood Rise
-        tl.call(() => {
-          sceneEngine.animateFloodRise();
-        }, null, 0);
-        break;
-
-      case 101: // God remembered Noah
-        tl.call(() => {
-          sceneEngine.stopRain();
-        }, null, 0);
-        break;
-
-      case 103: // Mount Ararat mountain transition
-        tl.call(() => {
-          sceneEngine.animateArarat();
-        }, null, 0);
-        break;
-
-      case 104: // Dove released
-        tl.call(() => {
-          sceneEngine.animateDove();
-        }, null, 0);
-        break;
-
-      case 108: // Rainbow Covenant
-        tl.call(() => {
-          sceneEngine.animateRainbow();
-        }, null, 0);
-        break;
+        }
+      }, null, 0);
+    }
+    else if (id === 87 || id === 88 || text.includes('thus did noah')) { // Ark Building Complete
+      tl.call(() => {
+        if (camPos) {
+          gsap.to(camPos, {
+            x: 10, y: 7.2, z: 12, duration: 6.0,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 2.5, 0); }
+          });
+        }
+        if (sceneEngine.arkPreBuilt) sceneEngine.arkPreBuilt.visible = false;
+        if (sceneEngine.arkPostBuilt) sceneEngine.arkPostBuilt.visible = true;
+      }, null, 0);
+    }
+    else if (id === 93 || text.includes('fountains of the great deep')) { // Flood Rain starts
+      tl.call(() => {
+        sceneEngine.movementEnabled = false;
+        if (typeof sceneEngine.animateRain === 'function') sceneEngine.animateRain();
+      }, null, 0);
+    }
+    else if (id === 95 || text.includes('flood was forty days')) { // Flood Rise
+      tl.call(() => {
+        if (typeof sceneEngine.animateFloodRise === 'function') sceneEngine.animateFloodRise();
+      }, null, 0);
+    }
+    else if (id === 97 || text.includes('god remembered noah')) { // God remembered Noah
+      tl.call(() => {
+        if (typeof sceneEngine.stopRain === 'function') sceneEngine.stopRain();
+      }, null, 0);
+    }
+    else if (id === 99 || text.includes('mountains of ararat')) { // Mount Ararat mountain transition
+      tl.call(() => {
+        if (typeof sceneEngine.animateArarat === 'function') sceneEngine.animateArarat();
+      }, null, 0);
+    }
+    else if (id === 100 || text.includes('sent forth a dove')) { // Dove released
+      tl.call(() => {
+        if (typeof sceneEngine.animateDove === 'function') sceneEngine.animateDove();
+      }, null, 0);
+    }
+    else if (id === 104 || text.includes('bow in the cloud')) { // Rainbow Covenant
+      tl.call(() => {
+        if (typeof sceneEngine.animateRainbow === 'function') sceneEngine.animateRainbow();
+      }, null, 0);
     }
   }
 
@@ -586,84 +584,81 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
   // BABEL ANIMATIONS
   // ==========================================
   else if (scene.chapterId === 'babel') {
-    switch (scene.id) {
-      case 110: // Shinar plain view
-        tl.call(() => {
-          if (veilEl) {
-            veilEl.style.transition = 'background 1.5s ease';
+    const text = (scene.text || '').toLowerCase();
+    const id = scene.id;
+
+    if (id === 106 || text.includes('whole earth was of one language')) { // Shinar plain view
+      tl.call(() => {
+        if (veilEl) {
+          veilEl.style.transition = 'background 1.5s ease';
+          veilEl.style.background = 'rgba(0,0,0,0)';
+        }
+        if (camPos) {
+          camPos.set(-18, 3.2, 18);
+          sceneEngine.camera.lookAt(0.0, 1.0, 0.0);
+        }
+      }, null, 0);
+    }
+    else if (id === 107 || text.includes('let us build us a city')) { // Construction time lapse starts
+      tl.call(() => {
+        if (camPos) {
+          gsap.to(camPos, {
+            x: -12.0, y: 8.5, z: 12.0, duration: 7.5,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 3.0, 0); }
+          });
+        }
+        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(0);
+      }, null, 0);
+
+      tl.call(() => {
+        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(1);
+      }, null, 2.5);
+
+      tl.call(() => {
+        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(2);
+      }, null, 5.0);
+    }
+    else if (id === 110 || text.includes('lord came down to see')) { // Divine Intervention
+      tl.call(() => {
+        if (camPos) {
+          gsap.to(camPos, {
+            x: 0.1, y: 16.0, z: 5.5, duration: 4.5,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 11.5, 0); }
+          });
+        }
+        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(3);
+        
+        if (veilEl) {
+          veilEl.style.transition = 'background 0.15s ease';
+          veilEl.style.background = '#e6f0ff';
+          setTimeout(() => {
+            veilEl.style.transition = 'background 4.0s ease';
             veilEl.style.background = 'rgba(0,0,0,0)';
-          }
-          if (camPos) {
-            camPos.set(-18, 3.2, 18);
-            sceneEngine.camera.lookAt(0.0, 1.0, 0.0);
-          }
-        }, null, 0);
-        break;
-
-      case 112: // Construction time lapse starts
-        tl.call(() => {
-          if (camPos) {
-            gsap.to(camPos, {
-              x: -12.0, y: 8.5, z: 12.0, duration: 7.5,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 3.0, 0); }
-            });
-          }
-          sceneEngine.growTowerTier(0);
-        }, null, 0);
-
-        tl.call(() => {
-          sceneEngine.growTowerTier(1);
-        }, null, 2.5);
-
-        tl.call(() => {
-          sceneEngine.growTowerTier(2);
-        }, null, 5.0);
-        break;
-
-      case 114: // Divine Intervention
-        tl.call(() => {
-          if (camPos) {
-            gsap.to(camPos, {
-              x: 0.1, y: 16.0, z: 5.5, duration: 4.5,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 11.5, 0); }
-            });
-          }
-          sceneEngine.growTowerTier(3);
-          
-          if (veilEl) {
-            veilEl.style.transition = 'background 0.15s ease';
-            veilEl.style.background = '#e6f0ff';
-            setTimeout(() => {
-              veilEl.style.transition = 'background 4.0s ease';
-              veilEl.style.background = 'rgba(0,0,0,0)';
-            }, 150);
-          }
-        }, null, 0.5);
-        break;
-
-      case 115: // Language confusion starts
-        tl.call(() => {
-          if (camPos) {
-            gsap.to(camPos, {
-              x: -4.5, y: 2.2, z: 5.0, duration: 4.5,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(sceneEngine.builder.position); }
-            });
-          }
-          sceneEngine.confoundLanguages();
-        }, null, 0);
-        break;
-
-      case 120: // Fleeing and scattering
-        tl.call(() => {
-          sceneEngine.scatterWorkers();
-          if (camPos) {
-            gsap.to(camPos, {
-              x: 0, y: 14.0, z: 22.0, duration: 4.5,
-              onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 4.0, 0); }
-            });
-          }
-        }, null, 0);
-        break;
+          }, 150);
+        }
+      }, null, 0.5);
+    }
+    else if (id === 112 || text.includes('δόξα') || text.includes('quid agis') || text.includes('baga bo pi do')) { // Language confusion starts
+      tl.call(() => {
+        if (camPos) {
+          gsap.to(camPos, {
+            x: -4.5, y: 2.2, z: 5.0, duration: 4.5,
+            onUpdate: () => { if (sceneEngine.camera && sceneEngine.builder) sceneEngine.camera.lookAt(sceneEngine.builder.position); }
+          });
+        }
+        if (typeof sceneEngine.confoundLanguages === 'function') sceneEngine.confoundLanguages();
+      }, null, 0);
+    }
+    else if (id === 116 || text.includes('scattered them abroad')) { // Fleeing and scattering
+      tl.call(() => {
+        if (typeof sceneEngine.scatterWorkers === 'function') sceneEngine.scatterWorkers();
+        if (camPos) {
+          gsap.to(camPos, {
+            x: 0, y: 14.0, z: 22.0, duration: 4.5,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 4.0, 0); }
+          });
+        }
+      }, null, 0);
     }
   }
 

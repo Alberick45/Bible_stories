@@ -182,6 +182,7 @@ export class CainAbelScene {
     lamb.add(lambBody, lambHead);
     lamb.position.set(0, 1.45, 0);
     lamb.rotation.z = 0.2; // lying down
+    this.abelOffering = lamb;
     this.abelAltar.add(lamb);
     
     // Cain's tilled fruits/grain offering
@@ -196,6 +197,7 @@ export class CainAbelScene {
       fMesh.position.set((Math.random() - 0.5) * 0.25, 1.5, (Math.random() - 0.5) * 0.25);
       cainOfferings.add(fMesh);
     }
+    this.cainOffering = cainOfferings;
     this.cainAltar.add(cainOfferings);
     
     // Abel's Golden Acceptance Light Pillar (scale 0 initially)
