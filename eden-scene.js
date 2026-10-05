@@ -609,6 +609,13 @@ export class EdenScene {
       this.adam.lookAt(hideX, hideY, hideZ);
       this.eve.lookAt(hideX + 1.2, hideY, hideZ + 0.8);
 
+      if (this.adamCharacter && this.adamCharacter.playAnimation) {
+        this.adamCharacter.playAnimation('run', { force: true });
+      }
+      if (this.eveCharacter && this.eveCharacter.playAnimation) {
+        this.eveCharacter.playAnimation('run', { force: true });
+      }
+
       gsap.to(this.adam.position, {
         x: hideX,
         z: hideZ,
@@ -616,6 +623,11 @@ export class EdenScene {
         ease: 'power1.inOut',
         onUpdate: () => {
           this.adam.position.y = this.getTerrainHeight(this.adam.position.x, this.adam.position.z);
+        },
+        onComplete: () => {
+          if (this.adamCharacter && this.adamCharacter.playAnimation) {
+            this.adamCharacter.playAnimation('idle', { force: true });
+          }
         }
       });
 
@@ -628,6 +640,9 @@ export class EdenScene {
           this.eve.position.y = this.getTerrainHeight(this.eve.position.x, this.eve.position.z);
         },
         onComplete: () => {
+          if (this.eveCharacter && this.eveCharacter.playAnimation) {
+            this.eveCharacter.playAnimation('idle', { force: true });
+          }
           this.coverThemselves();
           resolve();
         }
@@ -675,6 +690,13 @@ export class EdenScene {
       this.adam.lookAt(gateX, this.adam.position.y, gateZ - 0.5);
       this.eve.lookAt(gateX, this.eve.position.y, gateZ + 0.5);
 
+      if (this.adamCharacter && this.adamCharacter.playAnimation) {
+        this.adamCharacter.playAnimation('walk', { force: true });
+      }
+      if (this.eveCharacter && this.eveCharacter.playAnimation) {
+        this.eveCharacter.playAnimation('walk', { force: true });
+      }
+
       gsap.to(this.adam.position, {
         x: gateX,
         z: gateZ - 0.8,
@@ -682,6 +704,11 @@ export class EdenScene {
         ease: 'power1.inOut',
         onUpdate: () => {
           this.adam.position.y = this.getTerrainHeight(this.adam.position.x, this.adam.position.z);
+        },
+        onComplete: () => {
+          if (this.adamCharacter && this.adamCharacter.playAnimation) {
+            this.adamCharacter.playAnimation('idle', { force: true });
+          }
         }
       });
 
@@ -693,7 +720,12 @@ export class EdenScene {
         onUpdate: () => {
           this.eve.position.y = this.getTerrainHeight(this.eve.position.x, this.eve.position.z);
         },
-        onComplete: resolve
+        onComplete: () => {
+          if (this.eveCharacter && this.eveCharacter.playAnimation) {
+            this.eveCharacter.playAnimation('idle', { force: true });
+          }
+          resolve();
+        }
       });
 
       if (this.camera) {

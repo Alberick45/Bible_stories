@@ -326,6 +326,13 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
           sceneEngine.cain.lookAt(-2.8, sceneEngine.cain.position.y, 0.0);
           sceneEngine.abel.lookAt(2.8, sceneEngine.abel.position.y, 0.0);
           
+          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+            sceneEngine.cainCharacter.playAnimation('pray', { force: true });
+          }
+          if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
+            sceneEngine.abelCharacter.playAnimation('pray', { force: true });
+          }
+
           if (camPos) {
             gsap.to(camPos, {
               x: 0, y: 2.2, z: 5.5, duration: 3.5,
@@ -333,37 +340,56 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
             });
           }
 
-          // Move offerings to altar
-          gsap.to(sceneEngine.cainOffering.position, { x: -0.7, y: 1.05, z: 0.0, duration: 1.5 });
-          gsap.to(sceneEngine.abelOffering.position, { x: 0.7, y: 1.05, z: 0.0, duration: 1.5 });
+          // Move offerings to altar safely
+          if (sceneEngine.cainOffering && sceneEngine.cainOffering.position) {
+            gsap.to(sceneEngine.cainOffering.position, { x: -0.7, y: 1.05, z: 0.0, duration: 1.5 });
+          }
+          if (sceneEngine.abelOffering && sceneEngine.abelOffering.position) {
+            gsap.to(sceneEngine.abelOffering.position, { x: 0.7, y: 1.05, z: 0.0, duration: 1.5 });
+          }
         }, null, 0);
 
         tl.call(() => {
-          sceneEngine.igniteAbelOffering();
+          if (typeof sceneEngine.igniteAbelOffering === 'function') {
+            sceneEngine.igniteAbelOffering();
+          }
         }, null, 1.8);
         break;
 
       case 69: // But Cain offering no respect
         tl.call(() => {
-          sceneEngine.smolderCainOffering();
+          if (typeof sceneEngine.smolderCainOffering === 'function') {
+            sceneEngine.smolderCainOffering();
+          }
+          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+            sceneEngine.cainCharacter.playAnimation('angry', { force: true });
+          }
         }, null, 0);
         break;
 
       case 74: // "Cain rose up against Abel..." Murder
         tl.call(() => {
           sceneEngine.cain.lookAt(sceneEngine.abel.position.x, sceneEngine.cain.position.y, sceneEngine.abel.position.z);
-          gsap.to(sceneEngine.cainArmR.rotation, { x: -Math.PI / 1.1, duration: 0.7 });
+          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+            sceneEngine.cainCharacter.playAnimation('hook_punch', { loop: false, force: true });
+          } else if (sceneEngine.cainArmR && sceneEngine.cainArmR.rotation) {
+            gsap.to(sceneEngine.cainArmR.rotation, { x: -Math.PI / 1.1, duration: 0.7 });
+          }
         }, null, 0.5);
 
         // Strike down
         tl.call(() => {
-          gsap.to(sceneEngine.cainArmR.rotation, { x: -Math.PI / 3.0, duration: 0.2, ease: 'power2.in' });
+          if (sceneEngine.abelCharacter && sceneEngine.abelCharacter.playAnimation) {
+            sceneEngine.abelCharacter.playAnimation('dying', { loop: false, clampWhenFinished: true, force: true });
+          } else {
+            gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
+            gsap.to(sceneEngine.abel.position, { y: sceneEngine.getTerrainHeight(0.6, -12.0) + 0.1, duration: 0.5 });
+          }
+
           if (veilEl) {
             veilEl.style.transition = 'background 0.05s ease';
             veilEl.style.background = '#4a0808';
           }
-          gsap.to(sceneEngine.abel.rotation, { x: Math.PI / 2, duration: 0.5 });
-          gsap.to(sceneEngine.abel.position, { y: sceneEngine.getTerrainHeight(0.6, -12.0) + 0.1, duration: 0.5 });
         }, null, 1.3);
 
         tl.call(() => {
@@ -371,43 +397,44 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
             veilEl.style.transition = 'background 2.5s ease';
             veilEl.style.background = 'rgba(0,0,0,0)';
           }
-          gsap.to(sceneEngine.cainArmR.rotation, { x: 0, duration: 0.8 });
         }, null, 1.4);
         break;
 
-      case 80: // Cain falls to knees
+      case 80: // Cain falls to knees / confronted
         tl.call(() => {
-          gsap.to(sceneEngine.cain.position, { y: sceneEngine.getTerrainHeight(-0.6, -12.0) - 0.45, duration: 1.0 });
+          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+            sceneEngine.cainCharacter.playAnimation('male_laying', { loop: false, clampWhenFinished: true, force: true });
+          } else {
+            gsap.to(sceneEngine.cain.position, { y: sceneEngine.getTerrainHeight(-0.6, -12.0) - 0.45, duration: 1.0 });
+          }
         }, null, 0);
         break;
 
       case 82: // Set Mark on Cain
         tl.call(() => {
-          gsap.to(sceneEngine.cainMark.material, { opacity: 0.9, duration: 1.5 });
+          if (sceneEngine.cainMark && sceneEngine.cainMark.material) {
+            gsap.to(sceneEngine.cainMark.material, { opacity: 0.9, duration: 1.5 });
+          }
         }, null, 0);
         break;
 
       case 83: // Wander away NOD
         tl.call(() => {
-          gsap.to(sceneEngine.cain.position, { y: sceneEngine.getTerrainHeight(-0.6, -12.0), duration: 0.8 });
           sceneEngine.cain.lookAt(20, sceneEngine.cain.position.y, -30);
+          if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+            sceneEngine.cainCharacter.playAnimation('walk', { force: true });
+          }
         }, null, 0);
 
         tl.call(() => {
-          const walkAwayInterval = setInterval(() => {
-            if (window.sceneEngine && window.sceneEngine.cain) {
-              const swing = Math.sin(performance.now() * 0.01) * 0.45;
-              sceneEngine.cain.children[5].rotation.x = swing;
-              sceneEngine.cain.children[6].rotation.x = -swing;
-            } else {
-              clearInterval(walkAwayInterval);
-            }
-          }, 30);
-
           gsap.to(sceneEngine.cain.position, {
             x: 20, z: -30, duration: 6.0,
             onUpdate: () => { sceneEngine.cain.position.y = sceneEngine.getTerrainHeight(sceneEngine.cain.position.x, sceneEngine.cain.position.z); },
-            onComplete: () => { clearInterval(walkAwayInterval); }
+            onComplete: () => {
+              if (sceneEngine.cainCharacter && sceneEngine.cainCharacter.playAnimation) {
+                sceneEngine.cainCharacter.playAnimation('idle', { force: true });
+              }
+            }
           });
 
           if (veilEl) {
