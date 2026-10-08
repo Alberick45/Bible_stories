@@ -4,24 +4,76 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 export const CHARACTERS = {
-  adam: '/src/models/characters/adam_black.fbx',
-  adam_black: '/src/models/characters/adam_black.fbx',
-  adam_white: '/src/models/characters/adam_white.fbx',
-  eve: '/src/models/characters/eve_white.fbx',
-  eve_white: '/src/models/characters/eve_white.fbx',
-  megan: '/src/models/characters/megan_black.fbx',
-  megan_black: '/src/models/characters/megan_black.fbx',
-  cain: '/src/models/characters/man1.fbx',
-  abel: '/src/models/characters/man2.fbx',
-  man1: '/src/models/characters/man1.fbx',
-  man2: '/src/models/characters/man2.fbx',
-  noah: '/src/models/characters/adam_white.fbx',
-  builder: '/src/models/characters/man1.fbx',
-  soldier: '/src/models/characters/swordsman.fbx',
-  swordsman: '/src/models/characters/swordsman.fbx',
-  swordwoman: '/src/models/characters/swordwoman.fbx',
-  cherub: '/src/models/characters/swordsman.fbx',
-  angel: '/src/models/characters/swordsman.fbx'
+  // Main Narrative Characters
+  adam: '/src/models/characters/male/adam_black.fbx',
+  adam_black: '/src/models/characters/male/adam_black.fbx',
+  adam_white: '/src/models/characters/male/adam_white.fbx',
+  eve: '/src/models/characters/female/eve_white.fbx',
+  eve_white: '/src/models/characters/female/eve_white.fbx',
+  cain: '/src/models/characters/male/man1.fbx',
+  abel: '/src/models/characters/male/man2.fbx',
+  noah: '/src/models/characters/male/old_guy1.fbx',
+  old_guy: '/src/models/characters/male/old_guy1.fbx',
+  old_guy1: '/src/models/characters/male/old_guy1.fbx',
+  builder: '/src/models/characters/male/man1.fbx',
+  soldier: '/src/models/characters/male/swordsman.fbx',
+  swordsman: '/src/models/characters/male/swordsman.fbx',
+  swordwoman: '/src/models/characters/female/swordwoman.fbx',
+  cherub: '/src/models/characters/male/swordsman.fbx',
+  angel: '/src/models/characters/male/swordsman.fbx',
+
+  // Male Character Pool
+  aj: '/src/models/characters/male/Aj.fbx',
+  alex: '/src/models/characters/male/man1.fbx',
+  brute: '/src/models/characters/male/man1.fbx',
+  bryce: '/src/models/characters/male/man1.fbx',
+  castle_guard1: '/src/models/characters/male/castle_guard_01.fbx',
+  castle_guard2: '/src/models/characters/male/Castle Guard 02.fbx',
+  david: '/src/models/characters/male/man1.fbx',
+  dreyar: '/src/models/characters/male/Dreyar By M.Aure.fbx',
+  ely: '/src/models/characters/male/Ely By K.Atienza.fbx',
+  exo_gray: '/src/models/characters/male/man1.fbx',
+  exo_red: '/src/models/characters/male/man1.fbx',
+  james: '/src/models/characters/male/man1.fbx',
+  joe: '/src/models/characters/male/man1.fbx',
+  josh: '/src/models/characters/male/josh.fbx',
+  kid1: '/src/models/characters/male/kid1.fbx',
+  knight1: '/src/models/characters/male/man1.fbx',
+  lewis: '/src/models/characters/male/man1.fbx',
+  man1: '/src/models/characters/male/man1.fbx',
+  man2: '/src/models/characters/male/man2.fbx',
+  ortiz: '/src/models/characters/male/man1.fbx',
+  paladin: '/src/models/characters/male/Paladin J Nordstrom.fbx',
+  peasant_man: '/src/models/characters/male/Peasant Man.fbx',
+  pete: '/src/models/characters/male/man1.fbx',
+  shannon: '/src/models/characters/male/man1.fbx',
+  steve: '/src/models/characters/male/man1.fbx',
+  swat: '/src/models/characters/male/Swat.fbx',
+  swat2: '/src/models/characters/male/Swat.fbx',
+
+  // Female Character Pool
+  akai: '/src/models/characters/female/akai_e_espiritu.fbx',
+  amy: '/src/models/characters/female/eve_white.fbx',
+  arissa: '/src/models/characters/female/Arissa.fbx',
+  astra: '/src/models/characters/female/eve_white.fbx',
+  elizabeth: '/src/models/characters/female/eve_white.fbx',
+  erika: '/src/models/characters/female/eve_white.fbx',
+  girlscout: '/src/models/characters/female/eve_white.fbx',
+  jackie: '/src/models/characters/female/eve_white.fbx',
+  jennifer: '/src/models/characters/female/eve_white.fbx',
+  jody: '/src/models/characters/female/eve_white.fbx',
+  kachujin: '/src/models/characters/female/eve_white.fbx',
+  kate: '/src/models/characters/female/eve_white.fbx',
+  lola: '/src/models/characters/female/Lola B Styperek.fbx',
+  louise: '/src/models/characters/female/eve_white.fbx',
+  martha: '/src/models/characters/female/eve_white.fbx',
+  medea: '/src/models/characters/female/Medea By M. Arrebola.fbx',
+  megan: '/src/models/characters/female/megan_black.fbx',
+  megan_black: '/src/models/characters/female/megan_black.fbx',
+  pirate_female: '/src/models/characters/female/Pirate By P. Konstantinov.fbx',
+  roth: '/src/models/characters/female/eve_white.fbx',
+  sophie: '/src/models/characters/female/eve_white.fbx',
+  suzie: '/src/models/characters/female/eve_white.fbx'
 };
 
 export const ANIMATIONS = {
@@ -62,15 +114,48 @@ const fbxLoader = new FBXLoader();
 
 const modelCache = new Map();     // url -> { scene, animations }
 const clipCache = new Map();      // key/url -> AnimationClip
+const pendingLoads = new Map();   // url -> Promise
+const pendingClips = new Map();   // key/url -> Promise
+
+export const SCENE_ASSETS = {
+  creation: {
+    characters: ['adam_black'],
+    animations: ['idle', 'walk', 'run'],
+    gltf: ['horse', 'flamingo', 'stork', 'parrot', 'fox', 'duck']
+  },
+  eden: {
+    characters: ['adam_black', 'eve_white', 'swordsman'],
+    animations: ['idle', 'walk', 'run', 'talking', 'pray', 'female_laying'],
+    gltf: []
+  },
+  cainabel: {
+    characters: ['old_guy1', 'eve_white', 'man1', 'man2', 'swordsman'],
+    animations: ['idle', 'walk', 'run', 'talking', 'pray', 'hook_punch', 'dying'],
+    gltf: []
+  },
+  noah: {
+    characters: ['old_guy1', 'man1', 'man2', 'megan_black'],
+    animations: ['idle', 'walk', 'run', 'talking', 'pray'],
+    gltf: ['horse', 'flamingo', 'stork', 'parrot', 'fox', 'duck']
+  },
+  babel: {
+    characters: ['man1', 'man2', 'peasant_man', 'swordsman'],
+    animations: ['idle', 'walk', 'run', 'talking', 'pray'],
+    gltf: []
+  }
+};
 
 /**
  * Loads a character or prop model by URL or registry key.
  * Detects .fbx vs .glb/.gltf extension, applies fbxScale, and caches/clones using SkeletonUtils.clone().
+ * Deduplicates in-flight requests and handles timeouts gracefully.
  */
 export async function loadModelAsset(keyOrUrl, options = {}) {
   const url = CHARACTERS[keyOrUrl.toLowerCase()] || GLTF_ASSETS[keyOrUrl.toLowerCase()] || keyOrUrl;
   const isFbx = url.toLowerCase().endsWith('.fbx');
   const fbxScale = options.fbxScale !== undefined ? options.fbxScale : 0.01;
+  const onProgress = options.onProgress;
+  const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 15000;
 
   if (modelCache.has(url)) {
     const cachedData = modelCache.get(url);
@@ -82,63 +167,77 @@ export async function loadModelAsset(keyOrUrl, options = {}) {
     };
   }
 
-  if (isFbx) {
-    return new Promise((resolve, reject) => {
-      fbxLoader.load(
-        url,
-        (fbx) => {
-          fbx.scale.setScalar(fbxScale);
-          fbx.traverse((o) => {
-            if (o.isMesh || o.isSkinnedMesh) {
-              o.castShadow = true;
-              o.receiveShadow = true;
-              o.frustumCulled = false;
-            }
-          });
-          modelCache.set(url, { scene: fbx, animations: fbx.animations || [] });
-          const clonedScene = SkeletonUtils.clone(fbx);
-          resolve({
-            scene: clonedScene,
-            animations: fbx.animations ? fbx.animations.map(a => a.clone()) : [],
-            isFbx: true
-          });
-        },
-        undefined,
-        (err) => {
-          console.warn(`[AssetRegistry] Failed to load FBX model '${keyOrUrl}' from '${url}':`, err);
-          reject(err);
-        }
-      );
-    });
-  } else {
-    return new Promise((resolve, reject) => {
-      gltfLoader.load(
-        url,
-        (gltf) => {
-          const model = gltf.scene;
-          model.traverse((o) => {
-            if (o.isMesh || o.isSkinnedMesh) {
-              o.castShadow = true;
-              o.receiveShadow = true;
-              o.frustumCulled = false;
-            }
-          });
-          modelCache.set(url, { scene: model, animations: gltf.animations || [] });
-          const clonedScene = SkeletonUtils.clone(model);
-          resolve({
-            scene: clonedScene,
-            animations: gltf.animations ? gltf.animations.map(a => a.clone()) : [],
-            isFbx: false
-          });
-        },
-        undefined,
-        (err) => {
-          console.warn(`[AssetRegistry] Failed to load GLTF model '${keyOrUrl}' from '${url}':`, err);
-          reject(err);
-        }
-      );
-    });
+  if (pendingLoads.has(url)) {
+    const cachedData = await pendingLoads.get(url);
+    const clonedScene = SkeletonUtils.clone(cachedData.scene);
+    return {
+      scene: clonedScene,
+      animations: cachedData.animations ? cachedData.animations.map(a => a.clone()) : [],
+      isFbx
+    };
   }
+
+  const loadPromise = new Promise((resolve, reject) => {
+    let hasTimedOut = false;
+    const timer = setTimeout(() => {
+      hasTimedOut = true;
+      pendingLoads.delete(url);
+      reject(new Error(`[AssetRegistry] Request timeout (${timeoutMs}ms) loading model '${keyOrUrl}'`));
+    }, timeoutMs);
+
+    const loader = isFbx ? fbxLoader : gltfLoader;
+    loader.load(
+      url,
+      (result) => {
+        if (hasTimedOut) return;
+        clearTimeout(timer);
+
+        let scene, animations;
+        if (isFbx) {
+          scene = result;
+          scene.scale.setScalar(fbxScale);
+          animations = result.animations || [];
+        } else {
+          scene = result.scene;
+          animations = result.animations || [];
+        }
+
+        scene.traverse((o) => {
+          if (o.isMesh || o.isSkinnedMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+            o.frustumCulled = false;
+          }
+        });
+
+        const data = { scene, animations };
+        modelCache.set(url, data);
+        pendingLoads.delete(url);
+
+        const clonedScene = SkeletonUtils.clone(scene);
+        resolve({
+          scene: clonedScene,
+          animations: animations ? animations.map(a => a.clone()) : [],
+          isFbx
+        });
+      },
+      (xhr) => {
+        if (onProgress && xhr.total) {
+          onProgress(xhr.loaded / xhr.total);
+        }
+      },
+      (err) => {
+        if (hasTimedOut) return;
+        clearTimeout(timer);
+        pendingLoads.delete(url);
+        console.warn(`[AssetRegistry] Failed to load model '${keyOrUrl}' from '${url}':`, err);
+        reject(err);
+      }
+    );
+  });
+
+  pendingLoads.set(url, loadPromise);
+  return loadPromise;
 }
 
 export const loadGLTFModel = loadModelAsset;
@@ -151,10 +250,12 @@ export function canonicalBoneName(name) {
 /**
  * Loads an animation clip (FBX Mixamo clip) by key or URL.
  * Renames clip to key, caches clip so it's never re-fetched twice.
+ * Deduplicates in-flight requests and handles timeouts gracefully.
  */
-export async function loadAnimationClip(keyOrUrl) {
+export async function loadAnimationClip(keyOrUrl, options = {}) {
   const key = keyOrUrl.toLowerCase();
   const url = ANIMATIONS[key] || keyOrUrl;
+  const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 15000;
 
   if (clipCache.has(key)) {
     return clipCache.get(key).clone();
@@ -163,15 +264,34 @@ export async function loadAnimationClip(keyOrUrl) {
     return clipCache.get(url).clone();
   }
 
-  return new Promise((resolve, reject) => {
+  if (pendingClips.has(key)) {
+    const clip = await pendingClips.get(key);
+    return clip.clone();
+  }
+  if (pendingClips.has(url)) {
+    const clip = await pendingClips.get(url);
+    return clip.clone();
+  }
+
+  const loadPromise = new Promise((resolve, reject) => {
+    let hasTimedOut = false;
+    const timer = setTimeout(() => {
+      hasTimedOut = true;
+      pendingClips.delete(key);
+      pendingClips.delete(url);
+      reject(new Error(`[AssetRegistry] Timeout (${timeoutMs}ms) loading animation '${keyOrUrl}'`));
+    }, timeoutMs);
+
     fbxLoader.load(
       url,
       (fbx) => {
+        if (hasTimedOut) return;
+        clearTimeout(timer);
+
         if (fbx.animations && fbx.animations.length > 0) {
           const clip = fbx.animations[0];
-          clip.name = key; // Mixamo names every clip "mixamo.com", rename to key
+          clip.name = key;
 
-          // Sanitize tracks so track targets match model bone names
           if (clip.tracks) {
             clip.tracks.forEach((track) => {
               const dotIdx = track.name.lastIndexOf('.');
@@ -179,14 +299,12 @@ export async function loadAnimationClip(keyOrUrl) {
                 let nodeName = track.name.substring(0, dotIdx);
                 const propName = track.name.substring(dotIdx);
 
-                // Strip path prefixes like "Armature/" or "root/"
                 const slashIdx = nodeName.lastIndexOf('/');
                 if (slashIdx !== -1) {
                   nodeName = nodeName.substring(slashIdx + 1);
                 }
 
                 nodeName = canonicalBoneName(nodeName);
-
                 track.name = nodeName + propName;
               }
             });
@@ -194,16 +312,86 @@ export async function loadAnimationClip(keyOrUrl) {
 
           clipCache.set(key, clip);
           clipCache.set(url, clip);
+          pendingClips.delete(key);
+          pendingClips.delete(url);
           resolve(clip.clone());
         } else {
+          pendingClips.delete(key);
+          pendingClips.delete(url);
           reject(new Error(`[AssetRegistry] No animations found in FBX file '${url}'`));
         }
       },
       undefined,
       (err) => {
+        if (hasTimedOut) return;
+        clearTimeout(timer);
+        pendingClips.delete(key);
+        pendingClips.delete(url);
         console.warn(`[AssetRegistry] Failed to load animation '${keyOrUrl}' from '${url}':`, err);
         reject(err);
       }
     );
   });
+
+  pendingClips.set(key, loadPromise);
+  pendingClips.set(url, loadPromise);
+  return loadPromise;
 }
+
+/**
+ * Preloads all 3D assets & animations for a target scene, reporting progress.
+ */
+export async function preloadSceneAssets(sceneName, onProgress) {
+  const assets = SCENE_ASSETS[sceneName] || SCENE_ASSETS.creation;
+  const totalItems = assets.characters.length + assets.animations.length + (assets.gltf ? assets.gltf.length : 0);
+  if (totalItems === 0) return;
+
+  let loadedItems = 0;
+
+  const notify = () => {
+    loadedItems++;
+    if (onProgress) {
+      onProgress(loadedItems / totalItems, loadedItems, totalItems);
+    }
+  };
+
+  const tasks = [];
+
+  for (const charKey of assets.characters) {
+    tasks.push(
+      loadModelAsset(charKey)
+        .then(() => notify())
+        .catch(err => {
+          console.warn(`[AssetPreloader] Preload character '${charKey}' skipped:`, err);
+          notify();
+        })
+    );
+  }
+
+  for (const animKey of assets.animations) {
+    tasks.push(
+      loadAnimationClip(animKey)
+        .then(() => notify())
+        .catch(err => {
+          console.warn(`[AssetPreloader] Preload animation '${animKey}' skipped:`, err);
+          notify();
+        })
+    );
+  }
+
+  if (assets.gltf) {
+    for (const gltfKey of assets.gltf) {
+      tasks.push(
+        loadModelAsset(gltfKey)
+          .then(() => notify())
+          .catch(err => {
+            console.warn(`[AssetPreloader] Preload GLTF '${gltfKey}' skipped:`, err);
+            notify();
+          })
+      );
+    }
+  }
+
+  await Promise.allSettled(tasks);
+}
+

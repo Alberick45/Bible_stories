@@ -7,6 +7,7 @@ import { EdenScene } from '../eden-scene.js';
 import { CainAbelScene } from '../cain-abel-scene.js';
 import { NoahScene } from '../noah-scene.js';
 import { BabelScene } from '../babel-scene.js';
+import { preloadSceneAssets } from './models/index.js';
 import gsap from 'gsap';
 
 // Global variables for backward compatibility
@@ -203,7 +204,7 @@ function loadScriptureScroll(title, contentHTML) {
 // Scene Orchestration & Gameplay Sync
 // ==========================================
 
-function loadScene(sceneName) {
+async function loadScene(sceneName) {
   window.currentSequenceId++;
   const thisSeqId = window.currentSequenceId;
 
@@ -211,79 +212,94 @@ function loadScene(sceneName) {
   veilEl.style.transition = 'background 0.4s ease';
   veilEl.style.background = '#000000';
 
+  if (window.showCameraToast) {
+    const sceneTitles = {
+      creation: 'Creation',
+      eden: 'Garden of Eden',
+      cainabel: 'Cain & Abel',
+      noah: 'Noah\'s Ark',
+      babel: 'Tower of Babel'
+    };
+    window.showCameraToast(`Entering ${sceneTitles[sceneName] || sceneName}...`);
+  }
+
+  // Preload assets for this target scene while veil is dark
+  try {
+    await preloadSceneAssets(sceneName);
+  } catch (e) {
+    console.warn('[loadScene] Preload warning:', e);
+  }
+
+  if (thisSeqId !== window.currentSequenceId) return;
+
+  destroyActiveScene();
+  window.activeSceneName = sceneName;
+
+  // Highlight timeline hub
+  eraButtons.forEach(btn => {
+    if (btn.getAttribute('data-scene') === sceneName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // Populate scripture scroll content
+  setupScriptureContent(sceneName);
+
+  // Setup rendering tick loop
+  let lastTime = 0;
+  function tick(timestamp) {
+    if (thisSeqId !== window.currentSequenceId || !window.sceneEngine) return;
+    const elapsed = timestamp * 0.001;
+    const dt = elapsed - lastTime;
+    lastTime = elapsed;
+    
+    // Project speech bubbles above character models
+    if (bubbleTargetObject && window.sceneEngine) {
+      const tempV = new THREE.Vector3();
+      bubbleTargetObject.getWorldPosition(tempV);
+      tempV.y += (bubbleTargetObject === window.sceneEngine.serpentHead) ? 0.45 : 1.85;
+      tempV.project(window.sceneEngine.camera);
+      
+      const pxX = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+      let pxY = (tempV.y * -0.5 + 0.5) * window.innerHeight;
+      if (pxY < 80) pxY = 80;
+      
+      speechBubbleEl.style.left = `${pxX}px`;
+      speechBubbleEl.style.top = `${pxY}px`;
+    }
+    
+    window.sceneEngine.update(elapsed, dt);
+    requestAnimationFrame(tick);
+  }
+
+  // Instantiation
+  if (sceneName === 'creation') {
+    window.sceneEngine = new CreationScene(canvasWrap);
+  } else if (sceneName === 'eden') {
+    window.sceneEngine = new EdenScene(canvasWrap);
+  } else if (sceneName === 'cainabel') {
+    window.sceneEngine = new CainAbelScene(canvasWrap);
+  } else if (sceneName === 'noah') {
+    window.sceneEngine = new NoahScene(canvasWrap);
+  } else if (sceneName === 'babel') {
+    window.sceneEngine = new BabelScene(canvasWrap);
+  }
+
+  if (window.sceneEngine) {
+    window.sceneEngine.update(0, 0.016);
+    requestAnimationFrame(tick);
+
+    // Boot orchestrator for this chapter
+    orchestrator.startChapter(sceneName);
+  }
+
   setTimeout(() => {
     if (thisSeqId !== window.currentSequenceId) return;
-
-    destroyActiveScene();
-    window.activeSceneName = sceneName;
-
-    // Highlight timeline hub
-    eraButtons.forEach(btn => {
-      if (btn.getAttribute('data-scene') === sceneName) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-
-    // Populate scripture scroll content
-    setupScriptureContent(sceneName);
-
-    // Setup rendering tick loop
-    let lastTime = 0;
-    function tick(timestamp) {
-      if (thisSeqId !== window.currentSequenceId || !window.sceneEngine) return;
-      const elapsed = timestamp * 0.001;
-      const dt = elapsed - lastTime;
-      lastTime = elapsed;
-      
-      // Project speech bubbles above character models
-      if (bubbleTargetObject && window.sceneEngine) {
-        const tempV = new THREE.Vector3();
-        bubbleTargetObject.getWorldPosition(tempV);
-        tempV.y += (bubbleTargetObject === window.sceneEngine.serpentHead) ? 0.45 : 1.85;
-        tempV.project(window.sceneEngine.camera);
-        
-        const pxX = (tempV.x * 0.5 + 0.5) * window.innerWidth;
-        let pxY = (tempV.y * -0.5 + 0.5) * window.innerHeight;
-        if (pxY < 80) pxY = 80;
-        
-        speechBubbleEl.style.left = `${pxX}px`;
-        speechBubbleEl.style.top = `${pxY}px`;
-      }
-      
-      window.sceneEngine.update(elapsed, dt);
-      requestAnimationFrame(tick);
-    }
-
-    // Instantiation
-    if (sceneName === 'creation') {
-      window.sceneEngine = new CreationScene(canvasWrap);
-    } else if (sceneName === 'eden') {
-      window.sceneEngine = new EdenScene(canvasWrap);
-    } else if (sceneName === 'cainabel') {
-      window.sceneEngine = new CainAbelScene(canvasWrap);
-    } else if (sceneName === 'noah') {
-      window.sceneEngine = new NoahScene(canvasWrap);
-    } else if (sceneName === 'babel') {
-      window.sceneEngine = new BabelScene(canvasWrap);
-    }
-
-    if (window.sceneEngine) {
-      window.sceneEngine.update(0, 0.016);
-      requestAnimationFrame(tick);
-
-      // Boot orchestrator for this chapter
-      orchestrator.startChapter(sceneName);
-    }
-
-    setTimeout(() => {
-      if (thisSeqId !== window.currentSequenceId) return;
-      veilEl.style.transition = 'background 1.0s ease';
-      veilEl.style.background = 'rgba(0,0,0,0)';
-    }, 100);
-
-  }, 400);
+    veilEl.style.transition = 'background 1.0s ease';
+    veilEl.style.background = 'rgba(0,0,0,0)';
+  }, 100);
 }
 
 // Proximity monitor loops for interactive gameplay checkpoints
@@ -720,6 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let orchestratorReady = false;
+    let modelsReady = false;
 
     // Start background loading and pre-generation immediately
     orchestrator.init()
@@ -730,6 +747,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(err => {
         console.error('[Boot] Orchestrator init error:', err);
         orchestratorReady = true; // Proceed anyway in fallback mode
+      });
+
+    // Start 3D model & animation preloading for initial scene
+    preloadSceneAssets('creation', (ratio, loaded, total) => {
+      console.log(`[Boot] Preloaded 3D assets: ${loaded}/${total}`);
+    })
+      .then(() => {
+        modelsReady = true;
+      })
+      .catch(err => {
+        console.error('[Boot] Model preloader error:', err);
+        modelsReady = true; // Proceed anyway with sculpted fallbacks
       });
 
     // Run book opening animation immediately
@@ -754,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         let progress = 0;
         const progressInterval = setInterval(() => {
-          progress += Math.floor(Math.random() * 8) + 3;
+          progress += Math.floor(Math.random() * 6) + 3;
 
           if (progress >= 100) {
             progress = 100;
@@ -782,10 +811,14 @@ document.addEventListener('DOMContentLoaded', () => {
               }, 1200);
             }, 1000);
           } else {
-            // Hold progress at 90% if worker/audio is not yet fully ready
-            if (progress >= 90 && !orchestratorReady) {
+            // Hold progress at 90% if audio or 3D models are not yet fully ready
+            if (progress >= 90 && (!orchestratorReady || !modelsReady)) {
               progress = 90;
-              loadingText.textContent = "Awakening Divine Voices...";
+              if (!modelsReady) {
+                loadingText.textContent = "Loading Sacred Characters & World...";
+              } else {
+                loadingText.textContent = "Awakening Divine Voices...";
+              }
               updateCrossProgress(90);
               return;
             }

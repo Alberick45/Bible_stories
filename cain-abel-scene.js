@@ -321,6 +321,7 @@ export class CainAbelScene {
     // Adam (Sculpted PBR CharacterModel with greyish hair for age)
     this.adamCharacter = new CharacterModel({
       name: 'Adam',
+      character: 'adam_white',
       gender: 'male',
       skinTone: 0xdcb896,
       hairColor: 0x888888,
@@ -334,6 +335,7 @@ export class CainAbelScene {
     // Eve (Sculpted PBR CharacterModel with silver blonde hair for age)
     this.eveCharacter = new CharacterModel({
       name: 'Eve',
+      character: 'eve_white',
       gender: 'female',
       skinTone: 0xf2cbac,
       hairColor: 0xcccccc,
@@ -386,6 +388,7 @@ export class CainAbelScene {
     // Seth (CharacterModel child/youth)
     this.sethCharacter = new CharacterModel({
       name: 'Seth',
+      character: 'man2',
       gender: 'male',
       scale: 0.7,
       skinTone: 0xdcb896,
@@ -402,17 +405,17 @@ export class CainAbelScene {
     this.wickedPeople = new THREE.Group();
     this.wickedPeople.visible = false;
     
-    this.wicked1Character = new CharacterModel({ name: 'Wicked1', gender: 'male', clothesColor: 0x544033 });
+    this.wicked1Character = new CharacterModel({ name: 'Wicked1', character: 'man1', gender: 'male', clothesColor: 0x544033 });
     this.wicked1 = this.wicked1Character.group;
     this.wicked1.position.set(-8.0, this.getTerrainHeight(-8.0, -10.0), -10.0);
     this.wicked1.lookAt(-5.0, this.wicked1.position.y, -10.0);
     
-    this.wicked2Character = new CharacterModel({ name: 'Wicked2', gender: 'male', clothesColor: 0x483a3c });
+    this.wicked2Character = new CharacterModel({ name: 'Wicked2', character: 'man2', gender: 'male', clothesColor: 0x483a3c });
     this.wicked2 = this.wicked2Character.group;
     this.wicked2.position.set(-4.0, this.getTerrainHeight(-4.0, -11.0), -11.0);
     this.wicked2.lookAt(-2.5, this.wicked2.position.y, -11.0);
     
-    this.wicked3Character = new CharacterModel({ name: 'Wicked3', gender: 'female', clothesColor: 0x2f3e46 });
+    this.wicked3Character = new CharacterModel({ name: 'Wicked3', character: 'megan_black', gender: 'female', clothesColor: 0x2f3e46 });
     this.wicked3 = this.wicked3Character.group;
     this.wicked3.position.set(-2.5, this.getTerrainHeight(-2.5, -11.0), -11.0);
     this.wicked3.lookAt(-4.0, this.wicked3.position.y, -11.0);

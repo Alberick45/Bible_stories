@@ -17,3 +17,40 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Large Unused 3D Model Assets (>15MB extra character pool)
+src/models/characters/female/astra.fbx
+src/models/characters/female/amy.fbx
+src/models/characters/female/elizabeth.fbx
+src/models/characters/female/Erika Archer.fbx
+src/models/characters/female/Girlscout T Masuyama.fbx
+src/models/characters/female/jackie.fbx
+src/models/characters/female/jennife.fbx
+src/models/characters/female/jody.fbx
+src/models/characters/female/Kachujin G Rosales.fbx
+src/models/characters/female/kate.fbx
+src/models/characters/female/louise.fbx
+src/models/characters/female/martha.fbx
+src/models/characters/female/roth.fbx
+src/models/characters/female/sophie.fbx
+src/models/characters/female/suzie.fbx
+src/models/characters/male/random guy3.fbx
+src/models/characters/male/random_guy2.fbx
+src/models/characters/male/steve.fbx
+src/models/characters/male/swat2.fbx
+src/models/characters/male/adam2.fbx
+src/models/characters/male/alex.fbx
+src/models/characters/male/Brute.fbx
+src/models/characters/male/bryce.fbx
+src/models/characters/male/copzombie_l_actisdato.fbx
+src/models/characters/male/david.fbx
+src/models/characters/male/Exo Gray.fbx
+src/models/characters/male/exo_red.fbx
+src/models/characters/male/james.fbx
+src/models/characters/male/joe.fbx
+src/models/characters/male/josh.fbx
+src/models/characters/male/knight1.fbx
+src/models/characters/male/lewis.fbx
+src/models/characters/male/ortiz.fbx
+src/models/characters/male/pete.fbx
+src/models/characters/male/shannon.fbx

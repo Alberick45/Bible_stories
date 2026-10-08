@@ -8,7 +8,16 @@ import { loadModelAsset, loadAnimationClip, CHARACTERS, canonicalBoneName } from
 export class CharacterModel {
   constructor(options = {}) {
     this.name = options.name || 'Character';
-    this.characterKey = options.character || options.gltfUrl || this.name.toLowerCase();
+    let key = options.character || options.gltfUrl;
+    if (!key) {
+      const lower = (options.name || '').toLowerCase();
+      if (CHARACTERS[lower]) {
+        key = lower;
+      } else {
+        key = (options.gender === 'female') ? 'megan' : 'man1';
+      }
+    }
+    this.characterKey = key;
     this.gender = options.gender || 'male';
     this.skinTone = options.skinTone || 0xdcb896;
     this.clothesColor = options.clothesColor || 0x4a6fa5;
