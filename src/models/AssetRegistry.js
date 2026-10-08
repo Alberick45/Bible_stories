@@ -151,32 +151,100 @@ export const SCENE_ASSETS = {
   }
 };
 
-async function executeModelLoad(url, keyOrUrl, isFbx, fbxScale, onProgress, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    let hasTimedOut = false;
-    const timer = setTimeout(() => {
-      hasTimedOut = true;
-      pendingLoads.delete(url);
-      reject(new Error(`[AssetRegistry] Request timeout (${timeoutMs}ms) loading model '${keyOrUrl}'`));
-    }, timeoutMs);
+const CACHE_NAME = 'hf-3d-model-cache-v1';
 
-    const loader = isFbx ? fbxLoader : gltfLoader;
-    loader.load(
-      url,
-      (result) => {
-        if (hasTimedOut) return;
-        clearTimeout(timer);
+async function fetchArrayBufferWithRetries(url, keyOrUrl, onProgress, timeoutMs, maxRetries = 2) {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    attempt++;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-        let scene, animations;
-        if (isFbx) {
-          scene = result;
-          scene.scale.setScalar(fbxScale);
-          animations = result.animations || [];
-        } else {
-          scene = result.scene;
-          animations = result.animations || [];
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+
+      const contentLength = response.headers.get('content-length');
+      const sizeMB = contentLength ? (parseInt(contentLength, 10) / (1024 * 1024)).toFixed(2) + ' MB' : 'unknown size';
+      console.log(`[AssetRegistry] 🌐 [HF CDN RESPONSE] '${keyOrUrl}' HTTP ${response.status} (${response.statusText || 'OK'}) | Content-Length: ${sizeMB}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      // Save to browser Cache API if HTTP URL and Cache API is available
+      if (typeof window !== 'undefined' && 'caches' in window && url.startsWith('http')) {
+        try {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(url, response.clone());
+          console.log(`[AssetRegistry] 💾 [PERSISTENT CACHE SAVED] Saved '${keyOrUrl}' to browser Cache API storage.`);
+        } catch (cErr) {
+          console.warn('[AssetRegistry] Could not store in Cache API:', cErr);
         }
+      }
 
+      const reader = response.body ? response.body.getReader() : null;
+      if (reader && contentLength) {
+        const total = parseInt(contentLength, 10);
+        let loaded = 0;
+        const chunks = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.length;
+          if (onProgress) onProgress(loaded / total);
+        }
+        const combined = new Uint8Array(loaded);
+        let offset = 0;
+        for (const chunk of chunks) {
+          combined.set(chunk, offset);
+          offset += chunk.length;
+        }
+        return combined.buffer;
+      } else {
+        return await response.arrayBuffer();
+      }
+    } catch (err) {
+      clearTimeout(timer);
+      console.warn(`[AssetRegistry] ⚠️ Attempt ${attempt}/${maxRetries + 1} failed for '${keyOrUrl}' (${url}):`, err.message || err);
+      if (attempt > maxRetries) throw err;
+      await new Promise(r => setTimeout(r, attempt * 1000));
+    }
+  }
+}
+
+async function executeModelLoad(url, keyOrUrl, isFbx, fbxScale, onProgress, timeoutMs) {
+  let arrayBuffer = null;
+
+  // 1. Check browser Cache API first
+  if (typeof window !== 'undefined' && 'caches' in window && url.startsWith('http')) {
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResponse = await cache.match(url);
+      if (cachedResponse) {
+        const contentLength = cachedResponse.headers.get('content-length');
+        const sizeMB = contentLength ? (parseInt(contentLength, 10) / (1024 * 1024)).toFixed(2) + ' MB' : 'cached size';
+        console.log(`[AssetRegistry] 💾 [PERSISTENT CACHE HIT] Loaded '${keyOrUrl}' from browser Cache API storage (${sizeMB}).`);
+        arrayBuffer = await cachedResponse.arrayBuffer();
+      }
+    } catch (cErr) {
+      console.warn('[AssetRegistry] Cache match warning:', cErr);
+    }
+  }
+
+  // 2. Fetch network if not in persistent Cache API
+  if (!arrayBuffer) {
+    arrayBuffer = await fetchArrayBufferWithRetries(url, keyOrUrl, onProgress, timeoutMs);
+  }
+
+  // 3. Parse ArrayBuffer with Three.js FBXLoader / GLTFLoader
+  return new Promise((resolve, reject) => {
+    try {
+      if (isFbx) {
+        const scene = fbxLoader.parse(arrayBuffer, '');
+        scene.scale.setScalar(fbxScale);
+        const animations = scene.animations || [];
         scene.traverse((o) => {
           if (o.isMesh || o.isSkinnedMesh) {
             o.castShadow = true;
@@ -184,7 +252,6 @@ async function executeModelLoad(url, keyOrUrl, isFbx, fbxScale, onProgress, time
             o.frustumCulled = false;
           }
         });
-
         const data = { scene, animations };
         modelCache.set(url, data);
         pendingLoads.delete(url);
@@ -193,30 +260,51 @@ async function executeModelLoad(url, keyOrUrl, isFbx, fbxScale, onProgress, time
         resolve({
           scene: clonedScene,
           animations: animations ? animations.map(a => a.clone()) : [],
-          isFbx
+          isFbx: true
         });
-      },
-      (xhr) => {
-        if (onProgress && xhr.total) {
-          onProgress(xhr.loaded / xhr.total);
-        }
-      },
-      (err) => {
-        if (hasTimedOut) return;
-        clearTimeout(timer);
-        pendingLoads.delete(url);
-        console.warn(`[AssetRegistry] Failed to load model '${keyOrUrl}' from '${url}':`, err);
-        reject(err);
+      } else {
+        gltfLoader.parse(
+          arrayBuffer,
+          '',
+          (gltf) => {
+            const scene = gltf.scene;
+            const animations = gltf.animations || [];
+            scene.traverse((o) => {
+              if (o.isMesh || o.isSkinnedMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+                o.frustumCulled = false;
+              }
+            });
+            const data = { scene, animations };
+            modelCache.set(url, data);
+            pendingLoads.delete(url);
+
+            const clonedScene = SkeletonUtils.clone(scene);
+            resolve({
+              scene: clonedScene,
+              animations: animations ? animations.map(a => a.clone()) : [],
+              isFbx: false
+            });
+          },
+          (err) => {
+            pendingLoads.delete(url);
+            reject(err);
+          }
+        );
       }
-    );
+    } catch (parseErr) {
+      pendingLoads.delete(url);
+      reject(parseErr);
+    }
   });
 }
 
 /**
  * Loads a character or prop model by URL or registry key.
- * 1. Tries Hugging Face CDN (alby365/bible-game-assets) first.
- * 2. Falls back to local static asset (/models/characters/...) if offline or CDN fetch fails.
- * 3. Deduplicates in-flight requests and handles timeouts gracefully.
+ * 1. Tries Hugging Face CDN (alby365/bible-game-assets) first for remote models.
+ * 2. Uses browser Cache API persistent storage so models are downloaded only once.
+ * 3. Configurable timeout (default 120,000ms / 2 mins) with retry backoff.
  */
 export async function loadModelAsset(keyOrUrl, options = {}) {
   const targetKey = keyOrUrl.toLowerCase();
@@ -227,30 +315,20 @@ export async function loadModelAsset(keyOrUrl, options = {}) {
   if (localUrl.startsWith('/models/characters/')) {
     const relPath = localUrl.replace('/models/characters/', '');
     primaryUrl = `${HF_BASE_URL}/${relPath}`; // Try Hugging Face first
-    fallbackUrl = localUrl;                  // Local fallback if HF fails
+    // Only fall back to local file if it's not a remote HF asset that isn't in git
+    fallbackUrl = localUrl;
   } else if (localUrl.startsWith(HF_BASE_URL)) {
-    const relPath = localUrl.replace(`${HF_BASE_URL}/`, '');
     primaryUrl = localUrl;
-    fallbackUrl = `/models/characters/${relPath}`;
   }
 
   const isFbx = primaryUrl.toLowerCase().endsWith('.fbx');
   const fbxScale = options.fbxScale !== undefined ? options.fbxScale : 0.01;
   const onProgress = options.onProgress;
-  const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 15000;
+  const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 120000;
 
   if (modelCache.has(primaryUrl)) {
     const cachedData = modelCache.get(primaryUrl);
-    console.log(`[AssetRegistry] ⚡ [CACHE - ORIGINAL CDN] Loaded cached model '${keyOrUrl}' (${primaryUrl})`);
-    return {
-      scene: SkeletonUtils.clone(cachedData.scene),
-      animations: cachedData.animations ? cachedData.animations.map(a => a.clone()) : [],
-      isFbx
-    };
-  }
-  if (fallbackUrl && modelCache.has(fallbackUrl)) {
-    const cachedData = modelCache.get(fallbackUrl);
-    console.log(`[AssetRegistry] ⚡ [CACHE - LOCAL FALLBACK] Loaded cached fallback model '${keyOrUrl}' (${fallbackUrl})`);
+    console.log(`[AssetRegistry] ⚡ [RAM CACHE - ORIGINAL CDN] Loaded cached model '${keyOrUrl}' (${primaryUrl})`);
     return {
       scene: SkeletonUtils.clone(cachedData.scene),
       animations: cachedData.animations ? cachedData.animations.map(a => a.clone()) : [],
@@ -273,19 +351,19 @@ export async function loadModelAsset(keyOrUrl, options = {}) {
     const loadPromise = executeModelLoad(primaryUrl, keyOrUrl, isFbx, fbxScale, onProgress, timeoutMs);
     pendingLoads.set(primaryUrl, loadPromise);
     const result = await loadPromise;
-    console.log(`[AssetRegistry] ✅ [${isRemote ? 'ORIGINAL CDN SUCCESS' : 'LOCAL STATIC SUCCESS'}] Loaded '${keyOrUrl}' from ${primaryUrl}`);
+    console.log(`[AssetRegistry] ✅ [${isRemote ? 'ORIGINAL CDN SUCCESS' : 'LOCAL STATIC SUCCESS'}] Loaded '${keyOrUrl}'`);
     return result;
   } catch (err) {
-    if (fallbackUrl) {
-      console.warn(`[AssetRegistry] ⚠️ [ORIGINAL CDN FAILED] Fetch failed for '${keyOrUrl}'. Switching to LOCAL STATIC FALLBACK: ${fallbackUrl}`, err);
+    if (fallbackUrl && !primaryUrl.startsWith('http')) {
+      console.warn(`[AssetRegistry] ⚠️ [FETCH FAILED] Retrying with local static asset: ${fallbackUrl}`, err);
       try {
         const fallbackPromise = executeModelLoad(fallbackUrl, keyOrUrl, isFbx, fbxScale, onProgress, timeoutMs);
         pendingLoads.set(primaryUrl, fallbackPromise);
         const res = await fallbackPromise;
-        console.log(`[AssetRegistry] 📁 [LOCAL FALLBACK SUCCESS] Successfully loaded '${keyOrUrl}' from local static fallback: ${fallbackUrl}`);
+        console.log(`[AssetRegistry] 📁 [LOCAL FALLBACK SUCCESS] Successfully loaded '${keyOrUrl}' from local static asset: ${fallbackUrl}`);
         return res;
       } catch (fallbackErr) {
-        console.error(`[AssetRegistry] ❌ [LOCAL FALLBACK FAILED] Local fallback also failed for '${keyOrUrl}' (${fallbackUrl}):`, fallbackErr);
+        console.error(`[AssetRegistry] ❌ [LOCAL FALLBACK FAILED] Local fallback also failed for '${keyOrUrl}':`, fallbackErr);
         throw fallbackErr;
       }
     }
@@ -364,34 +442,20 @@ async function executeClipLoad(key, url, timeoutMs) {
 
 /**
  * Loads an animation clip (FBX Mixamo clip) by key or URL.
- * 1. Tries Hugging Face CDN (alby365/bible-game-assets) first.
- * 2. Falls back to local static movement file (/animation/movements/...) if offline.
- * 3. Deduplicates in-flight requests and handles timeouts gracefully.
+ * Movement animations are sourced directly from local static files (/animation/movements/...) in Git.
  */
 export async function loadAnimationClip(keyOrUrl, options = {}) {
   const key = keyOrUrl.toLowerCase();
-  let localUrl = ANIMATIONS[key] || keyOrUrl;
-  let primaryUrl = localUrl;
-  let fallbackUrl = null;
+  // Always source movement animations locally from committed static assets in git
+  let primaryUrl = ANIMATIONS[key] || keyOrUrl;
 
-  if (localUrl.startsWith('/animation/movements/')) {
-    const fileName = localUrl.replace('/animation/movements/', '');
-    primaryUrl = `${HF_BASE_URL}/movements/${fileName}`; // Try Hugging Face first
-    fallbackUrl = localUrl;                               // Local fallback
-  } else if (localUrl.startsWith(`${HF_BASE_URL}/movements/`)) {
-    const fileName = localUrl.replace(`${HF_BASE_URL}/movements/`, '');
-    primaryUrl = localUrl;
-    fallbackUrl = `/animation/movements/${fileName}`;
-  }
-
-  const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 15000;
+  const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 30000;
 
   if (clipCache.has(key)) {
     console.log(`[AssetRegistry] ⚡ [CACHE - ANIMATION] '${key}'`);
     return clipCache.get(key).clone();
   }
   if (clipCache.has(primaryUrl)) return clipCache.get(primaryUrl).clone();
-  if (fallbackUrl && clipCache.has(fallbackUrl)) return clipCache.get(fallbackUrl).clone();
 
   if (pendingClips.has(key)) {
     const clip = await pendingClips.get(key);
@@ -399,28 +463,15 @@ export async function loadAnimationClip(keyOrUrl, options = {}) {
   }
 
   try {
-    const isRemote = primaryUrl.startsWith('http');
-    console.log(`[AssetRegistry] ${isRemote ? '🌐 [ORIGINAL CDN ANIMATION]' : '📁 [LOCAL ANIMATION]'}: '${key}' -> ${primaryUrl}`);
+    console.log(`[AssetRegistry] 📁 [LOCAL ANIMATION FETCH]: '${key}' -> ${primaryUrl}`);
     const loadPromise = executeClipLoad(key, primaryUrl, timeoutMs);
     pendingClips.set(key, loadPromise);
     pendingClips.set(primaryUrl, loadPromise);
     const clip = await loadPromise;
-    console.log(`[AssetRegistry] ✅ [${isRemote ? 'ORIGINAL CDN ANIMATION SUCCESS' : 'LOCAL ANIMATION SUCCESS'}] Loaded animation '${key}'`);
+    console.log(`[AssetRegistry] ✅ [LOCAL ANIMATION SUCCESS] Loaded animation '${key}'`);
     return clip;
   } catch (err) {
-    if (fallbackUrl) {
-      console.warn(`[AssetRegistry] ⚠️ [ORIGINAL CDN ANIMATION FAILED] Animation '${key}' fetch failed. Retrying with LOCAL STATIC FALLBACK: ${fallbackUrl}`);
-      try {
-        const fallbackPromise = executeClipLoad(key, fallbackUrl, timeoutMs);
-        pendingClips.set(key, fallbackPromise);
-        const clip = await fallbackPromise;
-        console.log(`[AssetRegistry] 📁 [LOCAL ANIMATION FALLBACK SUCCESS] Loaded animation '${key}' from local fallback.`);
-        return clip;
-      } catch (fallbackErr) {
-        console.error(`[AssetRegistry] ❌ [LOCAL ANIMATION FALLBACK FAILED] Animation '${key}' failed on local fallback too:`, fallbackErr);
-        throw fallbackErr;
-      }
-    }
+    console.error(`[AssetRegistry] ❌ [ANIMATION FAILED] Animation '${key}' failed to load from ${primaryUrl}:`, err);
     throw err;
   }
 }
@@ -481,5 +532,6 @@ export async function preloadSceneAssets(sceneName, onProgress) {
 
   await Promise.allSettled(tasks);
 }
+
 
 
