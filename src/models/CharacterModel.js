@@ -76,13 +76,16 @@ export class CharacterModel {
       }
 
       this.isLoaded = true;
+      console.log(`[CharacterModel] 🎭 [ORIGINAL 3D MESH SUCCESS] Character '${this.name}' (${this.characterKey}) initialized with 3D FBX mesh.`);
       return;
     } catch (err) {
-      console.warn(`[CharacterModel] Failed to load model asset for '${this.name}' (${this.characterKey}), falling back to sculpted PBR model.`, err);
+      console.warn(`[CharacterModel] 🛠️ [PROCEDURAL FALLBACK TRIGGERED] Failed to load 3D FBX model for '${this.name}' (${this.characterKey}). Falling back to procedural PBR model.`, err);
     }
 
     this.createSculptedHuman();
+    this.isProcedural = true;
     this.isLoaded = true;
+    console.log(`[CharacterModel] 🛠️ [PROCEDURAL FALLBACK ACTIVE] Character '${this.name}' generated procedurally.`);
   }
 
   attachMesh(mesh) {
