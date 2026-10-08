@@ -3,8 +3,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
+export const HF_BASE_URL = 'https://huggingface.co/alby365/bible-game-assets/resolve/main';
+
 export const CHARACTERS = {
-  // Main Narrative Characters
+  // Main Narrative Characters (Loaded locally for core gameplay)
   adam: '/src/models/characters/male/adam_black.fbx',
   adam_black: '/src/models/characters/male/adam_black.fbx',
   adam_white: '/src/models/characters/male/adam_white.fbx',
@@ -22,58 +24,62 @@ export const CHARACTERS = {
   cherub: '/src/models/characters/male/swordsman.fbx',
   angel: '/src/models/characters/male/swordsman.fbx',
 
-  // Male Character Pool
+  // Male Character Pool (Local core & HF remote fallback)
   aj: '/src/models/characters/male/Aj.fbx',
-  alex: '/src/models/characters/male/man1.fbx',
-  brute: '/src/models/characters/male/man1.fbx',
-  bryce: '/src/models/characters/male/man1.fbx',
+  alex: `${HF_BASE_URL}/male/alex.fbx`,
+  brute: `${HF_BASE_URL}/male/Brute.fbx`,
+  bryce: `${HF_BASE_URL}/male/bryce.fbx`,
   castle_guard1: '/src/models/characters/male/castle_guard_01.fbx',
   castle_guard2: '/src/models/characters/male/Castle Guard 02.fbx',
-  david: '/src/models/characters/male/man1.fbx',
+  copzombie: `${HF_BASE_URL}/male/copzombie_l_actisdato.fbx`,
+  david: `${HF_BASE_URL}/male/david.fbx`,
   dreyar: '/src/models/characters/male/Dreyar By M.Aure.fbx',
   ely: '/src/models/characters/male/Ely By K.Atienza.fbx',
-  exo_gray: '/src/models/characters/male/man1.fbx',
-  exo_red: '/src/models/characters/male/man1.fbx',
-  james: '/src/models/characters/male/man1.fbx',
-  joe: '/src/models/characters/male/man1.fbx',
-  josh: '/src/models/characters/male/josh.fbx',
+  exo_gray: `${HF_BASE_URL}/male/Exo%20Gray.fbx`,
+  exo_red: `${HF_BASE_URL}/male/exo_red.fbx`,
+  james: `${HF_BASE_URL}/male/james.fbx`,
+  joe: `${HF_BASE_URL}/male/joe.fbx`,
+  josh: `${HF_BASE_URL}/male/josh.fbx`,
   kid1: '/src/models/characters/male/kid1.fbx',
-  knight1: '/src/models/characters/male/man1.fbx',
-  lewis: '/src/models/characters/male/man1.fbx',
+  knight1: `${HF_BASE_URL}/male/knight1.fbx`,
+  lewis: `${HF_BASE_URL}/male/lewis.fbx`,
   man1: '/src/models/characters/male/man1.fbx',
   man2: '/src/models/characters/male/man2.fbx',
-  ortiz: '/src/models/characters/male/man1.fbx',
+  ortiz: `${HF_BASE_URL}/male/ortiz.fbx`,
   paladin: '/src/models/characters/male/Paladin J Nordstrom.fbx',
   peasant_man: '/src/models/characters/male/Peasant Man.fbx',
-  pete: '/src/models/characters/male/man1.fbx',
-  shannon: '/src/models/characters/male/man1.fbx',
-  steve: '/src/models/characters/male/man1.fbx',
+  pete: `${HF_BASE_URL}/male/pete.fbx`,
+  shannon: `${HF_BASE_URL}/male/shannon.fbx`,
+  steve: `${HF_BASE_URL}/male/steve.fbx`,
   swat: '/src/models/characters/male/Swat.fbx',
-  swat2: '/src/models/characters/male/Swat.fbx',
+  swat2: `${HF_BASE_URL}/male/swat2.fbx`,
+  random_guy2: `${HF_BASE_URL}/male/random_guy2.fbx`,
+  random_guy3: `${HF_BASE_URL}/male/random%20guy3.fbx`,
+  adam2: `${HF_BASE_URL}/male/adam2.fbx`,
 
-  // Female Character Pool
+  // Female Character Pool (Local core & HF remote fallback)
   akai: '/src/models/characters/female/akai_e_espiritu.fbx',
-  amy: '/src/models/characters/female/eve_white.fbx',
+  amy: `${HF_BASE_URL}/female/amy.fbx`,
   arissa: '/src/models/characters/female/Arissa.fbx',
-  astra: '/src/models/characters/female/eve_white.fbx',
-  elizabeth: '/src/models/characters/female/eve_white.fbx',
-  erika: '/src/models/characters/female/eve_white.fbx',
-  girlscout: '/src/models/characters/female/eve_white.fbx',
-  jackie: '/src/models/characters/female/eve_white.fbx',
-  jennifer: '/src/models/characters/female/eve_white.fbx',
-  jody: '/src/models/characters/female/eve_white.fbx',
-  kachujin: '/src/models/characters/female/eve_white.fbx',
-  kate: '/src/models/characters/female/eve_white.fbx',
+  astra: `${HF_BASE_URL}/female/astra.fbx`,
+  elizabeth: `${HF_BASE_URL}/female/elizabeth.fbx`,
+  erika: `${HF_BASE_URL}/female/Erika%20Archer.fbx`,
+  girlscout: `${HF_BASE_URL}/female/Girlscout%20T%20Masuyama.fbx`,
+  jackie: `${HF_BASE_URL}/female/jackie.fbx`,
+  jennifer: `${HF_BASE_URL}/female/jennife.fbx`,
+  jody: `${HF_BASE_URL}/female/jody.fbx`,
+  kachujin: `${HF_BASE_URL}/female/Kachujin%20G%20Rosales.fbx`,
+  kate: `${HF_BASE_URL}/female/kate.fbx`,
   lola: '/src/models/characters/female/Lola B Styperek.fbx',
-  louise: '/src/models/characters/female/eve_white.fbx',
-  martha: '/src/models/characters/female/eve_white.fbx',
+  louise: `${HF_BASE_URL}/female/louise.fbx`,
+  martha: `${HF_BASE_URL}/female/martha.fbx`,
   medea: '/src/models/characters/female/Medea By M. Arrebola.fbx',
   megan: '/src/models/characters/female/megan_black.fbx',
   megan_black: '/src/models/characters/female/megan_black.fbx',
   pirate_female: '/src/models/characters/female/Pirate By P. Konstantinov.fbx',
-  roth: '/src/models/characters/female/eve_white.fbx',
-  sophie: '/src/models/characters/female/eve_white.fbx',
-  suzie: '/src/models/characters/female/eve_white.fbx'
+  roth: `${HF_BASE_URL}/female/roth.fbx`,
+  sophie: `${HF_BASE_URL}/female/sophie.fbx`,
+  suzie: `${HF_BASE_URL}/female/suzie.fbx`
 };
 
 export const ANIMATIONS = {
