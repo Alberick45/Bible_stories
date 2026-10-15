@@ -39,7 +39,7 @@ const rawScenes = [
   { chapterId: 'creation', type: 'narrative', text: 'And God saw every thing that he had made, and, behold, it was very good. And the evening and the morning were the sixth day.', character: 'Narrator' },
   { chapterId: 'creation', type: 'narrative', text: 'Thus the heavens and the earth were finished, and all the host of them.', character: 'Narrator' },
   { chapterId: 'creation', type: 'narrative', text: 'And on the seventh day God ended his work which he had made; and he rested on the seventh day...', character: 'Narrator' },
-  { chapterId: 'creation', type: 'interactive', instruction: '<span class="goal-tag">🎯 GOAL</span> Walk across the newly created Earth as Adam using WASD or the Virtual Joystick.' },
+  { chapterId: 'creation', type: 'interactive', action: 'find_animals', targetCount: 5, instruction: '<span class="goal-tag">🎯 GOAL</span> Walk across the Earth as Adam and find 5 creatures (<span id="named-count">0</span>/5). Tap or click a creature, or walk close to discover it.' },
 
   // ==========================================
   // EDEN

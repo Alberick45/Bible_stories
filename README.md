@@ -9,6 +9,7 @@ An interactive, immersive 3D web-based experience illustrating the scriptural ac
 1. **Chapter 1: Genesis 1 &mdash; Creation**
    * Experience the Six Days of Creation in 3D.
    * Watch the formation of light, atmosphere, land, vegetation, celestial bodies, marine life, land beasts, and the final formation of Adam.
+   * **Creation Creature Discovery Quest**: Walk across the newly created Earth as Adam on the Sabbath to seek out and discover 5 creatures (Lion 🦁, Sheep 🐑, Cow 🐂, Deer 🦌, Dove 🕊️). Click, tap, or approach them to record their names with sacred chime chords and 3D tags, seamlessly advancing into the Garden of Eden 2 seconds after completion.
 
 2. **Chapter 2: Genesis 2-3 &mdash; Eden & The Fall**
    * **Genesis 2:19-20 Creature Naming Quest**: Walk through the lush garden as Adam alone before Eve is created. Seek out and name 5 distinct creatures (Lion 🦁, Lamb 🐑, Ox 🐂, Stag 🦌, Dove 🕊️) by clicking (laptop/mouse), tapping (mobile touch), or approaching them in close proximity. Watch Adam gesture, hear his proclamation, see 3D golden name tag pill badges appear above each animal to sacred chime chords, and watch the story flow 2 seconds later into Adam's deep sleep and Eve's creation.

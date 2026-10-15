@@ -533,15 +533,38 @@ export class CreationScene {
     this.animalGroup = new THREE.Group();
     this.animalGroup.visible = false;
     
-    for (let i = 0; i < 60; i++) {
+    // 5 interactable goal creatures placed near Adam at (0, 4)
+    const goalFauna = [
+      { index: 0, name: 'Lion', icon: '🦁', x: -6, z: 2 },
+      { index: 7, name: 'Sheep', icon: '🐑', x: 5, z: 7 },
+      { index: 9, name: 'Cow', icon: '🐂', x: -4, z: 10 },
+      { index: 10, name: 'Deer', icon: '🦌', x: 7, z: 2 },
+      { index: 48, name: 'Dove', icon: '🕊️', x: 1, z: 9 }
+    ];
+
+    goalFauna.forEach((spec) => {
+      const animal = this.createProceduralFauna(spec.index, spec.x, spec.z);
+      animal.name = spec.name;
+      animal.userData.isInteractable = true;
+      animal.userData.name = spec.name;
+      animal.userData.icon = spec.icon;
+      animal.userData.found = false;
+      animal.userData.speed = 0.12;
+      animal.lookAt(0, this.getTerrainHeight(spec.x, spec.z), 4);
+      this.attachBeacon(animal, spec.index === 48);
+      this.animalGroup.add(animal);
+    });
+
+    for (let i = 5; i < 60; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const radius = 10 + Math.random() * 110;
+      const radius = 16 + Math.random() * 105;
       const ax = Math.cos(angle) * radius;
       const az = Math.sin(angle) * radius;
       const ay = this.getTerrainHeight(ax, az);
       
       const animal = this.createProceduralFauna(i, ax, az);
       animal.lookAt(0, ay, 0);
+      animal.userData.isInteractable = false;
       this.animalGroup.add(animal);
     }
     this.scene.add(this.animalGroup);
@@ -569,6 +592,18 @@ export class CreationScene {
     this.renderer.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
+
+    // Mobile touch & click raycast trigger for recording/finding creatures
+    this.renderer.domElement.addEventListener('pointerdown', (e) => {
+      this.pointerStartX = e.clientX;
+      this.pointerStartY = e.clientY;
+    });
+    this.renderer.domElement.addEventListener('pointerup', (e) => {
+      const moved = Math.hypot(e.clientX - (this.pointerStartX || 0), e.clientY - (this.pointerStartY || 0));
+      if (moved < 12) {
+        this.handleClickOrTap(e.clientX, e.clientY);
+      }
+    });
     
     // Keyboard controls
     window.addEventListener('keydown', e => {
@@ -940,28 +975,43 @@ export class CreationScene {
 
     // Wander animation for land animals
     if (this.animalGroup.visible) {
-      this.animalGroup.children.forEach(animal => {
-        const speed = animal.userData.speed || 0.35;
-        
-        if (Math.random() < 0.015) {
-          animal.userData.wanderAngle += (Math.random() - 0.5) * 2.0;
+      this.animalGroup.children.forEach((animal, idx) => {
+        // Animate hovering beacon above interactable creatures
+        if (animal.userData && animal.userData.beacon) {
+          animal.userData.beacon.rotation.y = elapsed * 2.5;
+          animal.userData.beacon.position.y = 1.35 + Math.sin(elapsed * 3.5 + idx) * 0.08;
         }
-        
-        const dtMove = dt * speed;
-        const dx = Math.sin(animal.userData.wanderAngle) * dtMove;
-        const dz = Math.cos(animal.userData.wanderAngle) * dtMove;
-        
-        const newX = animal.position.x + dx;
-        const newZ = animal.position.z + dz;
-        
-        const dist = Math.sqrt(newX * newX + newZ * newZ);
-        if (dist > 5 && dist < 190) {
-          animal.position.x = newX;
-          animal.position.z = newZ;
-          animal.position.y = this.getTerrainHeight(newX, newZ);
-          animal.lookAt(newX + dx * 10, animal.position.y, newZ + dz * 10);
-        } else {
-          animal.userData.wanderAngle += Math.PI;
+
+        // Proximity auto-discovery when Adam walks close to an interactable creature
+        if (this.isFindingModeActive && this.adam && animal.userData && animal.userData.isInteractable && !animal.userData.found) {
+          const dist = this.adam.position.distanceTo(animal.position);
+          if (dist < 3.8) {
+            this.findAnimal(animal);
+          }
+        }
+
+        const speed = animal.userData.speed || 0.35;
+        if (speed > 0) {
+          if (Math.random() < 0.015) {
+            animal.userData.wanderAngle += (Math.random() - 0.5) * 2.0;
+          }
+          
+          const dtMove = dt * speed;
+          const dx = Math.sin(animal.userData.wanderAngle) * dtMove;
+          const dz = Math.cos(animal.userData.wanderAngle) * dtMove;
+          
+          const newX = animal.position.x + dx;
+          const newZ = animal.position.z + dz;
+          
+          const dist = Math.sqrt(newX * newX + newZ * newZ);
+          if (dist > 5 && dist < 190) {
+            animal.position.x = newX;
+            animal.position.z = newZ;
+            animal.position.y = this.getTerrainHeight(newX, newZ);
+            animal.lookAt(newX + dx * 10, animal.position.y, newZ + dz * 10);
+          } else {
+            animal.userData.wanderAngle += Math.PI;
+          }
         }
       });
     }
@@ -1073,5 +1123,179 @@ export class CreationScene {
     } else {
       this.renderer.render(this.scene, this.camera);
     }
+  }
+
+  attachBeacon(animal, isHigh = false) {
+    const beaconGeo = new THREE.OctahedronGeometry(0.16);
+    const beaconMat = new THREE.MeshStandardMaterial({
+      color: 0xffe066,
+      emissive: 0xffaa00,
+      emissiveIntensity: 1.8,
+      roughness: 0.2
+    });
+    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+    beacon.position.y = isHigh ? 1.6 : 1.35;
+    animal.add(beacon);
+    animal.userData.beacon = beacon;
+  }
+
+  startFindingMode() {
+    this.isFindingModeActive = true;
+    this.foundCount = 0;
+    this.unlockControls();
+    if (this.animalGroup) {
+      this.animalGroup.children.forEach(animal => {
+        if (animal.userData && animal.userData.isInteractable) {
+          animal.userData.found = false;
+        }
+      });
+    }
+  }
+
+  startNamingMode() {
+    this.startFindingMode();
+  }
+
+  findAnimal(animal) {
+    if (!animal || !animal.userData || animal.userData.found || !this.isFindingModeActive) return;
+    
+    animal.userData.found = true;
+    this.foundCount = (this.foundCount || 0) + 1;
+    
+    // Play sacred chime chord
+    if (typeof window.playNamingChime === 'function') {
+      window.playNamingChime();
+    }
+    
+    // Stop animal movement, orient towards Adam
+    animal.userData.speed = 0;
+    if (this.adam) {
+      animal.lookAt(this.adam.position.x, animal.position.y, this.adam.position.z);
+    }
+    
+    // Adam gestures towards animal
+    this.pointAtAnimal(animal);
+    
+    // Transform beacon to golden halo
+    if (animal.userData.beacon) {
+      animal.userData.beacon.material.color.setHex(0xffea00);
+      animal.userData.beacon.material.emissive.setHex(0xffbb00);
+      animal.userData.beacon.material.emissiveIntensity = 2.8;
+    }
+
+    // Spawn 3D golden pill name tag sprite
+    this.spawnAnimalNameTag(animal);
+    
+    // Speech bubble from Adam
+    const speechBubbleEl = document.getElementById('speech-bubble');
+    if (speechBubbleEl) {
+      speechBubbleEl.innerHTML = `<strong>Adam</strong><br><em>"Behold, the ${animal.userData.icon} ${animal.userData.name}!"</em>`;
+      speechBubbleEl.style.display = 'block';
+      setTimeout(() => {
+        if (speechBubbleEl && this.foundCount < 5) speechBubbleEl.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Update Goal HUD banner
+    if (typeof window.showInstructionBanner === 'function') {
+      if (this.foundCount < 5) {
+        window.showInstructionBanner(`<span class="goal-tag">🎯 GOAL</span> Walk across the Earth as Adam and find 5 creatures (<span id="named-count">${this.foundCount}</span>/5) &mdash; ${animal.userData.icon} <strong>${animal.userData.name}</strong> discovered!`);
+      } else {
+        window.showInstructionBanner(`<span class="goal-tag">✨ COMPLETED</span> <strong>All 5 creatures found!</strong><br><span style="font-size:12px;opacity:0.9">"And God saw every thing that he had made, and, behold, it was very good."</span>`);
+        
+        // Wait 2 seconds, then transition to next scene (Eden Chapter 2)
+        setTimeout(() => {
+          this.isFindingModeActive = false;
+          if (typeof window.hideInstructionBanner === 'function') {
+            window.hideInstructionBanner();
+          }
+          if (speechBubbleEl) speechBubbleEl.style.display = 'none';
+          if (window.orchestrator && typeof window.orchestrator.next === 'function') {
+            window.orchestrator.next();
+          }
+        }, 2000);
+      }
+    }
+  }
+
+  pointAtAnimal(animal) {
+    if (!this.adam) return;
+    this.adam.lookAt(animal.position.x, this.adam.position.y, animal.position.z);
+    if (this.adamCharacter && this.adamCharacter.playAnimation) {
+      this.adamCharacter.playAnimation('talking');
+      setTimeout(() => {
+        if (this.adamCharacter && this.adamCharacter.playAnimation) {
+          this.adamCharacter.playAnimation('Idle');
+        }
+      }, 1200);
+    }
+  }
+
+  spawnAnimalNameTag(animal) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw rounded background pill with golden border
+    ctx.fillStyle = 'rgba(24, 16, 5, 0.94)';
+    ctx.strokeStyle = '#f5c842';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(8, 8, 240, 84, 20);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Icon and Name
+    ctx.font = 'bold 36px serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(`${animal.userData.icon} ${animal.userData.name}`, 128, 50);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(1.6, 0.65, 1.0);
+    sprite.position.set(0, 1.55, 0);
+    animal.add(sprite);
+    
+    // Animate sprite scale popping in
+    sprite.scale.set(0.2, 0.08, 0.2);
+    gsap.to(sprite.scale, { x: 1.6, y: 0.65, z: 1.0, duration: 0.5, ease: 'back.out(2)' });
+  }
+
+  raycastAnimal(clientX, clientY) {
+    if (!this.animalGroup || !this.camera || !this.renderer) return null;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+    const intersects = raycaster.intersectObjects(this.animalGroup.children, true);
+    if (intersects.length > 0) {
+      let topObj = intersects[0].object;
+      while (topObj.parent && topObj.parent !== this.animalGroup) {
+        topObj = topObj.parent;
+      }
+      if (topObj && topObj.userData && topObj.userData.isInteractable) {
+        return topObj;
+      }
+    }
+    return null;
+  }
+
+  handleClickOrTap(clientX, clientY) {
+    if (!this.isFindingModeActive) return false;
+    const animal = this.raycastAnimal(clientX, clientY);
+    if (animal && !animal.userData.found) {
+      this.findAnimal(animal);
+      return true;
+    }
+    return false;
   }
 }

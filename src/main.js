@@ -358,6 +358,14 @@ function setupInteractiveGameplay(scene) {
     window.sceneEngine.unlockControls();
     movementHintEl.classList.add('show');
     scriptureLabelEl.classList.add('show');
+
+    if (scene.action === 'find_animals' || scene.action === 'name_animals') {
+      if (window.sceneEngine && typeof window.sceneEngine.startFindingMode === 'function') {
+        window.sceneEngine.startFindingMode();
+      } else if (window.sceneEngine && typeof window.sceneEngine.startNamingMode === 'function') {
+        window.sceneEngine.startNamingMode();
+      }
+    }
   } 
   else if (scene.chapterId === 'eden') {
     window.sceneEngine.unlockControls();
