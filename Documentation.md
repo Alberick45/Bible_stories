@@ -17,7 +17,10 @@ The final image: someone opens the Timeline Hub, picks a moment in scripture, an
 Five chapters are built and playable, covering the full primeval history of Genesis 1–11:
 
 1. **Creation** (Genesis 1:1–2:7) — the Six Days rendered in 3D: light, sky, land, vegetation, celestial bodies, sea life, land animals, and the formation of Adam.
-2. **Eden & The Fall** (Genesis 3) — the Garden, the Serpent in the Tree of Knowledge, Eve and the fruit, the sequential cursing, and the expulsion past the Cherubim and flaming sword.
+2. **Eden & The Fall** (Genesis 2:8–3:24) — the Garden of Eden:
+   - **Genesis 2:19-20 Animal Naming Quest**: When Adam is alone before Eve's creation, players are given a clear objective banner (`🎯 GOAL: Walk through Eden and name 5 creatures (0/5)`). Players walk around the garden to discover 5 distinct creatures (Lion 🦁, Lamb 🐑, Ox 🐂, Stag 🦌, Dove 🕊️). Players can click (mouse/laptop) or tap (mobile touch) on an animal using raycasting or approach within 3.8m. Adam faces the creature, gestures, and names it aloud (*"I name thee [creature]!"*), accompanied by a synthesized sacred triad chord chime (Web Audio API) and a 3D golden pill name tag sprite. Exactly 2 seconds after naming all 5 creatures, the narrative flows into the deep sleep of Adam and the miraculous formation of Eve.
+   - **Tree of Knowledge Goal**: Later, players receive the goal to locate the Great Tree of Knowledge with pulsing forbidden fruit and the coiled serpent at the heart of Eden, triggering the Fall sequence.
+   - **The Fall & Expulsion**: Eve taking the fruit, physical hiding among tree clusters, divine interrogation, sequential cursing, and expulsion past the golden Cherubim and spinning flaming sword.
 3. **Cain & Abel** (Genesis 4:1–6:8) — the two altars of sacrifice, the confrontation in the fields, Abel's death, the Mark of Cain, and his exile to Nod.
 4. **Noah's Ark** (Genesis 6:13–9:13) — the Ark's construction, gathering of animals, the flood itself with real rain/water physics, and the altar at Ararat.
 5. **Tower of Babel** (Genesis 11:1–9) — the tower's construction, the confusion of language, and the silent ruins left behind.
@@ -33,11 +36,33 @@ Every chapter is reachable from the Timeline Hub, has full scripture text availa
 - **Vite** — dev server and production bundler, with hot reload for fast iteration on scenes.
 - **Three.js** — renders every 3D environment: terrain, characters, lighting, and collision.
 - **GSAP** — drives cinematic camera movement, scripted transitions, and character animation.
-- **Web Audio API** — procedurally generates atmospheric sound (wind, weather) per scene.
-- **Web Speech API** — powers character voices and narration, each with distinct pitch/rate per character (God, Eve, Cain, Abel, Narrator, etc.).
-- **Vanilla CSS** — the UI frame: gear-animated loading screen, glassmorphic overlays, timeline navigation.
+- **Web Audio API** — procedurally generates atmospheric sound (wind, weather) per scene and scales real-time audio playback buffers.
+- **Web Speech API & TTS Engine** — powers character voices and narration with character-specific acoustic parameters, cache persistence, and 1x/2x real-time rate scaling.
+- **Vanilla CSS & Adaptive Design System** — powers the book opening animations, engraved cross loader, glassmorphic HUD overlays, safe-area-inset top bars, and responsive portrait/landscape reflows.
 
 Repo: https://github.com/Alberick45/Bible_stories.git
+
+---
+
+## Mobile Ergonomics, Touch Architecture & Dynamic HUD
+
+As part of the cross-platform mobile refinement pass:
+
+1. **Orientation Guidance & Seamless Switching**:
+   - Mobile users entering in portrait mode receive an orientation recommendation modal prompting them to rotate to **Landscape** for cinematic biblical immersion.
+   - A dedicated **Orientation Toggle** (`📱 Portrait` / `🔄 Landscape`) in the top bar allows immediate toggling at any time, dynamically adjusting 3D camera aspect ratios and reflowing UI elements without page reloads.
+
+2. **Context-Aware Control Trees (Narrative vs. Interactive)**:
+   - **Narrative Scenes**: Subtitle cards, floating character speech bubbles, the on-screen **`Next ➔`** dialogue button, intro skip, and the voiceover speed multiplier (`1x`/`2x`) are active.
+   - **Interactive Gameplay**: During character free-roam (e.g. Adam exploring Eden, herding pairs to the Ark, confronting Cain), narrative speed and skip buttons are automatically hidden. The screen transitions seamlessly to the virtual touch joystick and on-screen action bar (`Talk`, `Pray`, `Jump`, `Kick`, `Angry`).
+
+3. **High-Contrast Speed Multiplier (`1x` / `2x`)**:
+   - Speed toggle accelerates both the TTS speech rate and GSAP timeline scale concurrently, with real-time Web Audio API buffer adjustments.
+   - When activated on `2x`, the button shifts to a high-contrast obsidian-bronze theme (`#241604` to `#0d0902`) with glowing amber borders and `#ffd700` golden typography (exceeding WCAG AAA contrast ratios across dark void and bright outdoor backgrounds).
+   - When toggled back to `1x`, the button smoothly reverts to the standard translucent bronze glassmorphism.
+
+4. **Zero-Overflow Mobile Top Bar**:
+   - Navigation button labels automatically collapse on narrow/portrait screens (`🏛️ Hub`, `🔄 Land`, `1x`/`2x`, `⏭ Skip`), ensuring buttons fit neatly within 320px–420px viewports with zero horizontal overflow or clipping.
 
 ---
 

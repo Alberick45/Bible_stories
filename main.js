@@ -2506,7 +2506,17 @@ document.addEventListener('DOMContentLoaded', () => {
     speedToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       currentSpeed = currentSpeed === 1 ? 2 : 1;
-      speedToggleBtn.textContent = `Speed: ${currentSpeed}x`;
+      const speedValEl = speedToggleBtn.querySelector('.speed-val');
+      if (speedValEl) {
+        speedValEl.textContent = `${currentSpeed}x`;
+      } else {
+        speedToggleBtn.innerHTML = `<span class="speed-prefix">Speed: </span><span class="speed-val">${currentSpeed}x</span>`;
+      }
+      if (currentSpeed === 2) {
+        speedToggleBtn.classList.add('active');
+      } else {
+        speedToggleBtn.classList.remove('active');
+      }
       ttsEngine.setSpeedMultiplier(currentSpeed);
       gsap.globalTimeline.timeScale(currentSpeed);
     });

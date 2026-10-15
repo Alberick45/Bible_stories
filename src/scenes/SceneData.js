@@ -39,7 +39,7 @@ const rawScenes = [
   { chapterId: 'creation', type: 'narrative', text: 'And God saw every thing that he had made, and, behold, it was very good. And the evening and the morning were the sixth day.', character: 'Narrator' },
   { chapterId: 'creation', type: 'narrative', text: 'Thus the heavens and the earth were finished, and all the host of them.', character: 'Narrator' },
   { chapterId: 'creation', type: 'narrative', text: 'And on the seventh day God ended his work which he had made; and he rested on the seventh day...', character: 'Narrator' },
-  { chapterId: 'creation', type: 'interactive', instruction: 'Move Adam around using WASD / Arrow Keys.' },
+  { chapterId: 'creation', type: 'interactive', instruction: '<span class="goal-tag">🎯 GOAL</span> Walk across the newly created Earth as Adam using WASD or the Virtual Joystick.' },
 
   // ==========================================
   // EDEN
@@ -53,6 +53,7 @@ const rawScenes = [
   { chapterId: 'eden', type: 'narrative', text: 'And the LORD God said, It is not good that the man should be alone; I will make him an help meet for him.', character: 'God' },
   { chapterId: 'eden', type: 'narrative', text: 'And out of the ground the LORD God formed every beast of the field, and every fowl of the air...', character: 'Narrator' },
   { chapterId: 'eden', type: 'narrative', text: 'And brought them unto Adam to see what he would call them...', character: 'Narrator' },
+  { chapterId: 'eden', type: 'interactive', action: 'name_animals', targetCount: 5, instruction: '<span class="goal-tag">🎯 GOAL</span> Walk through Eden and name 5 creatures (<span id="named-count">0</span>/5). Tap or click an animal, or walk close to record its name.' },
   { chapterId: 'eden', type: 'narrative', text: 'And Adam gave names to all cattle, and to the fowl of the air, and to every beast of the field...', character: 'Narrator' },
   { chapterId: 'eden', type: 'narrative', text: 'But for Adam there was not found an help meet for him.', character: 'Narrator' },
   { chapterId: 'eden', type: 'narrative', text: 'And the LORD God caused a deep sleep to fall upon Adam, and he slept...', character: 'Narrator' },
@@ -60,7 +61,7 @@ const rawScenes = [
   { chapterId: 'eden', type: 'narrative', text: 'And the rib, which the LORD God had taken from man, made he a woman, and brought her unto the man.', character: 'Narrator' },
   { chapterId: 'eden', type: 'narrative', text: 'This is now bone of my bones, and flesh of my flesh: she shall be called Woman, because she was taken out of Man.', character: 'Adam' },
   { chapterId: 'eden', type: 'narrative', text: 'Therefore shall a man leave his father and his mother, and shall cleave unto his wife: and they shall be one flesh.', character: 'Narrator' },
-  { chapterId: 'eden', type: 'interactive', target: 'tree', instruction: 'Walk up to the center Tree of Knowledge to witness the Fall.' },
+  { chapterId: 'eden', type: 'interactive', action: 'find_tree', target: 'tree', instruction: '<span class="goal-tag">🎯 GOAL</span> Find the Great Tree of Knowledge in the center of Eden with glowing fruits to witness the Fall.' },
   { chapterId: 'eden', type: 'narrative', text: 'Now the serpent was more subtil than any beast of the field which the LORD God had made.', character: 'Narrator' },
   { chapterId: 'eden', type: 'narrative', text: 'Yea, hath God said, Ye shall not eat of every tree of the garden?', character: 'Serpent' },
   { chapterId: 'eden', type: 'narrative', text: 'We may eat of the fruit of the trees of the garden: But of the fruit of the tree which is in the midst of the garden, God hath said, Ye shall not eat of it, neither shall ye touch it, lest ye die.', character: 'Eve' },
@@ -126,7 +127,7 @@ const rawScenes = [
   { chapterId: 'noah', type: 'narrative', text: 'And Noah did according unto all that the LORD commanded him.', character: 'Narrator' },
   { chapterId: 'noah', type: 'narrative', text: 'Thus did Noah; according to all that God commanded him, so did he.', character: 'Narrator' },
   { chapterId: 'noah', type: 'narrative', text: 'And the LORD said unto Noah, "Come thou and all thy house into the ark; for thee have I seen righteous before me in this generation."', character: 'God' },
-  { chapterId: 'noah', type: 'interactive', target: 'animals', instruction: 'Guide Noah closer to the marching animal pairs to bring them inside.' },
+  { chapterId: 'noah', type: 'interactive', target: 'animals', instruction: '<span class="goal-tag">🎯 GOAL</span> Guide Noah to the animal pairs to herd them into the Ark.' },
   { chapterId: 'noah', type: 'narrative', text: "And Noah went in, and his sons, and his wife, and his sons' wives with him, into the ark, because of the waters of the flood.", character: 'Narrator' },
   { chapterId: 'noah', type: 'narrative', text: '...and the LORD shut him in.', character: 'Narrator' },
   { chapterId: 'noah', type: 'narrative', text: '...the same day were all the fountains of the great deep broken up, and the windows of heaven were opened.', character: 'Narrator' },
@@ -157,7 +158,7 @@ const rawScenes = [
   { chapterId: 'babel', type: 'narrative', text: 'Baga bo pi do! (What is this gibberish?!)', character: 'Worker' },
   { chapterId: 'babel', type: 'narrative', text: 'And there the LORD did confound the language of all the earth...', character: 'Narrator' },
   { chapterId: 'babel', type: 'narrative', text: 'So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.', character: 'Narrator' },
-  { chapterId: 'babel', type: 'interactive', target: 'ruins', instruction: 'Explore the silent ruins of Babel.' }
+  { chapterId: 'babel', type: 'interactive', target: 'ruins', instruction: '<span class="goal-tag">🎯 GOAL</span> Walk among the builders of Shinar at the foundation of the Tower.' }
 ];
 
 export const scenes = rawScenes.map((s, idx) => {

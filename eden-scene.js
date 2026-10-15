@@ -27,6 +27,8 @@ export class EdenScene {
     
     this.isFallen = false;
     this.fruitInHand = null;
+    this.isNamingModeActive = false;
+    this.namedCount = 0;
     
     this.init();
   }
@@ -300,6 +302,15 @@ export class EdenScene {
       this.forbiddenFruits.add(fruit);
     }
     this.centerTree.add(this.forbiddenFruits);
+
+    // Glowing holy pillar / beacon above Tree of Knowledge
+    const treeBeacon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.65, 14, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffe680, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending })
+    );
+    treeBeacon.position.y = 12.0;
+    this.centerTree.add(treeBeacon);
+
     this.centerTree.position.set(0, this.getTerrainHeight(0, 0), 0);
     this.scene.add(this.centerTree);
     
@@ -442,56 +453,75 @@ export class EdenScene {
     this.adam.lookAt(0, this.adam.position.y, 0);
     this.scene.add(this.adam);
     
-    // Animals
+    // Animals: 5 Distinct Named Creatures (Genesis 2:19-20) + Ambient Animals
     this.animalGroup = new THREE.Group();
-    for (let i = 0; i < 30; i++) {
-      const typeRoll = i % 3;
-      const animal = new THREE.Group();
+    
+    // 1. Five Special Interactive Named Creatures placed around Adam's clearing (-9, y, 9)
+    const interactableCreatures = [
+      { type: 'dove', name: 'Dove', icon: '🕊️', x: -8.0, z: 7.0, speed: 0, highBeacon: false, meshFn: () => this.createDoveMesh() },
+      { type: 'sheep', name: 'Lamb', icon: '🐑', x: -12.0, z: 7.5, speed: 0.16, highBeacon: false, meshFn: () => this.createLambMesh() },
+      { type: 'lion', name: 'Lion', icon: '🦁', x: -5.5, z: 6.0, speed: 0.18, highBeacon: false, meshFn: () => this.createLionMesh() },
+      { type: 'deer', name: 'Stag', icon: '🦌', x: -13.5, z: 12.0, speed: 0.20, highBeacon: true, meshFn: () => this.createStagMesh() },
+      { type: 'ox', name: 'Ox', icon: '🐂', x: -6.0, z: 13.5, speed: 0.15, highBeacon: true, meshFn: () => this.createOxMesh() }
+    ];
+
+    interactableCreatures.forEach((spec, idx) => {
+      const animal = spec.meshFn();
+      const ay = this.getTerrainHeight(spec.x, spec.z);
+      animal.position.set(spec.x, ay, spec.z);
+      animal.lookAt(-9.0, ay, 9.0); // Facing towards Adam
+      animal.scale.setScalar(spec.type === 'dove' ? 1.0 : 0.95);
       
+      animal.userData = {
+        id: `named_animal_${spec.type}`,
+        type: spec.type,
+        name: spec.name,
+        icon: spec.icon,
+        isInteractable: true,
+        named: false,
+        wanderAngle: Math.random() * Math.PI * 2,
+        speed: spec.speed
+      };
+
+      this.attachBeacon(animal, spec.highBeacon);
+      this.animalGroup.add(animal);
+    });
+
+    // 2. Ambient Animals in the wider garden (radius 18 to 110)
+    for (let i = 0; i < 25; i++) {
+      const typeRoll = i % 4;
+      let animal;
+      let speed = 0.2;
+      let aType = 'sheep';
+
       if (typeRoll === 0) {
-        const body = new THREE.Mesh(new THREE.SphereGeometry(0.48, 5, 5), new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9 }));
-        body.scale.set(1.3, 1.0, 1.0);
-        body.position.y = 0.65;
-        animal.add(body);
-        
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 5, 5), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
-        head.position.set(0, 0.9, 0.55);
-        animal.add(head);
-        
-        animal.userData = { type: 'sheep', wanderAngle: Math.random() * Math.PI * 2, speed: 0.22 };
+        animal = this.createLambMesh();
+        speed = 0.22;
+        aType = 'sheep';
       } else if (typeRoll === 1) {
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 1.2), new THREE.MeshStandardMaterial({ color: 0xcaa066, roughness: 0.8 }));
-        body.position.y = 0.65;
-        animal.add(body);
-        
-        const mane = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.44, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0x4a2e1d }));
-        mane.position.set(0, 0.95, 0.45);
-        mane.rotation.x = Math.PI/3;
-        animal.add(mane);
-        
-        animal.userData = { type: 'lion', wanderAngle: Math.random() * Math.PI * 2, speed: 0.38 };
+        animal = this.createLionMesh();
+        speed = 0.32;
+        aType = 'lion';
+      } else if (typeRoll === 2) {
+        animal = this.createStagMesh();
+        speed = 0.35;
+        aType = 'deer';
       } else {
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.32), new THREE.MeshStandardMaterial({ color: 0x8f5831 }));
-        body.position.y = 0.12;
-        animal.add(body);
-        
-        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.12), new THREE.MeshStandardMaterial({ color: 0x8f5831 }));
-        tail.position.set(0, 0.22, -0.16);
-        tail.rotation.x = -0.4;
-        animal.add(tail);
-        
-        animal.userData = { type: 'squirrel', wanderAngle: Math.random() * Math.PI * 2, speed: 0.55 };
+        animal = this.createOxMesh();
+        speed = 0.18;
+        aType = 'ox';
       }
-      
+
       const angle = Math.random() * Math.PI * 2;
-      const radius = 10 + Math.random() * 110;
+      const radius = 18 + Math.random() * 95;
       const ax = Math.cos(angle) * radius;
       const az = Math.sin(angle) * radius;
       const ay = this.getTerrainHeight(ax, az);
-      
+
       animal.position.set(ax, ay, az);
       animal.lookAt(0, ay, 0);
-      animal.scale.setScalar(0.85 + Math.random() * 0.3);
+      animal.scale.setScalar(0.8 + Math.random() * 0.25);
+      animal.userData = { type: aType, wanderAngle: Math.random() * Math.PI * 2, speed: speed, isInteractable: false };
       this.animalGroup.add(animal);
     }
     this.scene.add(this.animalGroup);
@@ -502,6 +532,18 @@ export class EdenScene {
     this.renderer.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
+
+    // Mobile touch & click raycast trigger for recording/naming creatures
+    this.renderer.domElement.addEventListener('pointerdown', (e) => {
+      this.pointerStartX = e.clientX;
+      this.pointerStartY = e.clientY;
+    });
+    this.renderer.domElement.addEventListener('pointerup', (e) => {
+      const moved = Math.hypot(e.clientX - (this.pointerStartX || 0), e.clientY - (this.pointerStartY || 0));
+      if (moved < 12) {
+        this.handleClickOrTap(e.clientX, e.clientY);
+      }
+    });
     
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
@@ -916,30 +958,45 @@ export class EdenScene {
       this.serpentHead.position.set(Math.cos(headAngle) * 0.44, 0.5 + totalSegs * 0.05, Math.sin(headAngle) * 0.44);
     }
     
-    // Animal wanders
+    // Animal wanders, beacon animations, and proximity naming
     if (this.animalGroup.visible) {
-      this.animalGroup.children.forEach(animal => {
-        const speed = animal.userData.speed;
-        
-        if (!this.isFallen && Math.random() < 0.015) {
-          animal.userData.wanderAngle += (Math.random() - 0.5) * 2.0;
+      this.animalGroup.children.forEach((animal, idx) => {
+        // Animate hovering beacon above interactable creatures
+        if (animal.userData && animal.userData.beacon) {
+          animal.userData.beacon.rotation.y = elapsed * 2.5;
+          animal.userData.beacon.position.y = (animal.userData.type === 'dove' ? 1.05 : 1.35) + Math.sin(elapsed * 3.5 + idx) * 0.08;
         }
-        
-        const dtMove = dt * speed;
-        const dx = Math.sin(animal.userData.wanderAngle) * dtMove;
-        const dz = Math.cos(animal.userData.wanderAngle) * dtMove;
-        
-        const newX = animal.position.x + dx;
-        const newZ = animal.position.z + dz;
-        
-        const dist = Math.sqrt(newX * newX + newZ * newZ);
-        if (dist > 3 && dist < 210) {
-          animal.position.x = newX;
-          animal.position.z = newZ;
-          animal.position.y = this.getTerrainHeight(newX, newZ);
-          animal.lookAt(newX + dx * 10, animal.position.y, newZ + dz * 10);
-        } else {
-          animal.userData.wanderAngle += Math.PI;
+
+        // Proximity auto-naming when Adam walks close to an unnamed creature
+        if (this.isNamingModeActive && this.adam && animal.userData && animal.userData.isInteractable && !animal.userData.named) {
+          const dist = this.adam.position.distanceTo(animal.position);
+          if (dist < 3.8) {
+            this.nameAnimal(animal);
+          }
+        }
+
+        const speed = animal.userData.speed || 0;
+        if (speed > 0) {
+          if (!this.isFallen && Math.random() < 0.015) {
+            animal.userData.wanderAngle += (Math.random() - 0.5) * 2.0;
+          }
+          
+          const dtMove = dt * speed;
+          const dx = Math.sin(animal.userData.wanderAngle) * dtMove;
+          const dz = Math.cos(animal.userData.wanderAngle) * dtMove;
+          
+          const newX = animal.position.x + dx;
+          const newZ = animal.position.z + dz;
+          
+          const dist = Math.sqrt(newX * newX + newZ * newZ);
+          if (dist > 3 && dist < 210) {
+            animal.position.x = newX;
+            animal.position.z = newZ;
+            animal.position.y = this.getTerrainHeight(newX, newZ);
+            animal.lookAt(newX + dx * 10, animal.position.y, newZ + dz * 10);
+          } else {
+            animal.userData.wanderAngle += Math.PI;
+          }
         }
       });
     }
@@ -1104,6 +1161,355 @@ export class EdenScene {
     } else {
       this.renderer.render(this.scene, this.camera);
     }
+  }
+
+  createLionMesh() {
+    const group = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd6993a, roughness: 0.8 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 1.2), bodyMat);
+    body.position.y = 0.65;
+    body.castShadow = true;
+    group.add(body);
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.42), bodyMat);
+    head.position.set(0, 0.95, 0.58);
+    head.castShadow = true;
+    group.add(head);
+
+    const maneMat = new THREE.MeshStandardMaterial({ color: 0x4a2a14, roughness: 0.9 });
+    const mane = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.52, 0.62, 8), maneMat);
+    mane.position.set(0, 0.95, 0.44);
+    mane.rotation.x = Math.PI / 3;
+    mane.castShadow = true;
+    group.add(mane);
+
+    const legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.55, 5);
+    const legPositions = [[-0.25, 0.28, 0.38], [0.25, 0.28, 0.38], [-0.25, 0.28, -0.38], [0.25, 0.28, -0.38]];
+    legPositions.forEach(pos => {
+      const leg = new THREE.Mesh(legGeo, bodyMat);
+      leg.position.set(...pos);
+      group.add(leg);
+    });
+
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6, 4), bodyMat);
+    tail.position.set(0, 0.65, -0.7);
+    tail.rotation.x = -Math.PI / 4;
+    group.add(tail);
+    return group;
+  }
+
+  createLambMesh() {
+    const group = new THREE.Group();
+    const woolMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.95, flatShading: true });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.48, 6, 6), woolMat);
+    body.scale.set(1.3, 1.0, 1.0);
+    body.position.y = 0.58;
+    body.castShadow = true;
+    group.add(body);
+
+    const faceMat = new THREE.MeshStandardMaterial({ color: 0x2b2520, roughness: 0.9 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 5, 5), faceMat);
+    head.position.set(0, 0.78, 0.55);
+    group.add(head);
+
+    const earL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.06), faceMat);
+    earL.position.set(-0.18, 0.82, 0.52);
+    earL.rotation.z = -0.3;
+    const earR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.06), faceMat);
+    earR.position.set(0.18, 0.82, 0.52);
+    earR.rotation.z = 0.3;
+    group.add(earL, earR);
+
+    const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.48, 4);
+    const legPositions = [[-0.2, 0.24, 0.28], [0.2, 0.24, 0.28], [-0.2, 0.24, -0.28], [0.2, 0.24, -0.28]];
+    legPositions.forEach(pos => {
+      const leg = new THREE.Mesh(legGeo, faceMat);
+      leg.position.set(...pos);
+      group.add(leg);
+    });
+    return group;
+  }
+
+  createOxMesh() {
+    const group = new THREE.Group();
+    const oxMat = new THREE.MeshStandardMaterial({ color: 0x5a2d12, roughness: 0.85 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.75, 1.5), oxMat);
+    body.position.y = 0.75;
+    body.castShadow = true;
+    group.add(body);
+
+    const hump = new THREE.Mesh(new THREE.SphereGeometry(0.35, 5, 5), oxMat);
+    hump.position.set(0, 1.15, 0.25);
+    group.add(hump);
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.48), oxMat);
+    head.position.set(0, 0.95, 0.85);
+    group.add(head);
+
+    const hornMat = new THREE.MeshStandardMaterial({ color: 0xdfc99c, roughness: 0.4 });
+    const hornL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.42, 5), hornMat);
+    hornL.position.set(-0.24, 1.25, 0.78);
+    hornL.rotation.z = 0.65;
+    hornL.rotation.x = -0.3;
+    const hornR = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.42, 5), hornMat);
+    hornR.position.set(0.24, 1.25, 0.78);
+    hornR.rotation.z = -0.65;
+    hornR.rotation.x = -0.3;
+    group.add(hornL, hornR);
+
+    const legGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.65, 5);
+    const legPositions = [[-0.3, 0.32, 0.5], [0.3, 0.32, 0.5], [-0.3, 0.32, -0.5], [0.3, 0.32, -0.5]];
+    legPositions.forEach(pos => {
+      const leg = new THREE.Mesh(legGeo, oxMat);
+      leg.position.set(...pos);
+      group.add(leg);
+    });
+    return group;
+  }
+
+  createStagMesh() {
+    const group = new THREE.Group();
+    const stagMat = new THREE.MeshStandardMaterial({ color: 0xb57845, roughness: 0.8 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.55, 1.15), stagMat);
+    body.position.y = 0.75;
+    body.castShadow = true;
+    group.add(body);
+
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.55, 5), stagMat);
+    neck.position.set(0, 1.05, 0.45);
+    neck.rotation.x = -0.4;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.32), stagMat);
+    head.position.set(0, 1.32, 0.58);
+    group.add(neck, head);
+
+    const antlerMat = new THREE.MeshStandardMaterial({ color: 0xd8ceb5, roughness: 0.7 });
+    for (let s of [-1, 1]) {
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.48, 4), antlerMat);
+      beam.position.set(s * 0.14, 1.55, 0.52);
+      beam.rotation.z = s * -0.4;
+      const tine = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.22, 4), antlerMat);
+      tine.position.set(s * 0.22, 1.65, 0.56);
+      tine.rotation.z = s * -0.8;
+      group.add(beam, tine);
+    }
+
+    const legGeo = new THREE.CylinderGeometry(0.05, 0.04, 0.75, 4);
+    const legPositions = [[-0.2, 0.38, 0.42], [0.2, 0.38, 0.42], [-0.2, 0.38, -0.42], [0.2, 0.38, -0.42]];
+    legPositions.forEach(pos => {
+      const leg = new THREE.Mesh(legGeo, stagMat);
+      leg.position.set(...pos);
+      group.add(leg);
+    });
+    return group;
+  }
+
+  createDoveMesh() {
+    const group = new THREE.Group();
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x586354, roughness: 0.95 });
+    const rock = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.5, 0.45, 6), rockMat);
+    rock.position.y = 0.22;
+    rock.castShadow = true;
+    group.add(rock);
+
+    const doveMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 6), doveMat);
+    body.position.set(0, 0.55, 0);
+    body.scale.set(0.9, 0.85, 1.3);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 5, 5), doveMat);
+    head.position.set(0, 0.72, 0.16);
+
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.1, 4), new THREE.MeshStandardMaterial({ color: 0xffcc00 }));
+    beak.position.set(0, 0.7, 0.28);
+    beak.rotation.x = Math.PI / 2;
+
+    const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.18), doveMat);
+    wingL.position.set(-0.26, 0.6, 0);
+    wingL.rotation.z = -0.25;
+    const wingR = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.18), doveMat);
+    wingR.position.set(0.26, 0.6, 0);
+    wingR.rotation.z = 0.25;
+    group.add(body, head, beak, wingL, wingR);
+    return group;
+  }
+
+  attachBeacon(animal, isHigh = false) {
+    const beaconGeo = new THREE.OctahedronGeometry(0.16);
+    const beaconMat = new THREE.MeshStandardMaterial({
+      color: 0xffe066,
+      emissive: 0xffaa00,
+      emissiveIntensity: 1.8,
+      roughness: 0.2
+    });
+    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+    beacon.position.y = isHigh ? 1.6 : 1.35;
+    animal.add(beacon);
+    animal.userData.beacon = beacon;
+  }
+
+  startNamingMode() {
+    this.isNamingModeActive = true;
+    this.namedCount = 0;
+    this.unlockControls();
+    if (this.animalGroup) {
+      this.animalGroup.children.forEach(animal => {
+        if (animal.userData && animal.userData.isInteractable) {
+          animal.userData.named = false;
+        }
+      });
+    }
+  }
+
+  nameAnimal(animal) {
+    if (!animal || !animal.userData || animal.userData.named || !this.isNamingModeActive) return;
+    
+    animal.userData.named = true;
+    this.namedCount = (this.namedCount || 0) + 1;
+    
+    // Play naming chime sound
+    if (typeof window.playNamingChime === 'function') {
+      window.playNamingChime();
+    }
+    
+    // Stop animal movement, orient towards Adam
+    animal.userData.speed = 0;
+    if (this.adam) {
+      animal.lookAt(this.adam.position.x, animal.position.y, this.adam.position.z);
+    }
+    
+    // Adam gestures towards animal
+    this.pointAtAnimal(animal);
+    
+    // Transform beacon to golden halo
+    if (animal.userData.beacon) {
+      animal.userData.beacon.material.color.setHex(0xffea00);
+      animal.userData.beacon.material.emissive.setHex(0xffbb00);
+      animal.userData.beacon.material.emissiveIntensity = 2.8;
+    }
+
+    // Spawn 3D golden pill name tag sprite
+    this.spawnAnimalNameTag(animal);
+    
+    // Speech bubble from Adam
+    const speechBubbleEl = document.getElementById('speech-bubble');
+    if (speechBubbleEl) {
+      speechBubbleEl.innerHTML = `<strong>Adam</strong><br><em>"I name thee ${animal.userData.icon} ${animal.userData.name}!"</em>`;
+      speechBubbleEl.style.display = 'block';
+      setTimeout(() => {
+        if (speechBubbleEl && this.namedCount < 5) speechBubbleEl.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Update Goal HUD banner
+    if (typeof window.showInstructionBanner === 'function') {
+      if (this.namedCount < 5) {
+        window.showInstructionBanner(`<span class="goal-tag">🎯 GOAL</span> Walk through Eden and name 5 creatures (<span id="named-count">${this.namedCount}</span>/5) &mdash; ${animal.userData.icon} <strong>${animal.userData.name}</strong> recorded!`);
+      } else {
+        window.showInstructionBanner(`<span class="goal-tag">✨ COMPLETED</span> <strong>All 5 creatures named!</strong><br><span style="font-size:12px;opacity:0.9">"And Adam gave names to all... but for Adam there was not found an help meet for him."</span>`);
+        
+        // Wait 2 seconds, then transition to falling asleep story scene!
+        setTimeout(() => {
+          this.isNamingModeActive = false;
+          if (typeof window.hideInstructionBanner === 'function') {
+            window.hideInstructionBanner();
+          }
+          if (speechBubbleEl) speechBubbleEl.style.display = 'none';
+          if (window.orchestrator && typeof window.orchestrator.next === 'function') {
+            window.orchestrator.next();
+          }
+        }, 2000);
+      }
+    }
+  }
+
+  pointAtAnimal(animal) {
+    if (!this.adam) return;
+    this.adam.lookAt(animal.position.x, this.adam.position.y, animal.position.z);
+    if (this.adamArmR && this.adamArmR.rotation) {
+      gsap.to(this.adamArmR.rotation, { 
+        x: -Math.PI / 2.2, 
+        z: -0.2, 
+        duration: 0.45, 
+        yoyo: true, 
+        repeat: 1,
+        ease: 'power2.out' 
+      });
+    }
+    if (this.adamCharacter && this.adamCharacter.playAnimation) {
+      this.adamCharacter.playAnimation('talking');
+      setTimeout(() => {
+        if (this.adamCharacter && this.adamCharacter.playAnimation) {
+          this.adamCharacter.playAnimation('idle');
+        }
+      }, 1200);
+    }
+  }
+
+  spawnAnimalNameTag(animal) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw rounded background pill with golden border
+    ctx.fillStyle = 'rgba(24, 16, 5, 0.94)';
+    ctx.strokeStyle = '#f5c842';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(8, 8, 240, 84, 20);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Icon and Name
+    ctx.font = 'bold 36px serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(`${animal.userData.icon} ${animal.userData.name}`, 128, 50);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(1.6, 0.65, 1.0);
+    sprite.position.set(0, animal.userData.type === 'dove' ? 1.1 : 1.55, 0);
+    animal.add(sprite);
+    
+    // Animate sprite scale popping in
+    sprite.scale.set(0.2, 0.08, 0.2);
+    gsap.to(sprite.scale, { x: 1.6, y: 0.65, z: 1.0, duration: 0.5, ease: 'back.out(2)' });
+  }
+
+  raycastAnimal(clientX, clientY) {
+    if (!this.animalGroup || !this.camera || !this.renderer) return null;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+    const intersects = raycaster.intersectObjects(this.animalGroup.children, true);
+    if (intersects.length > 0) {
+      let topObj = intersects[0].object;
+      while (topObj.parent && topObj.parent !== this.animalGroup) {
+        topObj = topObj.parent;
+      }
+      if (topObj && topObj.userData && topObj.userData.isInteractable) {
+        return topObj;
+      }
+    }
+    return null;
+  }
+
+  handleClickOrTap(clientX, clientY) {
+    if (!this.isNamingModeActive) return false;
+    const animal = this.raycastAnimal(clientX, clientY);
+    if (animal && !animal.userData.named) {
+      this.nameAnimal(animal);
+      return true;
+    }
+    return false;
   }
 
   onWindowResize = () => {

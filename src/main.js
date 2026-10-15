@@ -165,6 +165,38 @@ function playSyntheticAnimalBleat() {
   osc.stop(now + 0.45);
 }
 
+window.playNamingChime = function() {
+  if (!audioContext) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) audioContext = new AudioCtx();
+  }
+  if (!audioContext) return;
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+  
+  const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 (sacred major triad arpeggio)
+  const now = audioContext.currentTime;
+  
+  notes.forEach((freq, idx) => {
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+    
+    gainNode.gain.setValueAtTime(0, now + idx * 0.08);
+    gainNode.gain.linearRampToValueAtTime(0.06, now + idx * 0.08 + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.85);
+
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    osc.start(now + idx * 0.08);
+    osc.stop(now + idx * 0.08 + 0.9);
+  });
+};
+
 function destroyActiveScene() {
   soundIntervals.forEach(id => clearInterval(id));
   soundIntervals = [];
@@ -317,6 +349,7 @@ function setupInteractiveGameplay(scene) {
   window.isCinematicActive = false;
   
   if (skipBtn) skipBtn.style.display = 'none';
+  if (speedToggleBtn) speedToggleBtn.style.display = 'none';
   if (nextBtn) nextBtn.classList.remove('show');
   if (actionBarEl) actionBarEl.classList.add('show');
   if (joystickZoneEl) joystickZoneEl.classList.add('show');
@@ -331,16 +364,22 @@ function setupInteractiveGameplay(scene) {
     movementHintEl.classList.add('show');
     scriptureLabelEl.classList.add('show');
 
-    interactiveInterval = setInterval(() => {
-      if (!window.sceneEngine || !window.sceneEngine.adam) return;
-      const adamPos = window.sceneEngine.adam.position;
-      const distanceToTree = Math.sqrt(adamPos.x * adamPos.x + adamPos.z * adamPos.z);
-      if (distanceToTree < 3.2) {
-        clearInterval(interactiveInterval);
-        movementHintEl.classList.remove('show');
-        orchestrator.next(); // Go to next narrative line (The Fall)
+    if (scene.action === 'name_animals') {
+      if (window.sceneEngine && typeof window.sceneEngine.startNamingMode === 'function') {
+        window.sceneEngine.startNamingMode();
       }
-    }, 150);
+    } else {
+      interactiveInterval = setInterval(() => {
+        if (!window.sceneEngine || !window.sceneEngine.adam) return;
+        const adamPos = window.sceneEngine.adam.position;
+        const distanceToTree = Math.sqrt(adamPos.x * adamPos.x + adamPos.z * adamPos.z);
+        if (distanceToTree < 3.8) {
+          clearInterval(interactiveInterval);
+          movementHintEl.classList.remove('show');
+          orchestrator.next(); // Go to next narrative line (The Fall)
+        }
+      }, 150);
+    }
   } 
   else if (scene.chapterId === 'cainabel') {
     window.sceneEngine.unlockControls();
@@ -389,6 +428,8 @@ function handleSceneChange(scene) {
     if (nextBtn) nextBtn.classList.remove('show');
     if (actionBarEl) actionBarEl.classList.add('show');
     if (joystickZoneEl) joystickZoneEl.classList.add('show');
+    if (speedToggleBtn) speedToggleBtn.style.display = 'none';
+    if (skipBtn) skipBtn.style.display = 'none';
     bubbleTargetObject = null;
     
     // Display interactive instruction in top tutorial box
@@ -413,9 +454,16 @@ function handleSceneChange(scene) {
     joystickZoneEl.classList.remove('show');
   }
 
+  if (speedToggleBtn) {
+    speedToggleBtn.style.display = 'inline-flex';
+  }
+
   if (skipBtn) {
-    skipBtn.textContent = 'Skip Intro';
-    skipBtn.style.display = 'block';
+    const skipText = skipBtn.querySelector('.skip-text');
+    if (!skipText) {
+      skipBtn.innerHTML = '<span class="skip-icon">⏭</span> <span class="skip-text">Skip<span class="skip-full"> Intro</span></span>';
+    }
+    skipBtn.style.display = 'inline-flex';
   }
 
   const isNarrator = (scene.character.toLowerCase() === 'narrator' || scene.character.toLowerCase() === 'god');
@@ -466,6 +514,9 @@ function hideInstructionBanner() {
     instructionBanner.classList.remove('show');
   }
 }
+
+window.showInstructionBanner = showInstructionBanner;
+window.hideInstructionBanner = hideInstructionBanner;
 
 function createInstructionBanner() {
   const div = document.createElement('div');
@@ -647,7 +698,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (speedValEl) {
         speedValEl.textContent = `${window.currentSpeed}x`;
       } else {
-        speedToggleBtn.textContent = `Speed: ${window.currentSpeed}x`;
+        speedToggleBtn.innerHTML = `<span class="speed-prefix">Speed: </span><span class="speed-val">${window.currentSpeed}x</span>`;
+      }
+
+      if (window.currentSpeed === 2) {
+        speedToggleBtn.classList.add('active');
+      } else {
+        speedToggleBtn.classList.remove('active');
       }
       
       // Update TTS engine rate for upcoming speech
@@ -1061,10 +1118,10 @@ function initOrientationManager() {
     const textEl = toggleBtn.querySelector('.orient-text');
     if (isPortrait) {
       if (symEl) symEl.textContent = '🔄';
-      if (textEl) textEl.textContent = 'Landscape';
+      if (textEl) textEl.innerHTML = '<span class="orient-short">Land</span><span class="orient-rest">scape</span>';
     } else {
       if (symEl) symEl.textContent = '📱';
-      if (textEl) textEl.textContent = 'Portrait';
+      if (textEl) textEl.innerHTML = '<span class="orient-short">Port</span><span class="orient-rest">rait</span>';
     }
   }
 
