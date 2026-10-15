@@ -21,6 +21,10 @@ window.isCinematicActive = false;
 const canvasWrap = document.getElementById('canvas-wrap');
 const narrationEl = document.getElementById('narration');
 const hintEl = document.getElementById('continue-hint');
+const nextBtn = document.getElementById('next-btn');
+const orientationModal = document.getElementById('orientation-modal');
+const portraitOptBtn = document.getElementById('portrait-opt-btn');
+const orientationToggleBtn = document.getElementById('orientation-toggle-btn');
 const dayLabelEl = document.getElementById('day-label');
 const veilEl = document.getElementById('veil');
 const movementHintEl = document.getElementById('movement-hint');
@@ -170,6 +174,7 @@ function destroyActiveScene() {
   if (speechBubbleEl) speechBubbleEl.style.display = 'none';
   if (narrationEl) narrationEl.classList.remove('show');
   if (hintEl) hintEl.classList.remove('show');
+  if (nextBtn) nextBtn.classList.remove('show');
   if (movementHintEl) movementHintEl.classList.remove('show');
   if (scriptureLabelEl) scriptureLabelEl.classList.remove('show');
 
@@ -374,6 +379,7 @@ function handleSceneChange(scene) {
     if (narrationEl) narrationEl.classList.remove('show');
     if (speechBubbleEl) speechBubbleEl.style.display = 'none';
     if (hintEl) hintEl.classList.remove('show');
+    if (nextBtn) nextBtn.classList.remove('show');
     bubbleTargetObject = null;
     
     // Display interactive instruction in top tutorial box
@@ -387,6 +393,9 @@ function handleSceneChange(scene) {
   window.isCinematicActive = true;
   if (hintEl) {
     hintEl.classList.add('show');
+  }
+  if (nextBtn) {
+    nextBtn.classList.add('show');
   }
 
   if (skipBtn) {
@@ -513,6 +522,9 @@ function setupScriptureContent(sceneName) {
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Orientation guidance & mode system
+  initOrientationManager();
+
   // Mobile virtual stick
   initTouchControls();
   
@@ -585,6 +597,16 @@ document.addEventListener('DOMContentLoaded', () => {
         char.playAnimation(animName, { loop: isLooping, clampWhenFinished: !isLooping, force: true });
       }
     }
+  }
+
+  if (nextBtn) {
+    const triggerNext = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      orchestrator.interrupt();
+    };
+    nextBtn.addEventListener('click', triggerNext);
+    nextBtn.addEventListener('touchstart', triggerNext, { passive: false });
   }
 
   if (hintEl) {
@@ -767,16 +789,20 @@ document.addEventListener('DOMContentLoaded', () => {
       playProceduralLeatherCreak();
       setTimeout(playProceduralPageRustle, 120);
 
+      const isPortrait = document.body.classList.contains('portrait-mode') || window.innerHeight > window.innerWidth;
+      const transX = isPortrait ? '0px' : '-25%';
+      const zoomX = isPortrait ? '0px' : '-350px';
+
       const wrapper = document.querySelector('.book-wrapper');
-      if (wrapper) wrapper.style.transform = 'translateZ(180px) translateX(-25%)';
+      if (wrapper) wrapper.style.transform = `translateZ(180px) translateX(${transX})`;
 
       setTimeout(() => {
-        if (bookCover) bookCover.style.transform = 'rotateY(-115deg)';
+        if (bookCover) bookCover.style.transform = isPortrait ? 'rotateY(-130deg)' : 'rotateY(-115deg)';
         if (bookContainer) bookContainer.classList.add('book-opened');
       }, 250);
 
       setTimeout(() => {
-        if (wrapper) wrapper.style.transform = 'translateZ(420px) translateX(-25%)';
+        if (wrapper) wrapper.style.transform = `translateZ(420px) translateX(${transX})`;
       }, 1200);
 
       // Start progress bar animation on the loader screen inside the book
@@ -798,7 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
               setTimeout(() => {
                 if (wrapper) {
                   wrapper.style.transition = 'transform 2.5s cubic-bezier(0.25, 1, 0.3, 1)';
-                  wrapper.style.transform = 'translateZ(1800px) translateX(-350px)';
+                  wrapper.style.transform = `translateZ(1800px) translateX(${zoomX})`;
                 }
                 if (bookContainer) {
                   bookContainer.style.transition = 'opacity 2.2s cubic-bezier(0.25, 1, 0.3, 1), visibility 2.2s';
@@ -932,6 +958,144 @@ function initTouchControls() {
 
   joystickZone.addEventListener('pointercancel', (e) => {
     handleEnd();
+  });
+
+  // Swipe to look around with camera (for touch devices)
+  let swipeStart = { x: 0, y: 0 };
+  let isSwiping = false;
+
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 0) return;
+    const touch = e.touches[0];
+    
+    // Ignore touch if interacting with interactive HUD controls
+    const target = e.target;
+    if (target.closest('#joystick-zone') || 
+        target.closest('#action-bar') || 
+        target.closest('#next-btn') || 
+        target.closest('#top-controls') || 
+        target.closest('#hub-panel') || 
+        target.closest('#scroll-panel') || 
+        target.closest('#orientation-modal') ||
+        target.closest('#book-container')) {
+      return;
+    }
+    
+    swipeStart = { x: touch.clientX, y: touch.clientY };
+    isSwiping = true;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!isSwiping || !window.sceneEngine || !window.sceneEngine.movementEnabled || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - swipeStart.x;
+    const dy = touch.clientY - swipeStart.y;
+    
+    if (typeof window.sceneEngine.targetYaw === 'number') {
+      window.sceneEngine.targetYaw -= dx * 0.005;
+    }
+    if (typeof window.sceneEngine.targetPitch === 'number') {
+      window.sceneEngine.targetPitch -= dy * 0.005;
+      window.sceneEngine.targetPitch = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, window.sceneEngine.targetPitch));
+    }
+    
+    swipeStart = { x: touch.clientX, y: touch.clientY };
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => {
+    isSwiping = false;
+  }, { passive: true });
+
+  window.addEventListener('touchcancel', () => {
+    isSwiping = false;
+  }, { passive: true });
+}
+
+// Orientation guidance modal & layout toggle system
+let orientationInitialized = false;
+function initOrientationManager() {
+  if (orientationInitialized) return;
+  orientationInitialized = true;
+
+  const modal = document.getElementById('orientation-modal');
+  const portraitBtn = document.getElementById('portrait-opt-btn');
+  const toggleBtn = document.getElementById('orientation-toggle-btn');
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                   ('ontouchstart' in window && window.innerWidth < 1024) || 
+                   (window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+
+  function updateToggleUI(isPortrait) {
+    if (!toggleBtn) return;
+    const symEl = toggleBtn.querySelector('.orient-sym');
+    const textEl = toggleBtn.querySelector('.orient-text');
+    if (isPortrait) {
+      if (symEl) symEl.textContent = '🔄';
+      if (textEl) textEl.textContent = 'Landscape';
+    } else {
+      if (symEl) symEl.textContent = '📱';
+      if (textEl) textEl.textContent = 'Portrait';
+    }
+  }
+
+  function setMode(mode) {
+    if (mode === 'portrait') {
+      document.body.classList.add('portrait-mode');
+      updateToggleUI(true);
+    } else {
+      document.body.classList.remove('portrait-mode');
+      updateToggleUI(false);
+    }
+    if (window.sceneEngine && typeof window.sceneEngine.onWindowResize === 'function') {
+      window.sceneEngine.onWindowResize();
+    }
+  }
+
+  // Show orientation recommendation prompt on mobile if device is currently in portrait
+  const isPortraitNow = window.innerHeight > window.innerWidth;
+  if (isMobile && isPortraitNow) {
+    if (modal) {
+      modal.classList.add('show');
+    }
+  }
+
+  if (portraitBtn) {
+    portraitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMode('portrait');
+      if (modal) {
+        modal.classList.remove('show');
+      }
+    });
+  }
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentIsPortrait = document.body.classList.contains('portrait-mode') || window.innerHeight > window.innerWidth;
+      setMode(currentIsPortrait ? 'landscape' : 'portrait');
+    });
+  }
+
+  const handleOrientationOrResize = () => {
+    const isLandscape = window.innerWidth > window.innerHeight;
+    if (isLandscape) {
+      if (modal) modal.classList.remove('show');
+      document.body.classList.remove('portrait-mode');
+      updateToggleUI(false);
+    } else {
+      if (document.body.classList.contains('portrait-mode')) {
+        updateToggleUI(true);
+      }
+    }
+    if (window.sceneEngine && typeof window.sceneEngine.onWindowResize === 'function') {
+      window.sceneEngine.onWindowResize();
+    }
+  };
+
+  window.addEventListener('resize', handleOrientationOrResize);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(handleOrientationOrResize, 180);
   });
 }
 

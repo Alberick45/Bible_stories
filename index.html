@@ -111,23 +111,57 @@
     </div>
   </div>
 
+  <!-- Mobile Orientation Guidance Modal -->
+  <div id="orientation-modal" class="orientation-modal">
+    <div class="orientation-backdrop"></div>
+    <div class="orientation-card">
+      <div class="orientation-cross">✝</div>
+      <div class="phone-anim-container">
+        <div class="phone-mockup">
+          <div class="phone-screen-mock"></div>
+          <div class="phone-camera-mock"></div>
+        </div>
+        <div class="phone-rotate-arrow">⟳</div>
+      </div>
+      <h2 class="orientation-title">Landscape Recommended</h2>
+      <p class="orientation-desc">For the best biblical widescreen experience, turn your phone sideways to <strong>Landscape</strong>.</p>
+      <div class="orientation-choice">
+        <button id="portrait-opt-btn" class="orientation-btn portrait-opt-btn" aria-label="Use Portrait Mode">
+          <span class="btn-symbol">📱</span>
+          <span class="btn-text">Continue in Portrait</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="canvas-wrap"></div>
   <div id="veil"></div>
   <div id="day-label"></div>
   <div id="day-counter"></div>
   <div id="narration"></div>
   <div id="scripture-label">Genesis 1:1 &mdash; 2:7</div>
-  <div id="continue-hint">click or press space to continue</div>
+  
+  <!-- Next Dialogue Action Button (Phone & Laptop) -->
+  <button id="next-btn" class="next-btn" aria-label="Skip to Next dialogue">
+    <span class="next-btn-text">Next</span>
+    <span class="next-btn-symbol">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42 5.43 5.43H5v2z"/>
+      </svg>
+    </span>
+    <span class="next-btn-kbd">Space</span>
+  </button>
+
   <div id="movement-hint">Move: WASD / Arrows &nbsp;|&nbsp; Run: Shift + Move &nbsp;|&nbsp; Talk: T &nbsp;|&nbsp; Pray: P &nbsp;|&nbsp; Jump: J &nbsp;|&nbsp; Kick: K &nbsp;|&nbsp; Angry: R &nbsp;|&nbsp; POV: V</div>
   <div id="speech-bubble" class="speech-bubble"></div>
 
   <!-- On-Screen Action Bar -->
   <div id="action-bar">
-    <button class="action-btn" data-action="talking">Talk [T]</button>
-    <button class="action-btn" data-action="pray">Pray [P]</button>
-    <button class="action-btn" data-action="jump">Jump [J]</button>
-    <button class="action-btn" data-action="kicking">Kick [K]</button>
-    <button class="action-btn" data-action="angry">Angry [R]</button>
+    <button class="action-btn" data-action="talking"><span class="btn-sym">🗣️</span><span class="btn-label">Talk</span><span class="btn-key">[T]</span></button>
+    <button class="action-btn" data-action="pray"><span class="btn-sym">🙏</span><span class="btn-label">Pray</span><span class="btn-key">[P]</span></button>
+    <button class="action-btn" data-action="jump"><span class="btn-sym">⬆️</span><span class="btn-label">Jump</span><span class="btn-key">[J]</span></button>
+    <button class="action-btn" data-action="kicking"><span class="btn-sym">🦶</span><span class="btn-label">Kick</span><span class="btn-key">[K]</span></button>
+    <button class="action-btn" data-action="angry"><span class="btn-sym">⚡</span><span class="btn-label">Angry</span><span class="btn-key">[R]</span></button>
   </div>
 
   <!-- Mobile Virtual Joystick -->
@@ -142,6 +176,10 @@
 
   <!-- Top Right Controls -->
   <div id="top-controls">
+    <button id="orientation-toggle-btn" class="hud-btn orient-toggle-btn" title="Toggle Portrait/Landscape Layout">
+      <span class="orient-sym">📱</span>
+      <span class="orient-text">Portrait</span>
+    </button>
     <button id="speed-toggle-btn">Speed: 1x</button>
     <button id="skip-btn" style="display: none;">Skip Intro</button>
   </div>
