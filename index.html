@@ -171,17 +171,22 @@
     </div>
   </div>
 
-  <!-- Timeline Hub Toggle Button -->
-  <button id="hub-toggle-btn">Timeline Hub</button>
-
-  <!-- Top Right Controls -->
-  <div id="top-controls">
-    <button id="orientation-toggle-btn" class="hud-btn orient-toggle-btn" title="Toggle Portrait/Landscape Layout">
-      <span class="orient-sym">📱</span>
-      <span class="orient-text">Portrait</span>
+  <!-- Top Navigation Bar -->
+  <div id="top-bar">
+    <button id="hub-toggle-btn" title="Open Timeline of Ages">
+      <span class="hub-icon">🏛️</span>
+      <span class="hub-label">Timeline Hub</span>
     </button>
-    <button id="speed-toggle-btn">Speed: 1x</button>
-    <button id="skip-btn" style="display: none;">Skip Intro</button>
+    <div id="top-controls">
+      <button id="orientation-toggle-btn" class="hud-btn orient-toggle-btn" title="Toggle Portrait/Landscape Layout">
+        <span class="orient-sym">📱</span>
+        <span class="orient-text">Portrait</span>
+      </button>
+      <button id="speed-toggle-btn" title="Toggle Playback Speed">
+        <span class="speed-prefix">Speed: </span><span class="speed-val">1x</span>
+      </button>
+      <button id="skip-btn" style="display: none;">Skip Intro</button>
+    </div>
   </div>
 
   <!-- Timeline Hub Panel -->

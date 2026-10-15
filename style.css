@@ -254,61 +254,85 @@ canvas {
   opacity: 1;
 }
 
-/* Timeline Hub Button */
-#hub-toggle-btn {
+/* --- Top Navigation Bar --- */
+#top-bar {
   position: fixed;
-  top: 24px;
-  left: 24px;
-  z-index: 15;
+  top: max(16px, env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 150;
+  pointer-events: none;
+  gap: 8px;
+}
+
+#top-bar > * {
+  pointer-events: auto;
+}
+
+#hub-toggle-btn {
   font-family: var(--font-serif-body);
   font-size: 12px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(18, 14, 10, 0.78);
   border: 1px solid var(--color-subtle-gold);
   color: var(--color-gold);
-  padding: 10px 20px;
+  padding: 8px 16px;
   cursor: pointer;
-  border-radius: 2px;
-  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 #hub-toggle-btn:hover {
-  background: rgba(201, 185, 138, 0.15);
+  background: rgba(201, 185, 138, 0.2);
   border-color: var(--color-gold);
-  box-shadow: 0 0 10px rgba(201, 185, 138, 0.2);
+  box-shadow: 0 0 12px rgba(201, 185, 138, 0.3);
 }
 
-/* Top Right Controls */
 #top-controls {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 15;
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 #top-controls button {
   font-family: var(--font-serif-body);
   font-size: 12px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(18, 14, 10, 0.78);
   border: 1px solid var(--color-subtle-gold);
   color: var(--color-gold);
-  padding: 10px 20px;
+  padding: 8px 14px;
   cursor: pointer;
-  border-radius: 2px;
-  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 #top-controls button:hover {
-  background: rgba(201, 185, 138, 0.15);
+  background: rgba(201, 185, 138, 0.2);
   border-color: var(--color-gold);
-  box-shadow: 0 0 10px rgba(201, 185, 138, 0.2);
+  box-shadow: 0 0 12px rgba(201, 185, 138, 0.3);
 }
 
 /* Timeline Hub Panel */
@@ -940,6 +964,16 @@ canvas {
   gap: 8px;
   z-index: 100;
   flex-wrap: wrap;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+#action-bar.show {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .action-btn {
@@ -1003,9 +1037,18 @@ canvas {
   width: 96px;
   height: 96px;
   z-index: 100;
-  display: none;
   touch-action: none;
   user-select: none;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+#joystick-zone.show {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 #joystick-base {
@@ -1238,10 +1281,6 @@ canvas {
     display: none;
   }
 
-  #joystick-zone {
-    display: block;
-  }
-
   #movement-hint {
     display: none !important;
   }
@@ -1309,24 +1348,27 @@ body.portrait-mode .cross-svg {
 }
 
 /* Gameplay In Portrait Mode */
-body.portrait-mode #top-controls {
-  top: max(12px, env(safe-area-inset-top)) !important;
-  right: 12px !important;
-  gap: 6px !important;
-}
-
-body.portrait-mode #top-controls button {
-  padding: 6px 12px !important;
-  font-size: 10px !important;
-  letter-spacing: 0.1em !important;
+body.portrait-mode #top-bar {
+  top: max(8px, env(safe-area-inset-top)) !important;
+  left: 8px !important;
+  right: 8px !important;
+  gap: 4px !important;
 }
 
 body.portrait-mode #hub-toggle-btn {
-  top: max(12px, env(safe-area-inset-top)) !important;
-  left: 12px !important;
-  padding: 6px 12px !important;
-  font-size: 10px !important;
-  letter-spacing: 0.1em !important;
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.06em !important;
+}
+
+body.portrait-mode #top-controls {
+  gap: 4px !important;
+}
+
+body.portrait-mode #top-controls button {
+  padding: 6px 9px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.06em !important;
 }
 
 body.portrait-mode #day-label {
@@ -1460,24 +1502,27 @@ body.portrait-mode #scroll-inner {
     margin-bottom: 24px !important;
   }
 
-  #top-controls {
-    top: max(12px, env(safe-area-inset-top)) !important;
-    right: 12px !important;
-    gap: 6px !important;
-  }
-
-  #top-controls button {
-    padding: 6px 12px !important;
-    font-size: 10px !important;
-    letter-spacing: 0.1em !important;
+  #top-bar {
+    top: max(8px, env(safe-area-inset-top)) !important;
+    left: 8px !important;
+    right: 8px !important;
+    gap: 4px !important;
   }
 
   #hub-toggle-btn {
-    top: max(12px, env(safe-area-inset-top)) !important;
-    left: 12px !important;
-    padding: 6px 12px !important;
-    font-size: 10px !important;
-    letter-spacing: 0.1em !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    letter-spacing: 0.06em !important;
+  }
+
+  #top-controls {
+    gap: 4px !important;
+  }
+
+  #top-controls button {
+    padding: 6px 9px !important;
+    font-size: 11px !important;
+    letter-spacing: 0.06em !important;
   }
 
   #day-label {

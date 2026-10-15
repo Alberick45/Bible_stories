@@ -11,6 +11,7 @@ export class TTSEngine {
     // Web Speech API fallback state
     this.currentUtterance = null;
     this.onEndCallback = null;
+    this.playbackRate = 1.0;
   }
 
   async initialize() {
@@ -82,6 +83,10 @@ export class TTSEngine {
     return this.initPromise;
   }
 
+  setSpeedMultiplier(speed) {
+    this.playbackRate = Math.max(0.5, Math.min(3.0, speed));
+  }
+
   speakWebSpeech(text, voiceId, onEnd) {
     window.speechSynthesis.cancel();
     
@@ -98,7 +103,7 @@ export class TTSEngine {
     }
     if (matchVoice) utterance.voice = matchVoice;
     
-    utterance.rate = 1.0;
+    utterance.rate = this.playbackRate || window.currentSpeed || 1.0;
 
     utterance.onend = () => {
       this.currentUtterance = null;

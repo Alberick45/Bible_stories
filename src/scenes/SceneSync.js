@@ -17,14 +17,17 @@ export class SceneSync {
     this.currentScene = scene;
     this.onDone = onDone;
 
+    const speed = window.currentSpeed || 1;
+
     if (isWebSpeechFallback && fallbackSpeakFn) {
-      // Estimated duration based on words
+      // Estimated duration based on words scaled by speed
       const wordsCount = scene.text ? scene.text.split(/\s+/).length : 5;
-      const estimatedDurationSec = Math.max(2.0, wordsCount / 3.0);
+      const estimatedDurationSec = Math.max(1.5, (wordsCount / 3.0) / speed);
       scene.durationMs = estimatedDurationSec * 1000;
 
       scene.animationTimeline = buildTimeline(scene, estimatedDurationSec, sceneEngine);
       if (scene.animationTimeline) {
+        scene.animationTimeline.timeScale(speed);
         scene.animationTimeline.play();
       }
 
@@ -60,15 +63,18 @@ export class SceneSync {
 
     this.currentSource = this.audioCtx.createBufferSource();
     this.currentSource.buffer = scene.audioBuffer;
+    this.currentSource.playbackRate.value = speed;
     this.currentSource.connect(this.audioCtx.destination);
 
-    const startTime = this.audioCtx.currentTime;
-    this.currentSource.start(startTime);
+    this.startTime = this.audioCtx.currentTime;
+    this.currentSource.start(this.startTime);
 
     const tick = () => {
       if (!this.currentSource) return;
 
-      const elapsed = this.audioCtx.currentTime - startTime;
+      const rawElapsed = this.audioCtx.currentTime - this.startTime;
+      const effectiveRate = (this.currentSource && this.currentSource.playbackRate) ? this.currentSource.playbackRate.value : 1;
+      const elapsed = rawElapsed * effectiveRate;
       
       if (scene.animationTimeline) {
         scene.animationTimeline.seek(elapsed);
@@ -85,6 +91,19 @@ export class SceneSync {
       this.stop();
       if (cb) cb();
     };
+  }
+
+  setPlaybackRate(speed) {
+    if (this.currentSource && this.currentSource.playbackRate && this.audioCtx) {
+      try {
+        this.currentSource.playbackRate.setValueAtTime(speed, this.audioCtx.currentTime);
+      } catch (_) {
+        this.currentSource.playbackRate.value = speed;
+      }
+    }
+    if (this.currentScene && this.currentScene.animationTimeline) {
+      this.currentScene.animationTimeline.timeScale(speed);
+    }
   }
 
   stop() {

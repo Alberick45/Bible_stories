@@ -36,6 +36,8 @@ const scrollContentEl = document.getElementById('scroll-content');
 const speechBubbleEl = document.getElementById('speech-bubble');
 const speedToggleBtn = document.getElementById('speed-toggle-btn');
 const skipBtn = document.getElementById('skip-btn');
+const actionBarEl = document.getElementById('action-bar');
+const joystickZoneEl = document.getElementById('joystick-zone');
 
 // Hub elements
 const hubToggleBtn = document.getElementById('hub-toggle-btn');
@@ -175,6 +177,8 @@ function destroyActiveScene() {
   if (narrationEl) narrationEl.classList.remove('show');
   if (hintEl) hintEl.classList.remove('show');
   if (nextBtn) nextBtn.classList.remove('show');
+  if (actionBarEl) actionBarEl.classList.remove('show');
+  if (joystickZoneEl) joystickZoneEl.classList.remove('show');
   if (movementHintEl) movementHintEl.classList.remove('show');
   if (scriptureLabelEl) scriptureLabelEl.classList.remove('show');
 
@@ -313,6 +317,9 @@ function setupInteractiveGameplay(scene) {
   window.isCinematicActive = false;
   
   if (skipBtn) skipBtn.style.display = 'none';
+  if (nextBtn) nextBtn.classList.remove('show');
+  if (actionBarEl) actionBarEl.classList.add('show');
+  if (joystickZoneEl) joystickZoneEl.classList.add('show');
 
   if (scene.chapterId === 'creation') {
     window.sceneEngine.unlockControls();
@@ -380,6 +387,8 @@ function handleSceneChange(scene) {
     if (speechBubbleEl) speechBubbleEl.style.display = 'none';
     if (hintEl) hintEl.classList.remove('show');
     if (nextBtn) nextBtn.classList.remove('show');
+    if (actionBarEl) actionBarEl.classList.add('show');
+    if (joystickZoneEl) joystickZoneEl.classList.add('show');
     bubbleTargetObject = null;
     
     // Display interactive instruction in top tutorial box
@@ -396,6 +405,12 @@ function handleSceneChange(scene) {
   }
   if (nextBtn) {
     nextBtn.classList.add('show');
+  }
+  if (actionBarEl) {
+    actionBarEl.classList.remove('show');
+  }
+  if (joystickZoneEl) {
+    joystickZoneEl.classList.remove('show');
   }
 
   if (skipBtn) {
@@ -628,9 +643,24 @@ document.addEventListener('DOMContentLoaded', () => {
     speedToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       window.currentSpeed = window.currentSpeed === 1 ? 2 : 1;
-      speedToggleBtn.textContent = `Speed: ${window.currentSpeed}x`;
+      const speedValEl = speedToggleBtn.querySelector('.speed-val');
+      if (speedValEl) {
+        speedValEl.textContent = `${window.currentSpeed}x`;
+      } else {
+        speedToggleBtn.textContent = `Speed: ${window.currentSpeed}x`;
+      }
       
-      // Update global timeline rate (voices stay at 1x rate natively)
+      // Update TTS engine rate for upcoming speech
+      if (ttsEngine && typeof ttsEngine.setSpeedMultiplier === 'function') {
+        ttsEngine.setSpeedMultiplier(window.currentSpeed);
+      }
+
+      // Update active playing speech audio buffer rate in real-time
+      if (orchestrator && orchestrator.sync && typeof orchestrator.sync.setPlaybackRate === 'function') {
+        orchestrator.sync.setPlaybackRate(window.currentSpeed);
+      }
+
+      // Update global animation timeline rate
       gsap.globalTimeline.timeScale(window.currentSpeed);
     });
   }
