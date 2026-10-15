@@ -1469,15 +1469,14 @@ export class EdenScene {
     ctx.fillText(`${animal.userData.icon} ${animal.userData.name}`, 128, 50);
     
     const texture = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: true, depthWrite: false });
     const sprite = new THREE.Sprite(spriteMat);
-    sprite.scale.set(1.6, 0.65, 1.0);
-    sprite.position.set(0, animal.userData.type === 'dove' ? 1.1 : 1.55, 0);
+    sprite.scale.set(0.2, 0.08, 0.2);
+    sprite.position.set(0, animal.userData.type === 'dove' ? 0.95 : 1.35, 0);
     animal.add(sprite);
     
-    // Animate sprite scale popping in
-    sprite.scale.set(0.2, 0.08, 0.2);
-    gsap.to(sprite.scale, { x: 1.6, y: 0.65, z: 1.0, duration: 0.5, ease: 'back.out(2)' });
+    // Animate sprite scale popping in with crisp proportion
+    gsap.to(sprite.scale, { x: 1.05, y: 0.42, z: 1.0, duration: 0.45, ease: 'back.out(2)' });
   }
 
   raycastAnimal(clientX, clientY) {

@@ -533,13 +533,13 @@ export class CreationScene {
     this.animalGroup = new THREE.Group();
     this.animalGroup.visible = false;
     
-    // 5 interactable goal creatures placed near Adam at (0, 4)
+    // 5 interactable goal creatures placed across the landscape around Adam at (0, 4)
     const goalFauna = [
-      { index: 0, name: 'Lion', icon: '🦁', x: -6, z: 2 },
-      { index: 7, name: 'Sheep', icon: '🐑', x: 5, z: 7 },
-      { index: 9, name: 'Cow', icon: '🐂', x: -4, z: 10 },
-      { index: 10, name: 'Deer', icon: '🦌', x: 7, z: 2 },
-      { index: 48, name: 'Dove', icon: '🕊️', x: 1, z: 9 }
+      { index: 0, name: 'Lion', icon: '🦁', x: -11, z: 0 },
+      { index: 7, name: 'Sheep', icon: '🐑', x: 9, z: 12 },
+      { index: 9, name: 'Cow', icon: '🐂', x: -8, z: 14 },
+      { index: 10, name: 'Deer', icon: '🦌', x: 12, z: -4 },
+      { index: 48, name: 'Dove', icon: '🕊️', x: 0, z: 13 }
     ];
 
     goalFauna.forEach((spec) => {
@@ -1210,7 +1210,9 @@ export class CreationScene {
             window.hideInstructionBanner();
           }
           if (speechBubbleEl) speechBubbleEl.style.display = 'none';
-          if (window.orchestrator && typeof window.orchestrator.next === 'function') {
+          if (typeof window.loadScene === 'function') {
+            window.loadScene('eden');
+          } else if (window.orchestrator && typeof window.orchestrator.next === 'function') {
             window.orchestrator.next();
           }
         }, 2000);
@@ -1256,15 +1258,14 @@ export class CreationScene {
     ctx.fillText(`${animal.userData.icon} ${animal.userData.name}`, 128, 50);
     
     const texture = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: true, depthWrite: false });
     const sprite = new THREE.Sprite(spriteMat);
-    sprite.scale.set(1.6, 0.65, 1.0);
-    sprite.position.set(0, 1.55, 0);
+    sprite.scale.set(0.2, 0.08, 0.2);
+    sprite.position.set(0, (animal.name === 'Dove') ? 0.95 : 1.35, 0);
     animal.add(sprite);
     
-    // Animate sprite scale popping in
-    sprite.scale.set(0.2, 0.08, 0.2);
-    gsap.to(sprite.scale, { x: 1.6, y: 0.65, z: 1.0, duration: 0.5, ease: 'back.out(2)' });
+    // Animate sprite scale popping in with crisp proportion
+    gsap.to(sprite.scale, { x: 1.05, y: 0.42, z: 1.0, duration: 0.45, ease: 'back.out(2)' });
   }
 
   raycastAnimal(clientX, clientY) {

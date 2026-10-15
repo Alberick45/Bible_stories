@@ -274,8 +274,16 @@ export class SceneOrchestrator {
     const nextId = this.currentId + 1;
     const next = this.scenes.get(nextId);
 
-    if (!next || next.chapterId !== scene.chapterId) {
-      console.log('[Orchestrator] Reached end of chapter', scene.chapterId);
+    if (!next) {
+      console.log('[Orchestrator] Reached end of all chapters');
+      return;
+    }
+
+    if (next.chapterId !== scene.chapterId) {
+      console.log('[Orchestrator] Chapter completed:', scene.chapterId, '-> advancing to:', next.chapterId);
+      if (typeof window.loadScene === 'function') {
+        window.loadScene(next.chapterId);
+      }
       return;
     }
 

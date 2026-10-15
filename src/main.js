@@ -343,6 +343,9 @@ async function loadScene(sceneName) {
   }, 100);
 }
 
+window.loadScene = loadScene;
+window.orchestrator = orchestrator;
+
 // Proximity monitor loops for interactive gameplay checkpoints
 function setupInteractiveGameplay(scene) {
   clearInterval(interactiveInterval);
