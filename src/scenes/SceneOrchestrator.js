@@ -129,6 +129,7 @@ export class SceneOrchestrator {
 
         // If orchestrator was waiting on this scene, trigger play
         if (msg.sceneId === this.currentId && this.isWaitingForCurrent) {
+          if (this._workerWaitTimer) clearTimeout(this._workerWaitTimer);
           this.isWaitingForCurrent = false;
           this.playCurrent();
         }
@@ -166,35 +167,12 @@ export class SceneOrchestrator {
     const pregenerateCount = Math.min(3, chapterScenes.length);
     const targets = chapterScenes.slice(0, pregenerateCount);
 
+    // Trigger generation for chapter targets in background without stalling scene boot
     if (ttsEngine.activeEngine === 'worker' && ttsEngine.worker) {
-      const instructionBanner = document.getElementById('instruction-banner');
-      if (instructionBanner) {
-        instructionBanner.innerHTML = "Awakening Divine Voices...";
-        instructionBanner.classList.add('show');
-      }
-
       for (const targetScene of targets) {
         if (targetScene.status !== 'ready') {
           this.postWorkerMessage({ type: 'GENERATE', sceneId: targetScene.id });
-          
-          await new Promise(resolve => {
-            const timeout = setTimeout(() => {
-              clearInterval(check);
-              resolve();
-            }, 3000);
-            const check = setInterval(() => {
-              if (targetScene.status === 'ready' || ttsEngine.activeEngine !== 'worker' || !ttsEngine.worker) {
-                clearTimeout(timeout);
-                clearInterval(check);
-                resolve();
-              }
-            }, 80);
-          });
         }
-      }
-
-      if (instructionBanner) {
-        instructionBanner.classList.remove('show');
       }
     }
 
@@ -228,6 +206,16 @@ export class SceneOrchestrator {
     if (scene.status !== 'ready') {
       console.log('[Orchestrator] Scene not ready, waiting for worker...', scene.id);
       this.isWaitingForCurrent = true;
+      
+      // Fallback timeout: if worker doesn't complete within 1.2s, proceed with Web Speech fallback so mobile never hangs!
+      if (this._workerWaitTimer) clearTimeout(this._workerWaitTimer);
+      this._workerWaitTimer = setTimeout(() => {
+        if (this.isWaitingForCurrent && this.currentId === scene.id) {
+          console.log('[Orchestrator] ⏱️ Worker wait timeout reached, falling back to Web Speech for scene', scene.id);
+          this.isWaitingForCurrent = false;
+          this.playCurrentFallback();
+        }
+      }, 1200);
       return;
     }
 
@@ -308,6 +296,8 @@ export class SceneOrchestrator {
 
   next() {
     // Halts active speech/sync and advances to the next scene in the chapter
+    if (this._workerWaitTimer) clearTimeout(this._workerWaitTimer);
+    this.isWaitingForCurrent = false;
     this.sync.stop();
     ttsEngine.stop();
     this.onSceneDone();

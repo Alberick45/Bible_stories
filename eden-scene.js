@@ -1333,27 +1333,68 @@ export class EdenScene {
   }
 
   attachBeacon(animal, isHigh = false) {
-    const beaconGeo = new THREE.OctahedronGeometry(0.16);
-    const beaconMat = new THREE.MeshStandardMaterial({
-      color: 0xffe066,
-      emissive: 0xffaa00,
-      emissiveIntensity: 1.8,
-      roughness: 0.2
+    const beaconHolder = new THREE.Group();
+    beaconHolder.position.y = isHigh ? 1.6 : 1.35;
+
+    // 1. Tall 12-meter vertical golden pillar of light visible from afar
+    const pillarGeo = new THREE.CylinderGeometry(0.3, 0.45, 12, 16, 1, true);
+    const pillarMat = new THREE.MeshBasicMaterial({
+      color: 0xffe680,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
-    const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-    beacon.position.y = isHigh ? 1.6 : 1.35;
-    animal.add(beacon);
-    animal.userData.beacon = beacon;
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    pillar.position.y = 6.0;
+    beaconHolder.add(pillar);
+
+    // 2. Pulsing golden halo ring
+    const ringGeo = new THREE.RingGeometry(0.55, 0.78, 16);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 2.2;
+    beaconHolder.add(ring);
+
+    // 3. Floating brilliant golden star octahedron
+    const starGeo = new THREE.OctahedronGeometry(0.34);
+    const starMat = new THREE.MeshStandardMaterial({
+      color: 0xffea00,
+      emissive: 0xffaa00,
+      emissiveIntensity: 3.2,
+      roughness: 0.15
+    });
+    const star = new THREE.Mesh(starGeo, starMat);
+    star.position.y = 2.2;
+    beaconHolder.add(star);
+
+    animal.add(beaconHolder);
+    animal.userData.beaconHolder = beaconHolder;
+    animal.userData.beaconPillar = pillar;
+    animal.userData.beaconStar = star;
+    animal.userData.beaconRing = ring;
+    animal.userData.beacon = star;
   }
 
   startNamingMode() {
     this.isNamingModeActive = true;
     this.namedCount = 0;
     this.unlockControls();
+    this.targetPitch = 0.22;
     if (this.animalGroup) {
       this.animalGroup.children.forEach(animal => {
         if (animal.userData && animal.userData.isInteractable) {
           animal.userData.named = false;
+          if (animal.userData.beaconPillar) {
+            animal.userData.beaconPillar.material.opacity = 0.55;
+          }
         }
       });
     }
@@ -1379,11 +1420,17 @@ export class EdenScene {
     // Adam gestures towards animal
     this.pointAtAnimal(animal);
     
-    // Transform beacon to golden halo
-    if (animal.userData.beacon) {
-      animal.userData.beacon.material.color.setHex(0xffea00);
-      animal.userData.beacon.material.emissive.setHex(0xffbb00);
-      animal.userData.beacon.material.emissiveIntensity = 2.8;
+    // Fade out beacon pillar, turn star and ring green/gold celebration halo
+    if (animal.userData.beaconPillar) {
+      gsap.to(animal.userData.beaconPillar.material, { opacity: 0, duration: 0.8 });
+    }
+    if (animal.userData.beaconStar) {
+      animal.userData.beaconStar.material.color.setHex(0x55ff77);
+      animal.userData.beaconStar.material.emissive.setHex(0x22ee44);
+      animal.userData.beaconStar.material.emissiveIntensity = 2.5;
+    }
+    if (animal.userData.beaconRing) {
+      animal.userData.beaconRing.material.color.setHex(0x55ff77);
     }
 
     // Spawn 3D golden pill name tag sprite

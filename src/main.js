@@ -253,15 +253,22 @@ async function loadScene(sceneName) {
   veilEl.style.transition = 'background 0.4s ease';
   veilEl.style.background = '#000000';
 
+  const sceneTitles = {
+    creation: 'Creation',
+    eden: 'Garden of Eden',
+    cainabel: 'Cain & Abel',
+    noah: 'Noah\'s Ark',
+    babel: 'Tower of Babel'
+  };
+  const title = sceneTitles[sceneName] || sceneName;
+
+  const sceneLoaderEl = document.getElementById('scene-loader');
+  const sceneLoaderTextEl = document.getElementById('scene-loader-text');
+  if (sceneLoaderTextEl) sceneLoaderTextEl.textContent = `Entering ${title}...`;
+  if (sceneLoaderEl) sceneLoaderEl.classList.add('show');
+
   if (window.showCameraToast) {
-    const sceneTitles = {
-      creation: 'Creation',
-      eden: 'Garden of Eden',
-      cainabel: 'Cain & Abel',
-      noah: 'Noah\'s Ark',
-      babel: 'Tower of Babel'
-    };
-    window.showCameraToast(`Entering ${sceneTitles[sceneName] || sceneName}...`);
+    window.showCameraToast(`Entering ${title}...`);
   }
 
   // Preload assets for this target scene while veil is dark
@@ -271,7 +278,10 @@ async function loadScene(sceneName) {
     console.warn('[loadScene] Preload warning:', e);
   }
 
-  if (thisSeqId !== window.currentSequenceId) return;
+  if (thisSeqId !== window.currentSequenceId) {
+    if (sceneLoaderEl) sceneLoaderEl.classList.remove('show');
+    return;
+  }
 
   destroyActiveScene();
   window.activeSceneName = sceneName;
@@ -338,6 +348,7 @@ async function loadScene(sceneName) {
 
   setTimeout(() => {
     if (thisSeqId !== window.currentSequenceId) return;
+    if (sceneLoaderEl) sceneLoaderEl.classList.remove('show');
     veilEl.style.transition = 'background 1.0s ease';
     veilEl.style.background = 'rgba(0,0,0,0)';
   }, 100);
@@ -972,7 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Mobile virtual joystick helpers
+// Mobile virtual joystick helpers with simultaneous dual-touch steering
 function initTouchControls() {
   const joystickZone = document.getElementById('joystick-zone');
   const joystickBase = document.getElementById('joystick-base');
@@ -981,18 +992,24 @@ function initTouchControls() {
   if (!joystickZone || !joystickBase || !joystickKnob) return;
   
   let joystickActive = false;
+  let joystickTouchId = null;
   let joystickStartPos = { x: 0, y: 0 };
 
-  const handleStart = (clientX, clientY) => {
+  let cameraTouchId = null;
+  let cameraSwipeStart = { x: 0, y: 0 };
+  let isCameraSwiping = false;
+
+  const handleJoystickStart = (clientX, clientY, touchId) => {
     const rect = joystickBase.getBoundingClientRect();
     joystickStartPos = {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2
     };
     joystickActive = true;
+    joystickTouchId = touchId;
   };
 
-  const handleMove = (clientX, clientY) => {
+  const handleJoystickMove = (clientX, clientY) => {
     if (!joystickActive || !window.sceneEngine) return;
     const dx = clientX - joystickStartPos.x;
     const dy = clientY - joystickStartPos.y;
@@ -1015,98 +1032,119 @@ function initTouchControls() {
     }
   };
 
-  const handleEnd = () => {
+  const handleJoystickEnd = () => {
     joystickActive = false;
+    joystickTouchId = null;
     joystickKnob.style.transform = 'translate(0px, 0px)';
     if (window.sceneEngine && window.sceneEngine.joystickVector) {
       window.sceneEngine.joystickVector.set(0, 0);
     }
   };
 
-  // Touch Events
-  joystickZone.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (e.touches.length > 0) handleStart(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: false });
-
-  joystickZone.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    if (e.touches.length > 0) handleMove(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: false });
-
-  joystickZone.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    handleEnd();
-  }, { passive: false });
-
-  // Pointer Events for mobile browsers / hybrid devices
-  joystickZone.addEventListener('pointerdown', (e) => {
-    joystickZone.setPointerCapture(e.pointerId);
-    handleStart(e.clientX, e.clientY);
-  });
-
-  joystickZone.addEventListener('pointermove', (e) => {
-    handleMove(e.clientX, e.clientY);
-  });
-
-  joystickZone.addEventListener('pointerup', (e) => {
-    try { joystickZone.releasePointerCapture(e.pointerId); } catch (_) {}
-    handleEnd();
-  });
-
-  joystickZone.addEventListener('pointercancel', (e) => {
-    handleEnd();
-  });
-
-  // Swipe to look around with camera (for touch devices)
-  let swipeStart = { x: 0, y: 0 };
-  let isSwiping = false;
-
+  // Touch Events on Window for Multi-Touch (Simultaneous Steer + Look)
   window.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 0) return;
-    const touch = e.touches[0];
-    
-    // Ignore touch if interacting with interactive HUD controls
-    const target = e.target;
-    if (target.closest('#joystick-zone') || 
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const target = touch.target;
+      
+      // Check if touch is within joystick zone
+      if (target && target.closest('#joystick-zone')) {
+        if (joystickTouchId === null) {
+          handleJoystickStart(touch.clientX, touch.clientY, touch.identifier);
+        }
+        continue;
+      }
+      
+      // Ignore touch if interacting with other HUD controls
+      if (target && (
         target.closest('#action-bar') || 
         target.closest('#next-btn') || 
-        target.closest('#top-controls') || 
+        target.closest('#top-bar') || 
         target.closest('#hub-panel') || 
         target.closest('#scroll-panel') || 
         target.closest('#orientation-modal') ||
-        target.closest('#book-container')) {
-      return;
+        target.closest('#book-container')
+      )) {
+        continue;
+      }
+      
+      // Assign camera rotation touch (e.g. right thumb)
+      if (cameraTouchId === null) {
+        cameraTouchId = touch.identifier;
+        cameraSwipeStart = { x: touch.clientX, y: touch.clientY };
+        isCameraSwiping = true;
+      }
     }
-    
-    swipeStart = { x: touch.clientX, y: touch.clientY };
-    isSwiping = true;
-  }, { passive: true });
+  }, { passive: false });
 
   window.addEventListener('touchmove', (e) => {
-    if (!isSwiping || !window.sceneEngine || !window.sceneEngine.movementEnabled || e.touches.length === 0) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - swipeStart.x;
-    const dy = touch.clientY - swipeStart.y;
-    
-    if (typeof window.sceneEngine.targetYaw === 'number') {
-      window.sceneEngine.targetYaw -= dx * 0.005;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      
+      // 1. Process joystick movement
+      if (touch.identifier === joystickTouchId && joystickActive) {
+        handleJoystickMove(touch.clientX, touch.clientY);
+        if (e.cancelable) e.preventDefault();
+      }
+      
+      // 2. Process camera rotation
+      if (touch.identifier === cameraTouchId && isCameraSwiping) {
+        if (window.sceneEngine && window.sceneEngine.movementEnabled) {
+          const dx = touch.clientX - cameraSwipeStart.x;
+          const dy = touch.clientY - cameraSwipeStart.y;
+          
+          if (typeof window.sceneEngine.targetYaw === 'number') {
+            window.sceneEngine.targetYaw -= dx * 0.005;
+          }
+          if (typeof window.sceneEngine.targetPitch === 'number') {
+            window.sceneEngine.targetPitch -= dy * 0.005;
+            window.sceneEngine.targetPitch = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, window.sceneEngine.targetPitch));
+          }
+          cameraSwipeStart = { x: touch.clientX, y: touch.clientY };
+        }
+        if (e.cancelable) e.preventDefault();
+      }
     }
-    if (typeof window.sceneEngine.targetPitch === 'number') {
-      window.sceneEngine.targetPitch -= dy * 0.005;
-      window.sceneEngine.targetPitch = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, window.sceneEngine.targetPitch));
+  }, { passive: false });
+
+  const handleTouchEndOrCancel = (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      if (touch.identifier === joystickTouchId) {
+        handleJoystickEnd();
+      }
+      if (touch.identifier === cameraTouchId) {
+        cameraTouchId = null;
+        isCameraSwiping = false;
+      }
     }
-    
-    swipeStart = { x: touch.clientX, y: touch.clientY };
-  }, { passive: true });
+  };
 
-  window.addEventListener('touchend', () => {
-    isSwiping = false;
-  }, { passive: true });
+  window.addEventListener('touchend', handleTouchEndOrCancel, { passive: true });
+  window.addEventListener('touchcancel', handleTouchEndOrCancel, { passive: true });
 
-  window.addEventListener('touchcancel', () => {
-    isSwiping = false;
-  }, { passive: true });
+  // Mouse / Pointer Events for desktop testing
+  joystickZone.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') return;
+    joystickZone.setPointerCapture(e.pointerId);
+    handleJoystickStart(e.clientX, e.clientY, 'mouse-joystick');
+  });
+
+  joystickZone.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') return;
+    handleJoystickMove(e.clientX, e.clientY);
+  });
+
+  joystickZone.addEventListener('pointerup', (e) => {
+    if (e.pointerType === 'touch') return;
+    try { joystickZone.releasePointerCapture(e.pointerId); } catch (_) {}
+    handleJoystickEnd();
+  });
+
+  joystickZone.addEventListener('pointercancel', (e) => {
+    if (e.pointerType === 'touch') return;
+    handleJoystickEnd();
+  });
 }
 
 // Orientation guidance modal & layout toggle system

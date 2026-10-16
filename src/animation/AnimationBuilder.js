@@ -276,19 +276,23 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
     const text = (scene.text || '').toLowerCase();
     const id = scene.id;
 
-    if (id === 55 || text.includes('bare cain')) { // Intro birth
+    if (text.includes('bare cain') || text.includes('gotten a man') || text.includes('brother abel') || text.includes('adam knew eve')) { // Intro birth & infancy
       tl.call(() => {
         if (camPos) {
-          camPos.set(-11, 2.5, 14);
-          sceneEngine.camera.lookAt(-15.0, 1.3, 11.5);
+          const sy = (typeof sceneEngine.getTerrainHeight === 'function') ? sceneEngine.getTerrainHeight(-16, 12) : 0;
+          camPos.set(-12.5, sy + 2.0, 15.0);
+          if (sceneEngine.camera) sceneEngine.camera.lookAt(-15.8, sy + 0.9, 12.0);
         }
-        // Show infants, hide grown Cain/Abel
+        // Show shelter, infants, parents; hide grown Cain/Abel
+        if (sceneEngine.shelterGroup) sceneEngine.shelterGroup.visible = true;
         if (sceneEngine.crib) sceneEngine.crib.visible = true;
+        if (sceneEngine.adam) sceneEngine.adam.visible = true;
+        if (sceneEngine.eve) sceneEngine.eve.visible = true;
         if (sceneEngine.cain) sceneEngine.cain.visible = false;
         if (sceneEngine.abel) sceneEngine.abel.visible = false;
       }, null, 0);
     }
-    else if (id === 58 || text.includes('keeper of sheep')) { // Grown up
+    else if (text.includes('keeper of sheep') || text.includes('process of time') || text.includes('fruit of the ground') || text.includes('firstlings of his flock')) { // Grown up
       tl.call(() => {
         if (camPos) {
           gsap.to(camPos, {

@@ -130,22 +130,22 @@ export const SCENE_ASSETS = {
     gltf: ['horse', 'flamingo', 'stork', 'parrot', 'fox', 'duck']
   },
   eden: {
-    characters: ['adam_black', 'eve_white', 'swordsman'],
+    characters: ['adam_black'],
     animations: ['idle', 'walk', 'run', 'talking', 'pray', 'female_laying'],
     gltf: []
   },
   cainabel: {
-    characters: ['old_guy1', 'eve_white', 'man1', 'man2', 'swordsman'],
+    characters: [],
     animations: ['idle', 'walk', 'run', 'talking', 'pray', 'hook_punch', 'dying'],
     gltf: []
   },
   noah: {
-    characters: ['old_guy1', 'man1', 'man2', 'megan_black'],
+    characters: [],
     animations: ['idle', 'walk', 'run', 'talking', 'pray'],
     gltf: ['horse', 'flamingo', 'stork', 'parrot', 'fox', 'duck']
   },
   babel: {
-    characters: ['man1', 'man2', 'peasant_man', 'swordsman'],
+    characters: [],
     animations: ['idle', 'walk', 'run', 'talking', 'pray'],
     gltf: []
   }
@@ -530,7 +530,9 @@ export async function preloadSceneAssets(sceneName, onProgress) {
     }
   }
 
-  await Promise.allSettled(tasks);
+  // Preloading should never stall scene transition on slow mobile networks: 2.0s ceiling
+  const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
+  await Promise.race([Promise.allSettled(tasks), timeoutPromise]);
 }
 
 

@@ -1805,4 +1805,63 @@ body.portrait-mode #scroll-inner {
   }
 }
 
+/* ==========================================================================
+   Lightweight Scene Transition Loader
+   ========================================================================== */
+.scene-loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 30px;
+  background: rgba(14, 18, 14, 0.88);
+  border: 1px solid rgba(229, 184, 59, 0.45);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), 0 0 25px rgba(229, 184, 59, 0.22);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 105;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.scene-loader.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.loader-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(229, 184, 59, 0.2);
+  border-top-color: #ffd866;
+  border-right-color: #f5b041;
+  border-radius: 50%;
+  animation: scene-loader-spin 0.85s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+}
+
+@keyframes scene-loader-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-text {
+  font-family: 'Cinzel', 'Cinzel Decorative', 'Georgia', serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff1b0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+  max-width: 260px;
+}
+
 

@@ -7,6 +7,7 @@ export class SceneSync {
     this.currentScene = null;
     this.onDone = null;
     this.rafId = null;
+    this.safetyTimer = null;
   }
 
   setAudioContext(ctx) {
@@ -19,10 +20,15 @@ export class SceneSync {
 
     const speed = window.currentSpeed || 1;
 
+    if (this.safetyTimer) {
+      clearTimeout(this.safetyTimer);
+      this.safetyTimer = null;
+    }
+
     if (isWebSpeechFallback && fallbackSpeakFn) {
       // Estimated duration based on words scaled by speed
       const wordsCount = scene.text ? scene.text.split(/\s+/).length : 5;
-      const estimatedDurationSec = Math.max(1.5, (wordsCount / 3.0) / speed);
+      const estimatedDurationSec = Math.max(2.0, (wordsCount / 2.8) / speed);
       scene.durationMs = estimatedDurationSec * 1000;
 
       scene.animationTimeline = buildTimeline(scene, estimatedDurationSec, sceneEngine);
@@ -31,10 +37,24 @@ export class SceneSync {
         scene.animationTimeline.play();
       }
 
-      fallbackSpeakFn(scene.text, scene.voice, () => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        if (this.safetyTimer) {
+          clearTimeout(this.safetyTimer);
+          this.safetyTimer = null;
+        }
         const cb = this.onDone;
         this.stop();
         if (cb) cb();
+      };
+
+      // Safety timeout: guarantees advancement even if mobile speech synthesis onend never fires!
+      this.safetyTimer = setTimeout(finish, (estimatedDurationSec + 1.2) * 1000);
+
+      fallbackSpeakFn(scene.text, scene.voice, () => {
+        finish();
       });
       return;
     }
@@ -86,10 +106,24 @@ export class SceneSync {
     };
     this.rafId = requestAnimationFrame(tick);
 
-    this.currentSource.onended = () => {
+    let audioEnded = false;
+    const finishAudio = () => {
+      if (audioEnded) return;
+      audioEnded = true;
+      if (this.safetyTimer) {
+        clearTimeout(this.safetyTimer);
+        this.safetyTimer = null;
+      }
       const cb = this.onDone;
       this.stop();
       if (cb) cb();
+    };
+
+    // Safety timeout for buffer audio playback
+    this.safetyTimer = setTimeout(finishAudio, (durationSec / speed + 1.2) * 1000);
+
+    this.currentSource.onended = () => {
+      finishAudio();
     };
   }
 
@@ -109,6 +143,10 @@ export class SceneSync {
   stop() {
     this.onDone = null; // Clear to prevent double invocation on speech cancel
 
+    if (this.safetyTimer) {
+      clearTimeout(this.safetyTimer);
+      this.safetyTimer = null;
+    }
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
@@ -130,3 +168,4 @@ export class SceneSync {
     }
   }
 }
+
