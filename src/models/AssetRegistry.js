@@ -433,7 +433,6 @@ async function executeClipLoad(key, url, timeoutMs) {
               }
             });
 
-            clip.tracks.forEach(t => console.log(t.name));
             stripRootMotion(clip);
           }
 
@@ -473,7 +472,6 @@ export async function loadAnimationClip(keyOrUrl, options = {}) {
   const timeoutMs = options.timeoutMs !== undefined ? options.timeoutMs : 30000;
 
   if (clipCache.has(key)) {
-    console.log(`[AssetRegistry] ⚡ [CACHE - ANIMATION] '${key}'`);
     return clipCache.get(key).clone();
   }
   if (clipCache.has(primaryUrl)) return clipCache.get(primaryUrl).clone();

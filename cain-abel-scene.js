@@ -675,7 +675,8 @@ export class CainAbelScene {
     
     // Player controls (WASD controls Cain when active)
     if (this.movementEnabled && this.cain.visible) {
-      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift']);
+      const joyDist = (this.joystickVector && this.joystickVector.lengthSq() > 0) ? this.joystickVector.length() : 0;
+      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift'] || joyDist > 0.72);
       const speed = (isRunning ? 5.2 : 2.4) * dt;
       
       const camForward = new THREE.Vector3();
@@ -718,7 +719,7 @@ export class CainAbelScene {
           if (this.cainCharacter.mixer) {
             const targetAnim = isRunning ? 'run' : 'walk';
             if (this.cainCharacter.activeActionName !== targetAnim) {
-              this.cainCharacter.playAnimation(targetAnim);
+              this.cainCharacter.playAnimation(targetAnim, { force: true });
             }
           } else if (this.cainCharacter.joints) {
             const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;

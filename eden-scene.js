@@ -627,11 +627,11 @@ export class EdenScene {
     this.lastMouseY = e.clientY;
   }
   
-  get eveArmL() { return (this.eveCharacter && this.eveCharacter.joints) ? this.eveCharacter.joints.shoulderLeft : this.eve; }
-  get eveArmR() { return (this.eveCharacter && this.eveCharacter.joints) ? this.eveCharacter.joints.shoulderRight : this.eve; }
-  get adamArmL() { return (this.adamCharacter && this.adamCharacter.joints) ? this.adamCharacter.joints.shoulderLeft : this.adam; }
-  get adamArmR() { return (this.adamCharacter && this.adamCharacter.joints) ? this.adamCharacter.joints.shoulderRight : this.adam; }
-  get adamBody() { return (this.adamCharacter && this.adamCharacter.joints) ? this.adamCharacter.joints.hip : this.adam; }
+  get eveArmL() { return (this.eveCharacter && this.eveCharacter.joints && this.eveCharacter.joints.shoulderLeft) || this.eve; }
+  get eveArmR() { return (this.eveCharacter && this.eveCharacter.joints && this.eveCharacter.joints.shoulderRight) || this.eve; }
+  get adamArmL() { return (this.adamCharacter && this.adamCharacter.joints && this.adamCharacter.joints.shoulderLeft) || this.adam; }
+  get adamArmR() { return (this.adamCharacter && this.adamCharacter.joints && this.adamCharacter.joints.shoulderRight) || this.adam; }
+  get adamBody() { return (this.adamCharacter && this.adamCharacter.joints && this.adamCharacter.joints.hip) || this.adam; }
 
   coverThemselves() {
     if (this.eveArmL && this.eveArmL.rotation) gsap.to(this.eveArmL.rotation, { z: 0.65, x: -0.3, duration: 1.5 });
@@ -834,11 +834,16 @@ export class EdenScene {
   
   async animateNamingAnimals() {
     return new Promise(resolve => {
-      // Adam raises his arm to point
-      gsap.to(this.adamArmR.rotation, { x: -1.2, z: -0.2, duration: 1.5 });
+      // Adam gestures/talks and raises his arm to point safely
+      if (this.adamCharacter && this.adamCharacter.playAnimation) {
+        this.adamCharacter.playAnimation('talking', { loop: true });
+      }
+      if (this.adamArmR && this.adamArmR.rotation) {
+        gsap.to(this.adamArmR.rotation, { x: -1.2, z: -0.2, duration: 1.5 });
+      }
       
       // Get a couple of animals from the scene
-      const animalsToName = this.animalGroup.children.slice(0, 3);
+      const animalsToName = (this.animalGroup && this.animalGroup.children) ? this.animalGroup.children.slice(0, 3) : [];
       
       animalsToName.forEach((animal, index) => {
         // Move them towards Adam
@@ -856,26 +861,43 @@ export class EdenScene {
         });
       });
       
-      // Adam lowers arm after a bit
+      // Adam lowers arm and returns to idle
       setTimeout(() => {
-        gsap.to(this.adamArmR.rotation, { x: 0.1, z: 0, duration: 1.5, onComplete: resolve });
+        if (this.adamArmR && this.adamArmR.rotation) {
+          gsap.to(this.adamArmR.rotation, { x: 0.1, z: 0, duration: 1.5 });
+        }
+        if (this.adamCharacter && this.adamCharacter.playAnimation) {
+          this.adamCharacter.playAnimation('idle');
+        }
+        resolve();
       }, 5000);
     });
   }
 
   async animateDeepSleep() {
     return new Promise(resolve => {
-      // Adam lies down (sideways so he doesn't clip or go upside down)
-      gsap.to(this.adamBody.rotation, { z: Math.PI / 2, duration: 2.5, ease: 'power2.inOut' });
-      gsap.to(this.adam.position, { 
-        y: this.getTerrainHeight(this.adam.position.x, this.adam.position.z) + 0.25, 
-        duration: 2.5, 
-        ease: 'power2.inOut',
-        onComplete: resolve
-      });
+      // Adam lies down / sleep pose
+      if (this.adamCharacter && this.adamCharacter.playAnimation) {
+        this.adamCharacter.playAnimation('female_laying', { loop: true });
+      }
+      if (this.adamBody && this.adamBody.rotation) {
+        gsap.to(this.adamBody.rotation, { z: Math.PI / 2, duration: 2.5, ease: 'power2.inOut' });
+      }
+      if (this.adam && this.adam.position) {
+        gsap.to(this.adam.position, { 
+          y: this.getTerrainHeight(this.adam.position.x, this.adam.position.z) + 0.25, 
+          duration: 2.5, 
+          ease: 'power2.inOut',
+          onComplete: resolve
+        });
+      } else {
+        resolve();
+      }
       
       // Dim the lights slightly to simulate deep sleep focus
-      gsap.to(this.sunLight, { intensity: 0.6, duration: 2.5 });
+      if (this.sunLight) {
+        gsap.to(this.sunLight, { intensity: 0.6, duration: 2.5 });
+      }
     });
   }
 
@@ -885,8 +907,10 @@ export class EdenScene {
       const glowGeo = new THREE.SphereGeometry(1.2, 32, 32);
       const glowMat = new THREE.MeshBasicMaterial({ color: 0xffeebb, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending });
       const glow = new THREE.Mesh(glowGeo, glowMat);
-      glow.position.copy(this.adam.position);
-      glow.position.y += 0.5;
+      if (this.adam) {
+        glow.position.copy(this.adam.position);
+        glow.position.y += 0.5;
+      }
       this.scene.add(glow);
 
       gsap.to(glowMat, { opacity: 0.9, duration: 3.0, yoyo: true, repeat: 1 });
@@ -894,12 +918,19 @@ export class EdenScene {
 
       // After 3 seconds (peak of glow), Eve appears
       setTimeout(() => {
-        this.eve.position.set(this.adam.position.x + 1.8, this.getTerrainHeight(this.adam.position.x + 1.8, this.adam.position.z), this.adam.position.z);
-        this.eve.lookAt(this.adam.position.x, this.eve.position.y, this.adam.position.z);
-        this.eve.visible = true;
+        if (this.eve && this.adam) {
+          this.eve.position.set(this.adam.position.x + 1.8, this.getTerrainHeight(this.adam.position.x + 1.8, this.adam.position.z), this.adam.position.z);
+          this.eve.lookAt(this.adam.position.x, this.eve.position.y, this.adam.position.z);
+          this.eve.visible = true;
+        }
+        if (this.eveCharacter && this.eveCharacter.playAnimation) {
+          this.eveCharacter.playAnimation('idle');
+        }
         
         // Restore lights
-        gsap.to(this.sunLight, { intensity: 1.45, duration: 3.0 });
+        if (this.sunLight) {
+          gsap.to(this.sunLight, { intensity: 1.45, duration: 3.0 });
+        }
       }, 3000);
       
       // Cleanup glow and wake Adam up
@@ -908,13 +939,22 @@ export class EdenScene {
         this.eveActive = true; // start following logic
         
         // Adam wakes up and stands
-        gsap.to(this.adamBody.rotation, { z: 0, duration: 2.5, ease: 'power2.out' });
-        gsap.to(this.adam.position, { 
-          y: this.getTerrainHeight(this.adam.position.x, this.adam.position.z) + 1.0, 
-          duration: 2.5, 
-          ease: 'power2.out',
-          onComplete: resolve
-        });
+        if (this.adamCharacter && this.adamCharacter.playAnimation) {
+          this.adamCharacter.playAnimation('idle');
+        }
+        if (this.adamBody && this.adamBody.rotation) {
+          gsap.to(this.adamBody.rotation, { z: 0, duration: 2.5, ease: 'power2.out' });
+        }
+        if (this.adam && this.adam.position) {
+          gsap.to(this.adam.position, { 
+            y: this.getTerrainHeight(this.adam.position.x, this.adam.position.z) + 1.0, 
+            duration: 2.5, 
+            ease: 'power2.out',
+            onComplete: resolve
+          });
+        } else {
+          resolve();
+        }
       }, 6000);
     });
   }
@@ -1056,7 +1096,8 @@ export class EdenScene {
     
     // WASD / Arrow keys movement processing
     if (this.movementEnabled) {
-      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift']);
+      const joyDist = (this.joystickVector && this.joystickVector.lengthSq() > 0) ? this.joystickVector.length() : 0;
+      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift'] || joyDist > 0.72);
       const speed = (isRunning ? 5.2 : 2.4) * dt;
       
       const camForward = new THREE.Vector3();
@@ -1099,10 +1140,10 @@ export class EdenScene {
           if (this.adamCharacter.playAnimation) {
             const targetAnim = isRunning ? 'run' : 'walk';
             if (this.adamCharacter.activeActionName !== targetAnim) {
-              this.adamCharacter.playAnimation(targetAnim);
+              this.adamCharacter.playAnimation(targetAnim, { force: true });
             }
           } else if (this.adamCharacter.joints) {
-            const swing = Math.sin(elapsed * 9.0) * 0.42;
+            const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
             if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x = -swing;
             if (this.adamCharacter.joints.shoulderLeft) this.adamCharacter.joints.shoulderLeft.rotation.x = -swing;
@@ -1113,8 +1154,11 @@ export class EdenScene {
         if (this.adamCharacter) {
           if (this.adamCharacter.playAnimation) {
             const active = this.adamCharacter.activeActionName;
-            if (active !== 'idle' && (!active || !['talking', 'pray', 'praying', 'jump', 'kicking', 'angry'].includes(active))) {
-              this.adamCharacter.playAnimation('idle');
+            if (active !== 'idle') {
+              // Return to idle if we were moving, or if an action has concluded
+              if (active === 'walk' || active === 'run' || active === 'talking' || (!['pray', 'praying', 'jump', 'kicking', 'angry'].includes(active) && !this.adamCharacter.isOneShotPlaying)) {
+                this.adamCharacter.playAnimation('idle');
+              }
             }
           } else if (this.adamCharacter.joints) {
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;

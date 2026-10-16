@@ -886,8 +886,10 @@ async function executeEdenSequence(seqId) {
   
   if (seqId !== currentSequenceId) return;
   // 1. Eve reaches out her right arm and a fruit drops to her hand
-  gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 2.2, duration: 1.2 });
-  const fruit = sceneEngine.forbiddenFruits.children[0];
+  if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+    gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 2.2, duration: 1.2 });
+  }
+  const fruit = sceneEngine.forbiddenFruits ? sceneEngine.forbiddenFruits.children[0] : null;
   if (fruit) {
     gsap.to(fruit.position, {
       x: 1.2, 
@@ -902,35 +904,51 @@ async function executeEdenSequence(seqId) {
   if (!await stepText('...she took of the fruit thereof, and did eat...', 3200, 'Narrator')) return;
   
   // Eve brings hand to head to simulate eating, then resets
-  gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
+  if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+    gsap.to(sceneEngine.eveArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
+  }
   if (!await stepDelay(900)) return;
-  gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.6 });
+  if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+    gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.6 });
+  }
   if (!await stepDelay(700)) return;
   
   if (seqId !== currentSequenceId) return;
   // 2. Eve walks over to Adam to offer the fruit
+  if (sceneEngine.eveCharacter && sceneEngine.eveCharacter.playAnimation) {
+    sceneEngine.eveCharacter.playAnimation('walk');
+  }
   const swingInterval = setInterval(() => {
     if (sceneEngine && seqId === currentSequenceId) {
       const swing = Math.sin(performance.now() * 0.01) * 0.45;
-      sceneEngine.eve.children[5].rotation.x = swing;
-      sceneEngine.eve.children[6].rotation.x = -swing;
+      if (sceneEngine.eve && sceneEngine.eve.children[5] && sceneEngine.eve.children[5].rotation) {
+        sceneEngine.eve.children[5].rotation.x = swing;
+      }
+      if (sceneEngine.eve && sceneEngine.eve.children[6] && sceneEngine.eve.children[6].rotation) {
+        sceneEngine.eve.children[6].rotation.x = -swing;
+      }
     } else {
       clearInterval(swingInterval);
     }
   }, 30);
   
-  gsap.to(sceneEngine.eve.position, {
-    x: -0.4,
-    z: 1.4,
-    duration: 2.0,
-    onComplete: () => {
-      clearInterval(swingInterval);
-      if (sceneEngine) {
-        sceneEngine.eve.children[5].rotation.x = 0;
-        sceneEngine.eve.children[6].rotation.x = 0;
+  if (sceneEngine.eve) {
+    gsap.to(sceneEngine.eve.position, {
+      x: -0.4,
+      z: 1.4,
+      duration: 2.0,
+      onComplete: () => {
+        clearInterval(swingInterval);
+        if (sceneEngine) {
+          if (sceneEngine.eve && sceneEngine.eve.children[5] && sceneEngine.eve.children[5].rotation) sceneEngine.eve.children[5].rotation.x = 0;
+          if (sceneEngine.eve && sceneEngine.eve.children[6] && sceneEngine.eve.children[6].rotation) sceneEngine.eve.children[6].rotation.x = 0;
+          if (sceneEngine.eveCharacter && sceneEngine.eveCharacter.playAnimation) {
+            sceneEngine.eveCharacter.playAnimation('idle');
+          }
+        }
       }
-    }
-  });
+    });
+  }
   
   if (fruit) {
     gsap.to(fruit.position, {
@@ -941,7 +959,9 @@ async function executeEdenSequence(seqId) {
     });
   }
   
-  sceneEngine.eve.lookAt(-1.2, sceneEngine.eve.position.y, 1.4);
+  if (sceneEngine.eve) {
+    sceneEngine.eve.lookAt(-1.2, sceneEngine.eve.position.y, 1.4);
+  }
   if (!await stepDelay(2200)) return;
   
   if (!await stepSpeech('Eve', 'Eat of it, and thine eyes shall be opened.', 3500)) return;
@@ -950,14 +970,18 @@ async function executeEdenSequence(seqId) {
   
   if (seqId !== currentSequenceId) return;
   // 3. Adam reaches out arm, takes the fruit
-  gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 2.2, duration: 1.0 });
+  if (sceneEngine.adamArmR && sceneEngine.adamArmR.rotation) {
+    gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 2.2, duration: 1.0 });
+  }
   if (fruit) {
     gsap.to(fruit.position, { x: -1.2, y: 0.95, z: 1.4, duration: 0.8 });
   }
   if (!await stepDelay(1100)) return;
   
   // Adam brings hand to mouth to eat
-  gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
+  if (sceneEngine.adamArmR && sceneEngine.adamArmR.rotation) {
+    gsap.to(sceneEngine.adamArmR.rotation, { x: -Math.PI / 1.5, duration: 0.8 });
+  }
   if (fruit) {
     gsap.to(fruit.position, { x: -1.2, y: 1.6, z: 1.3, duration: 0.6 });
     gsap.to(fruit.scale, { x: 0, y: 0, z: 0, duration: 0.6, delay: 0.2 });
@@ -965,8 +989,12 @@ async function executeEdenSequence(seqId) {
   if (!await stepDelay(1000)) return;
   
   // Reset arms
-  gsap.to(sceneEngine.adamArmR.rotation, { x: 0, duration: 0.8 });
-  gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.8 });
+  if (sceneEngine.adamArmR && sceneEngine.adamArmR.rotation) {
+    gsap.to(sceneEngine.adamArmR.rotation, { x: 0, duration: 0.8 });
+  }
+  if (sceneEngine.eveArmR && sceneEngine.eveArmR.rotation) {
+    gsap.to(sceneEngine.eveArmR.rotation, { x: 0, duration: 0.8 });
+  }
   if (!await stepDelay(800)) return;
   
   if (seqId !== currentSequenceId) return;

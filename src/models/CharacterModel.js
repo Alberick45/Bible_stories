@@ -41,9 +41,25 @@ export class CharacterModel {
     this.isProcedural = false;
     this.isOneShotPlaying = false;
     
-    // Joint references for animated poses & joint tracking
-    this.joints = {};
+    // Joint references for animated poses & joint tracking (initialized with safe proxies)
+    this.joints = {
+      shoulderLeft: new THREE.Group(),
+      shoulderRight: new THREE.Group(),
+      hipLeft: new THREE.Group(),
+      hipRight: new THREE.Group(),
+      head: new THREE.Group(),
+      hip: new THREE.Group()
+    };
+    this.group.add(
+      this.joints.shoulderLeft,
+      this.joints.shoulderRight,
+      this.joints.hipLeft,
+      this.joints.hipRight,
+      this.joints.head,
+      this.joints.hip
+    );
     this.limbs = {};
+    this.pendingAnimation = null;
 
     this.init();
   }
@@ -72,7 +88,13 @@ export class CharacterModel {
           this.loadAnimation('run')
         ]);
         
-        this.playAnimation('idle');
+        if (this.pendingAnimation) {
+          const { name: pendingName, options: pendingOpts } = this.pendingAnimation;
+          this.pendingAnimation = null;
+          this.playAnimation(pendingName, pendingOpts);
+        } else {
+          this.playAnimation('idle');
+        }
       }
 
       this.isLoaded = true;
@@ -258,6 +280,11 @@ export class CharacterModel {
       options.clampWhenFinished = true;
     }
 
+    if (!this.mixer) {
+      this.pendingAnimation = { name, options };
+      return;
+    }
+
     let action = this.findAction(lowerName);
 
     // If clip not loaded yet, attempt lazy loading from ANIMATIONS registry
@@ -279,12 +306,14 @@ export class CharacterModel {
       return;
     }
 
-    // 2. Guard: Prevent frame-by-frame movement/idle ticks from interrupting one-shot actions or active emotes
-    if (!force) {
+    // 2. Guard: Direct movement (walk / run) ALWAYS overrides emotes, gestures, and one-shots
+    if (lowerName === 'walk' || lowerName === 'run') {
+      this.isOneShotPlaying = false;
+    } else if (!force) {
       if (this.isOneShotPlaying && this.activeAction && this.activeAction.isRunning()) {
         return; // wait for current one-shot action (jump, kick, punch, wave, etc.) to complete
       }
-      if ((lowerName === 'idle' || lowerName === 'walk') && (this.activeActionName === 'talking' || this.activeActionName === 'pray' || this.activeActionName === 'praying' || this.activeActionName === 'angry')) {
+      if (lowerName === 'idle' && (this.activeActionName === 'talking' || this.activeActionName === 'pray' || this.activeActionName === 'praying' || this.activeActionName === 'angry')) {
         if (this.activeAction && this.activeAction.isRunning()) {
           return; // stay in talking/praying/angry emote while standing still
         }

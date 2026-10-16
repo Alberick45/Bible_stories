@@ -1036,7 +1036,8 @@ export class CreationScene {
     
     // WASD movement processing (Third person follow mechanics)
     if (this.movementEnabled) {
-      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift']);
+      const joyDist = (this.joystickVector && this.joystickVector.lengthSq() > 0) ? this.joystickVector.length() : 0;
+      const isRunning = !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['Shift'] || joyDist > 0.72);
       const speed = (isRunning ? 5.2 : 2.4) * dt;
       
       // Calculate horizontal camera vectors
@@ -1076,7 +1077,7 @@ export class CreationScene {
           if (this.adamCharacter.mixer) {
             const targetAnim = isRunning ? 'run' : 'walk';
             if (this.adamCharacter.activeActionName !== targetAnim) {
-              this.adamCharacter.playAnimation(targetAnim);
+              this.adamCharacter.playAnimation(targetAnim, { force: true });
             }
           } else if (this.adamCharacter.joints) {
             const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;
