@@ -1074,7 +1074,10 @@ export class CreationScene {
         
         if (this.adamCharacter) {
           if (this.adamCharacter.mixer) {
-            this.adamCharacter.playAnimation(isRunning ? 'run' : 'walk', { force: true });
+            const targetAnim = isRunning ? 'run' : 'walk';
+            if (this.adamCharacter.activeActionName !== targetAnim) {
+              this.adamCharacter.playAnimation(targetAnim);
+            }
           } else if (this.adamCharacter.joints) {
             const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
@@ -1084,13 +1087,23 @@ export class CreationScene {
       } else {
         if (this.adamCharacter) {
           if (this.adamCharacter.mixer) {
-            this.adamCharacter.playAnimation('Idle');
+            if (this.adamCharacter.activeActionName !== 'idle') {
+              this.adamCharacter.playAnimation('idle');
+            }
           } else if (this.adamCharacter.joints) {
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;
             if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x *= 0.85;
           }
         }
       }
+    } else {
+      // Movement disabled
+      if (this.adamCharacter && this.adamCharacter.mixer) {
+        if (this.adamCharacter.activeActionName === 'walk' || this.adamCharacter.activeActionName === 'run') {
+          this.adamCharacter.playAnimation('idle');
+        }
+      }
+    }
       
       if (this.cameraMode === 'firstPerson') {
         this.adam.visible = false;
@@ -1121,7 +1134,6 @@ export class CreationScene {
         const lookTarget = new THREE.Vector3(this.adam.position.x, this.adam.position.y + 1.4, this.adam.position.z);
         this.camera.lookAt(lookTarget);
       }
-    }
     
     // Update modular models and sync elevation with ground plane
     if (this.grassField) {

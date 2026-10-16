@@ -1097,7 +1097,10 @@ export class EdenScene {
         
         if (this.adamCharacter) {
           if (this.adamCharacter.playAnimation) {
-            this.adamCharacter.playAnimation(isRunning ? 'run' : 'walk', { force: true });
+            const targetAnim = isRunning ? 'run' : 'walk';
+            if (this.adamCharacter.activeActionName !== targetAnim) {
+              this.adamCharacter.playAnimation(targetAnim);
+            }
           } else if (this.adamCharacter.joints) {
             const swing = Math.sin(elapsed * 9.0) * 0.42;
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x = swing;
@@ -1110,13 +1113,21 @@ export class EdenScene {
         if (this.adamCharacter) {
           if (this.adamCharacter.playAnimation) {
             const active = this.adamCharacter.activeActionName;
-            if (!active || !['talking', 'pray', 'praying', 'jump', 'kicking', 'angry'].includes(active)) {
+            if (active !== 'idle' && (!active || !['talking', 'pray', 'praying', 'jump', 'kicking', 'angry'].includes(active))) {
               this.adamCharacter.playAnimation('idle');
             }
           } else if (this.adamCharacter.joints) {
             if (this.adamCharacter.joints.hipLeft) this.adamCharacter.joints.hipLeft.rotation.x *= 0.85;
             if (this.adamCharacter.joints.hipRight) this.adamCharacter.joints.hipRight.rotation.x *= 0.85;
           }
+        }
+      }
+    } else {
+      // Movement disabled: ensure Adam returns to idle if he was walking or running
+      if (this.adamCharacter && this.adamCharacter.playAnimation) {
+        const active = this.adamCharacter.activeActionName;
+        if (active === 'walk' || active === 'run') {
+          this.adamCharacter.playAnimation('idle');
         }
       }
     }

@@ -274,7 +274,8 @@ export class CharacterModel {
     const force = options.force || false;
 
     // 1. Guard against restarting the exact same looping animation if already running
-    if (this.activeActionName === lowerName && this.activeAction === action && action.isRunning() && loop) {
+    if (this.activeAction === action && action.isRunning() && loop) {
+      this.activeActionName = lowerName;
       return;
     }
 
@@ -292,38 +293,46 @@ export class CharacterModel {
 
     this.isOneShotPlaying = !loop;
 
-    action.reset();
-    action.timeScale = timeScale;
+    if (this.activeAction !== action) {
+      action.reset();
+      action.timeScale = timeScale;
 
-    if (!loop) {
-      action.setLoop(THREE.LoopOnce, 1);
-      action.clampWhenFinished = clamp;
+      if (!loop) {
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = clamp;
 
-      // Auto-return to idle when one-shot animation finishes (unless clamped or dead)
-      if (this.mixer) {
-        const onFinished = (e) => {
-          if (e.action === action) {
-            this.mixer.removeEventListener('finished', onFinished);
-            if (!clamp && !this.isDead && lowerName !== 'dying' && lowerName !== 'die') {
-              this.isOneShotPlaying = false;
-              this.playAnimation('idle', { force: true });
+        // Auto-return to idle when one-shot animation finishes (unless clamped or dead)
+        if (this.mixer) {
+          const onFinished = (e) => {
+            if (e.action === action) {
+              this.mixer.removeEventListener('finished', onFinished);
+              if (!clamp && !this.isDead && lowerName !== 'dying' && lowerName !== 'die') {
+                this.isOneShotPlaying = false;
+                this.playAnimation('idle', { force: true });
+              }
             }
-          }
-        };
-        this.mixer.addEventListener('finished', onFinished);
+          };
+          this.mixer.addEventListener('finished', onFinished);
+        }
+      } else {
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.clampWhenFinished = false;
       }
+
+      action.fadeIn(fade).play();
+
+      if (this.activeAction) {
+        this.activeAction.fadeOut(fade);
+      }
+
+      this.activeAction = action;
+      this.activeActionName = lowerName;
     } else {
-      action.setLoop(THREE.LoopRepeat, Infinity);
+      action.timeScale = timeScale;
+      if (!action.isRunning()) {
+        action.play();
+      }
     }
-
-    action.fadeIn(fade).play();
-
-    if (this.activeAction && this.activeAction !== action) {
-      this.activeAction.fadeOut(fade);
-    }
-
-    this.activeAction = action;
-    this.activeActionName = lowerName;
   }
 
   // Animation Helper Methods

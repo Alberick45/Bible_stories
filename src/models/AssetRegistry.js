@@ -378,6 +378,24 @@ export function canonicalBoneName(name) {
   return 'mixamorig' + name.replace(/^mixamorig\d*[:_]?/i, '');
 }
 
+function stripRootMotion(clip) {
+  if (!clip || !clip.tracks) return clip;
+  clip.tracks.forEach((track) => {
+    // matches 'mixamorigHips.position' after canonicalBoneName normalisation
+    if (track.name.endsWith('Hips.position') || track.name.toLowerCase().endsWith('hips.position')) {
+      const v = track.values; // [x, y, z, x, y, z, ...]
+      const x0 = v[0];
+      const z0 = v[2];
+      for (let i = 0; i < v.length; i += 3) {
+        v[i] = x0;     // lock X
+        v[i + 2] = z0; // lock Z
+        // keep v[i + 1] (Y) so the vertical walking bob stays
+      }
+    }
+  });
+  return clip;
+}
+
 async function executeClipLoad(key, url, timeoutMs) {
   return new Promise((resolve, reject) => {
     let hasTimedOut = false;
@@ -414,6 +432,9 @@ async function executeClipLoad(key, url, timeoutMs) {
                 track.name = nodeName + propName;
               }
             });
+
+            clip.tracks.forEach(t => console.log(t.name));
+            stripRootMotion(clip);
           }
 
           clipCache.set(key, clip);

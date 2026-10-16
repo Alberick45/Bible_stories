@@ -112,6 +112,12 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
       // Pivot Eve and Adam to face the tree and serpent
       tl.call(() => {
         sceneEngine.movementEnabled = false;
+        if (sceneEngine.adamCharacter && sceneEngine.adamCharacter.playAnimation) {
+          sceneEngine.adamCharacter.playAnimation('idle');
+        }
+        if (sceneEngine.eveCharacter && sceneEngine.eveCharacter.playAnimation) {
+          sceneEngine.eveCharacter.playAnimation('idle');
+        }
         if (sceneEngine.eve) {
           sceneEngine.eve.position.set(1.2, sceneEngine.getTerrainHeight(1.2, 1.4), 1.4);
           sceneEngine.eve.lookAt(0, sceneEngine.eve.position.y, 0);
@@ -131,6 +137,10 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
     }
     else if (scene.id === 34 || scene.id === 35 || text.includes('yea, hath god said')) {
       tl.call(() => {
+        sceneEngine.movementEnabled = false;
+        if (sceneEngine.adamCharacter && sceneEngine.adamCharacter.playAnimation) {
+          sceneEngine.adamCharacter.playAnimation('idle');
+        }
         if (sceneEngine.eve) sceneEngine.eve.lookAt(0, sceneEngine.eve.position.y, 0);
         if (sceneEngine.adam) sceneEngine.adam.lookAt(0, sceneEngine.adam.position.y, 0);
       }, null, 0);

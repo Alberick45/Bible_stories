@@ -716,7 +716,10 @@ export class CainAbelScene {
         
         if (this.cainCharacter) {
           if (this.cainCharacter.mixer) {
-            this.cainCharacter.playAnimation(isRunning ? 'run' : 'walk', { force: true });
+            const targetAnim = isRunning ? 'run' : 'walk';
+            if (this.cainCharacter.activeActionName !== targetAnim) {
+              this.cainCharacter.playAnimation(targetAnim);
+            }
           } else if (this.cainCharacter.joints) {
             const swing = Math.sin(elapsed * (isRunning ? 14.0 : 9.0)) * 0.42;
             if (this.cainCharacter.joints.hipLeft) this.cainCharacter.joints.hipLeft.rotation.x = swing;
@@ -731,7 +734,9 @@ export class CainAbelScene {
       } else {
         if (this.cainCharacter) {
           if (this.cainCharacter.mixer) {
-            this.cainCharacter.playAnimation('Idle');
+            if (this.cainCharacter.activeActionName !== 'idle') {
+              this.cainCharacter.playAnimation('idle');
+            }
           } else if (this.cainCharacter.joints) {
             if (this.cainCharacter.joints.hipLeft) this.cainCharacter.joints.hipLeft.rotation.x *= 0.85;
             if (this.cainCharacter.joints.hipRight) this.cainCharacter.joints.hipRight.rotation.x *= 0.85;
@@ -742,8 +747,16 @@ export class CainAbelScene {
           this.cain.children[3].rotation.x *= 0.85;
         }
       }
+    } else {
+      // Movement disabled
+      if (this.cainCharacter && this.cainCharacter.mixer) {
+        if (this.cainCharacter.activeActionName === 'walk' || this.cainCharacter.activeActionName === 'run') {
+          this.cainCharacter.playAnimation('idle');
+        }
+      }
+    }
       
-      if (this.cameraMode === 'firstPerson') {
+    if (this.cameraMode === 'firstPerson') {
         this.cain.visible = false;
         const eyePos = new THREE.Vector3(this.cain.position.x, this.cain.position.y + 1.65, this.cain.position.z);
         this.camera.position.lerp(eyePos, 0.25);
@@ -770,7 +783,6 @@ export class CainAbelScene {
         const lookTarget = new THREE.Vector3(this.cain.position.x, this.cain.position.y + 1.4, this.cain.position.z);
         this.camera.lookAt(lookTarget);
       }
-    }
     
     this.renderer.render(this.scene, this.camera);
   }

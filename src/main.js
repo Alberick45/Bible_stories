@@ -397,6 +397,14 @@ function setupInteractiveGameplay(scene) {
         const distanceToTree = Math.sqrt(adamPos.x * adamPos.x + adamPos.z * adamPos.z);
         if (distanceToTree < 3.8) {
           clearInterval(interactiveInterval);
+          if (window.sceneEngine) {
+            window.sceneEngine.movementEnabled = false;
+            if (window.sceneEngine.keys) window.sceneEngine.keys = {};
+            if (window.sceneEngine.joystickVector) window.sceneEngine.joystickVector.set(0, 0);
+            if (window.sceneEngine.adamCharacter && window.sceneEngine.adamCharacter.playAnimation) {
+              window.sceneEngine.adamCharacter.playAnimation('idle');
+            }
+          }
           movementHintEl.classList.remove('show');
           orchestrator.next(); // Go to next narrative line (The Fall)
         }
