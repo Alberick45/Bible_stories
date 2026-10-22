@@ -8,7 +8,12 @@ export const CHARACTER_CONFIG = {
   noah: { voice: 'am_michael', speed: 0.92 },
   nimrod: { voice: 'am_michael', speed: 0.92 },
   builder: { voice: 'am_michael', speed: 0.92 },
-  worker: { voice: 'am_michael', speed: 0.92 }
+  worker: { voice: 'am_michael', speed: 0.92 },
+  abram: { voice: 'am_michael', speed: 0.92 },
+  abraham: { voice: 'am_michael', speed: 0.92 },
+  isaac: { voice: 'am_onyx', speed: 0.94 },
+  angel: { voice: 'af_bella', speed: 0.90 },
+  jacob: { voice: 'am_michael', speed: 0.92 }
 };
 
 export function makeCacheKey(text, voice, modelVersion = 'kokoro-q4-v1') {
@@ -158,7 +163,43 @@ const rawScenes = [
   { chapterId: 'babel', type: 'narrative', text: 'Baga bo pi do! (What is this gibberish?!)', character: 'Worker' },
   { chapterId: 'babel', type: 'narrative', text: 'And there the LORD did confound the language of all the earth...', character: 'Narrator' },
   { chapterId: 'babel', type: 'narrative', text: 'So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.', character: 'Narrator' },
-  { chapterId: 'babel', type: 'interactive', target: 'ruins', instruction: '<span class="goal-tag">🎯 GOAL</span> Walk among the builders of Shinar at the foundation of the Tower.' }
+  { chapterId: 'babel', type: 'interactive', target: 'ruins', instruction: '<span class="goal-tag">🎯 GOAL</span> Walk among the builders of Shinar at the foundation of the Tower (<span id="babel-count">0</span>/3). Approach 3 builders to hear their confounded tongues.' },
+
+  // ==========================================
+  // THE CALL OF ABRAM & COVENANT OF STARS (GENESIS 12 & 15)
+  // ==========================================
+  { chapterId: 'abram', type: 'narrative', text: 'Now the LORD had said unto Abram, "Get thee out of thy country, and from thy kindred, and from thy father\'s house, unto a land that I will shew thee..."', character: 'God' },
+  { chapterId: 'abram', type: 'narrative', text: '"And I will make of thee a great nation, and I will bless thee, and make thy name great; and thou shalt be a blessing."', character: 'God' },
+  { chapterId: 'abram', type: 'narrative', text: 'So Abram departed, as the LORD had spoken unto him; and Lot went with him.', character: 'Narrator' },
+  { chapterId: 'abram', type: 'narrative', text: 'And Abram passed through the land unto the place of Sichem, unto the plain of Moreh. And the Canaanite was then in the land.', character: 'Narrator' },
+  { chapterId: 'abram', type: 'narrative', text: 'And the LORD appeared unto Abram, and said, "Unto thy seed will I give this land:" and there builded he an altar unto the LORD.', character: 'Narrator' },
+  { chapterId: 'abram', type: 'narrative', text: 'After these things the word of the LORD came unto Abram in a vision, saying, "Fear not, Abram: I am thy shield, and thy exceeding great reward."', character: 'God' },
+  { chapterId: 'abram', type: 'narrative', text: 'And he brought him forth abroad, and said, "Look now toward heaven, and tell the stars, if thou be able to number them: and he said unto him, So shall thy seed be."', character: 'God' },
+  { chapterId: 'abram', type: 'narrative', text: 'And he believed in the LORD; and he counted it to him for righteousness.', character: 'Narrator' },
+  { chapterId: 'abram', type: 'interactive', target: 'stars', instruction: '<span class="goal-tag">🎯 GOAL</span> Walk under the starry canopy of Canaan with Abram (<span id="abram-count">0</span>/3). Gaze upon the promises written in the stars.' },
+
+  // ==========================================
+  // THE SACRIFICE OF ISAAC ON MOUNT MORIAH (GENESIS 22)
+  // ==========================================
+  { chapterId: 'moriah', type: 'narrative', text: 'And God said, "Take now thy son, thine only son Isaac, whom thou lovest, and get thee into the land of Moriah; and offer him there for a burnt offering..."', character: 'God' },
+  { chapterId: 'moriah', type: 'narrative', text: 'And Abraham rose up early in the morning, and took Isaac his son, and clave the wood for the burnt offering, and went unto the place of which God had told him.', character: 'Narrator' },
+  { chapterId: 'moriah', type: 'narrative', text: 'Then on the third day Abraham lifted up his eyes, and saw the place afar off.', character: 'Narrator' },
+  { chapterId: 'moriah', type: 'narrative', text: 'And Isaac spake unto Abraham his father, and said, "My father: behold the fire and the wood: but where is the lamb for a burnt offering?"', character: 'Isaac' },
+  { chapterId: 'moriah', type: 'narrative', text: 'And Abraham said, "My son, God will provide himself a lamb for a burnt offering:" so they went both of them together.', character: 'Abraham' },
+  { chapterId: 'moriah', type: 'narrative', text: 'And they came to the place which God had told him of; and Abraham built an altar there, and laid the wood in order...', character: 'Narrator' },
+  { chapterId: 'moriah', type: 'narrative', text: 'And the angel of the LORD called unto him out of heaven, and said, "Abraham, Abraham! Lay not thine hand upon the lad, neither do thou any thing unto him: for now I know that thou fearest God."', character: 'Angel' },
+  { chapterId: 'moriah', type: 'narrative', text: 'And Abraham lifted up his eyes, and looked, and behold behind him a ram caught in a thicket by his horns: and Abraham offered him up for a burnt offering in the stead of his son.', character: 'Narrator' },
+  { chapterId: 'moriah', type: 'interactive', target: 'altar', instruction: '<span class="goal-tag">🎯 GOAL</span> Approach the altar on the heights of Mount Moriah to behold the ram provided by the LORD.' },
+
+  // ==========================================
+  // JACOB\'S LADDER AT BETHEL (GENESIS 28)
+  // ==========================================
+  { chapterId: 'bethel', type: 'narrative', text: 'And Jacob went out from Beersheba, and went toward Haran.', character: 'Narrator' },
+  { chapterId: 'bethel', type: 'narrative', text: 'And he lighted upon a certain place, and tarried there all night, because the sun was set; and he took of the stones of that place, and put them for his pillows, and lay down in that place to sleep.', character: 'Narrator' },
+  { chapterId: 'bethel', type: 'narrative', text: 'And he dreamed, and behold a ladder set up on the earth, and the top of it reached to heaven: and behold the angels of God ascending and descending on it.', character: 'Narrator' },
+  { chapterId: 'bethel', type: 'narrative', text: 'And, behold, the LORD stood above it, and said, "I am the LORD God of Abraham thy father, and the God of Isaac: the land whereon thou liest, to thee will I give it, and to thy seed..."', character: 'God' },
+  { chapterId: 'bethel', type: 'narrative', text: 'And Jacob awaked out of his sleep, and he said, "Surely the LORD is in this place; and I knew it not. This is none other but the house of God, and this is the gate of heaven."', character: 'Jacob' },
+  { chapterId: 'bethel', type: 'interactive', target: 'ladder', instruction: '<span class="goal-tag">🎯 GOAL</span> Step toward the pillow of stone at Bethel and behold the celestial ladder of angels reaching unto the throne of God.' }
 ];
 
 export const scenes = rawScenes.map((s, idx) => {

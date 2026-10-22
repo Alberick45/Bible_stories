@@ -148,6 +148,21 @@ export const SCENE_ASSETS = {
     characters: [],
     animations: ['idle', 'walk', 'run', 'talking', 'pray'],
     gltf: []
+  },
+  abram: {
+    characters: ['man1'],
+    animations: ['idle', 'walk', 'run', 'pray', 'talking'],
+    gltf: []
+  },
+  moriah: {
+    characters: ['man1', 'man2'],
+    animations: ['idle', 'walk', 'run', 'pray', 'talking'],
+    gltf: []
+  },
+  bethel: {
+    characters: ['man1'],
+    animations: ['idle', 'walk', 'run', 'male_laying', 'pray', 'talking'],
+    gltf: []
   }
 };
 

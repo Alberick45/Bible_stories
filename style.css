@@ -1920,4 +1920,121 @@ body.portrait-mode #scroll-inner {
   max-width: 260px;
 }
 
+/* ==========================================================================
+   Chapter Complete Modal
+   ========================================================================== */
+.chapter-complete-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 14, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 120;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.chapter-complete-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.complete-modal-card {
+  background: radial-gradient(circle at 50% 15%, rgba(35, 30, 22, 0.95), rgba(16, 14, 10, 0.98));
+  border: 1px solid rgba(229, 184, 59, 0.55);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(229, 184, 59, 0.25);
+  border-radius: 22px;
+  padding: 36px 42px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  transform: translateY(20px) scale(0.95);
+  transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.chapter-complete-modal.show .complete-modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.complete-crown {
+  font-size: 38px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.6));
+  animation: crown-glow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes crown-glow {
+  from { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.4)); }
+  to { transform: scale(1.08); filter: drop-shadow(0 0 22px rgba(255, 215, 0, 0.85)); }
+}
+
+.complete-title {
+  font-family: 'Cinzel', 'Cinzel Decorative', 'Georgia', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff2b2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.complete-sub {
+  font-family: 'Cormorant Garamond', 'EB Garamond', serif;
+  font-size: 16px;
+  font-style: italic;
+  color: #d8c7a5;
+  margin-bottom: 28px;
+  line-height: 1.5;
+  opacity: 0.92;
+}
+
+.complete-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.complete-btn {
+  padding: 13px 24px;
+  font-family: 'Cinzel', 'Georgia', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.complete-btn.primary {
+  background: linear-gradient(135deg, #e5b83b 0%, #d4a017 50%, #996515 100%);
+  color: #120b04;
+  border: 1px solid #ffd700;
+  box-shadow: 0 4px 18px rgba(229, 184, 59, 0.45);
+}
+
+.complete-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 26px rgba(229, 184, 59, 0.7);
+  filter: brightness(1.1);
+}
+
+.complete-btn.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5b83b;
+  border: 1px solid rgba(229, 184, 59, 0.35);
+}
+
+.complete-btn.secondary:hover {
+  background: rgba(229, 184, 59, 0.15);
+  border-color: rgba(229, 184, 59, 0.6);
+  color: #fff1b0;
+}
+
+
 

@@ -264,6 +264,9 @@ export class SceneOrchestrator {
 
     if (!next) {
       console.log('[Orchestrator] Reached end of all chapters');
+      if (typeof window.showChapterCompleteModal === 'function') {
+        window.showChapterCompleteModal(scene ? scene.chapterId : 'bethel');
+      }
       return;
     }
 

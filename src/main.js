@@ -7,6 +7,9 @@ import { EdenScene } from '../eden-scene.js';
 import { CainAbelScene } from '../cain-abel-scene.js';
 import { NoahScene } from '../noah-scene.js';
 import { BabelScene } from '../babel-scene.js';
+import { AbramScene } from '../abram-scene.js';
+import { MoriahScene } from '../moriah-scene.js';
+import { BethelScene } from '../bethel-scene.js';
 import { preloadSceneAssets } from './models/index.js';
 import { stormAudio } from './audio/StormSoundEngine.js';
 import gsap from 'gsap';
@@ -264,7 +267,10 @@ async function loadScene(sceneName) {
     eden: 'Garden of Eden',
     cainabel: 'Cain & Abel',
     noah: 'Noah\'s Ark',
-    babel: 'Tower of Babel'
+    babel: 'Tower of Babel',
+    abram: 'Call of Abram & The Covenant',
+    moriah: 'Mount Moriah Sacrifice',
+    bethel: 'Jacob\'s Ladder at Bethel'
   };
   const title = sceneTitles[sceneName] || sceneName;
 
@@ -342,6 +348,12 @@ async function loadScene(sceneName) {
     window.sceneEngine = new NoahScene(canvasWrap);
   } else if (sceneName === 'babel') {
     window.sceneEngine = new BabelScene(canvasWrap);
+  } else if (sceneName === 'abram') {
+    window.sceneEngine = new AbramScene(canvasWrap);
+  } else if (sceneName === 'moriah') {
+    window.sceneEngine = new MoriahScene(canvasWrap);
+  } else if (sceneName === 'bethel') {
+    window.sceneEngine = new BethelScene(canvasWrap);
   }
 
   if (window.sceneEngine) {
@@ -540,19 +552,185 @@ function setupInteractiveGameplay(scene) {
           if (visitedCount >= requiredCount) {
             clearInterval(interactiveInterval);
             if (window.showCameraToast) {
-              window.showCameraToast('✨ All tongues confounded! The people scatter abroad.');
+              window.showCameraToast('✨ All tongues confounded! (3/3) The builders scatter abroad.');
+            }
+            // Keep movement enabled so the user is never frozen!
+            if (window.sceneEngine) {
+              window.sceneEngine.movementEnabled = true;
             }
             setTimeout(() => {
               movementHintEl.classList.remove('show');
-              if (window.sceneEngine) {
-                window.sceneEngine.movementEnabled = false;
-                if (window.sceneEngine.keys) window.sceneEngine.keys = {};
+              if (typeof window.showChapterCompleteModal === 'function') {
+                window.showChapterCompleteModal('babel');
+              } else {
+                orchestrator.next();
               }
-              orchestrator.next();
-            }, 2500);
+            }, 1800);
             break;
           }
         }
+      }
+    }, 150);
+  }
+  else if (scene.chapterId === 'abram') {
+    if (window.sceneEngine && typeof window.sceneEngine.unlockControls === 'function') {
+      window.sceneEngine.unlockControls();
+    }
+    movementHintEl.classList.add('show');
+    scriptureLabelEl.classList.add('show');
+
+    let visitedStars = 0;
+    const requiredStars = 3;
+
+    interactiveInterval = setInterval(() => {
+      if (!window.sceneEngine) return;
+      const player = window.sceneEngine.player || window.sceneEngine.abram;
+      if (!player) return;
+
+      const pPos = player.position;
+      const waypoints = window.sceneEngine.starWaypoints || [];
+
+      for (let i = 0; i < waypoints.length; i++) {
+        const wp = waypoints[i];
+        if (!wp || wp.userData.visited) continue;
+
+        const dist = Math.hypot(pPos.x - wp.position.x, pPos.z - wp.position.z);
+        if (dist < 4.2) {
+          wp.userData.visited = true;
+          visitedStars++;
+
+          const countSpan = document.getElementById('abram-count');
+          if (countSpan) countSpan.textContent = visitedStars;
+
+          bubbleTargetObject = wp;
+          if (speechBubbleEl) {
+            speechBubbleEl.innerHTML = `<strong>Promise of God</strong><br><em>${wp.userData.promiseText}</em>`;
+            speechBubbleEl.style.display = 'block';
+            setTimeout(() => {
+              if (bubbleTargetObject === wp && speechBubbleEl) {
+                speechBubbleEl.style.display = 'none';
+                bubbleTargetObject = null;
+              }
+            }, 4500);
+          }
+
+          if (window.playNamingChime) window.playNamingChime();
+
+          if (window.showCameraToast) {
+            window.showCameraToast(`Gazed upon star promise (${visitedStars}/${requiredStars})`);
+          }
+
+          if (visitedStars >= requiredStars) {
+            clearInterval(interactiveInterval);
+            if (window.showCameraToast) {
+              window.showCameraToast('✨ "So shall thy seed be." Abram believed in the LORD!');
+            }
+            if (window.sceneEngine) window.sceneEngine.movementEnabled = true;
+            setTimeout(() => {
+              movementHintEl.classList.remove('show');
+              if (typeof window.showChapterCompleteModal === 'function') {
+                window.showChapterCompleteModal('abram');
+              } else {
+                orchestrator.next();
+              }
+            }, 2000);
+            break;
+          }
+        }
+      }
+    }, 150);
+  }
+  else if (scene.chapterId === 'moriah') {
+    if (window.sceneEngine && typeof window.sceneEngine.unlockControls === 'function') {
+      window.sceneEngine.unlockControls();
+    }
+    movementHintEl.classList.add('show');
+    scriptureLabelEl.classList.add('show');
+
+    interactiveInterval = setInterval(() => {
+      if (!window.sceneEngine) return;
+      const player = window.sceneEngine.player || window.sceneEngine.abraham;
+      if (!player) return;
+
+      const pPos = player.position;
+      const distToAltar = Math.hypot(pPos.x - 0, pPos.z - (-4.0));
+      const distToRam = Math.hypot(pPos.x - (-4.5), pPos.z - (-4.5));
+
+      if (distToAltar < 4.8 || distToRam < 4.8) {
+        clearInterval(interactiveInterval);
+        if (window.sceneEngine.celestialRay) {
+          window.sceneEngine.celestialRay.material.opacity = 0.85;
+        }
+        if (window.playNamingChime) window.playNamingChime();
+
+        if (speechBubbleEl) {
+          speechBubbleEl.innerHTML = `<strong>Angel of the LORD</strong><br><em>"Lay not thine hand upon the lad... for now I know that thou fearest God."</em>`;
+          speechBubbleEl.style.display = 'block';
+          bubbleTargetObject = player;
+          setTimeout(() => {
+            if (speechBubbleEl) speechBubbleEl.style.display = 'none';
+            bubbleTargetObject = null;
+          }, 4500);
+        }
+
+        if (window.showCameraToast) {
+          window.showCameraToast('✨ Jehovah-jireh: The LORD hath provided!');
+        }
+
+        if (window.sceneEngine) window.sceneEngine.movementEnabled = true;
+        setTimeout(() => {
+          movementHintEl.classList.remove('show');
+          if (typeof window.showChapterCompleteModal === 'function') {
+            window.showChapterCompleteModal('moriah');
+          } else {
+            orchestrator.next();
+          }
+        }, 2500);
+      }
+    }, 150);
+  }
+  else if (scene.chapterId === 'bethel') {
+    if (window.sceneEngine && typeof window.sceneEngine.unlockControls === 'function') {
+      window.sceneEngine.unlockControls();
+    }
+    movementHintEl.classList.add('show');
+    scriptureLabelEl.classList.add('show');
+
+    interactiveInterval = setInterval(() => {
+      if (!window.sceneEngine) return;
+      const player = window.sceneEngine.player || window.sceneEngine.playerGroup;
+      if (!player) return;
+
+      const pPos = player.position;
+      const distToPillar = Math.hypot(pPos.x - 0, pPos.z - (-4.0));
+
+      if (distToPillar < 4.8) {
+        clearInterval(interactiveInterval);
+        if (window.playNamingChime) window.playNamingChime();
+
+        if (speechBubbleEl) {
+          speechBubbleEl.innerHTML = `<strong>Jacob</strong><br><em>"Surely the LORD is in this place; and I knew it not. This is none other but the house of God, and this is the gate of heaven!"</em>`;
+          speechBubbleEl.style.display = 'block';
+          bubbleTargetObject = player;
+          setTimeout(() => {
+            if (speechBubbleEl) speechBubbleEl.style.display = 'none';
+            bubbleTargetObject = null;
+          }, 5000);
+        }
+
+        if (window.showCameraToast) {
+          window.showCameraToast('✨ Gate of Heaven beheld at Bethel!');
+        }
+
+        if (window.sceneEngine) window.sceneEngine.movementEnabled = true;
+        setTimeout(() => {
+          movementHintEl.classList.remove('show');
+          if (typeof window.showChapterCompleteModal === 'function') {
+            window.showChapterCompleteModal('bethel');
+          } else {
+            orchestrator.next();
+          }
+        }, 3000);
       }
     }, 150);
   }
@@ -637,6 +815,14 @@ function handleSceneChange(scene) {
       bubbleTargetObject = window.sceneEngine.builder;
     } else if (charName === 'worker') {
       bubbleTargetObject = window.sceneEngine.workers ? window.sceneEngine.workers[0] : null;
+    } else if (charName === 'abram') {
+      bubbleTargetObject = window.sceneEngine.abram || window.sceneEngine.player;
+    } else if (charName === 'abraham') {
+      bubbleTargetObject = window.sceneEngine.abraham || window.sceneEngine.player;
+    } else if (charName === 'isaac') {
+      bubbleTargetObject = window.sceneEngine.isaac;
+    } else if (charName === 'jacob') {
+      bubbleTargetObject = window.sceneEngine.playerGroup || window.sceneEngine.player;
     }
   }
 }
@@ -719,8 +905,101 @@ const SCRIPTURE_TEXTS = {
       <p><span class="verse-num">11:5-7</span>And the LORD came down to see the city and the tower, which the children of men builded. And the LORD said, Behold, the people is one, and they have all one language... Go to, let us go down, and there confound their language, that they may not understand one another's speech.</p>
       <p><span class="verse-num">11:8-9</span>So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city. Therefore is the name of it called Babel; because the LORD did there confound the language of all the earth.</p>
     `
+  },
+  abram: {
+    label: 'Genesis 12:1 &mdash; 15:6',
+    title: `Genesis 12:1 &ndash; 15:6 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">12:1-3</span>Now the LORD had said unto Abram, Get thee out of thy country, and from thy kindred, and from thy father's house, unto a land that I will shew thee: And I will make of thee a great nation, and I will bless thee, and make thy name great; and thou shalt be a blessing: And I will bless them that bless thee, and curse him that curseth thee: and in thee shall all families of the earth be blessed.</p>
+      <p><span class="verse-num">12:7</span>And the LORD appeared unto Abram, and said, Unto thy seed will I give this land: and there builded he an altar unto the LORD, who appeared unto him.</p>
+      <p><span class="verse-num">15:1</span>After these things the word of the LORD came unto Abram in a vision, saying, Fear not, Abram: I am thy shield, and thy exceeding great reward.</p>
+      <p><span class="verse-num">15:5-6</span>And he brought him forth abroad, and said, Look now toward heaven, and tell the stars, if thou be able to number them: and he said unto him, So shall thy seed be. And he believed in the LORD; and he counted it to him for righteousness.</p>
+    `
+  },
+  moriah: {
+    label: 'Genesis 22:1 &mdash; 19',
+    title: `Genesis 22:1 &ndash; 19 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">22:1-2</span>And it came to pass after these things, that God did tempt Abraham... Take now thy son, thine only son Isaac, whom thou lovest, and get thee into the land of Moriah; and offer him there for a burnt offering upon one of the mountains which I will tell thee of.</p>
+      <p><span class="verse-num">22:7-8</span>And Isaac spake unto Abraham his father, and said, My father... behold the fire and the wood: but where is the lamb for a burnt offering? And Abraham said, My son, God will provide himself a lamb for a burnt offering: so they went both of them together.</p>
+      <p><span class="verse-num">22:9-10</span>And they came to the place which God had told him of; and Abraham built an altar there, and laid the wood in order, and bound Isaac his son, and laid him on the altar upon the wood.</p>
+      <p><span class="verse-num">22:11-14</span>And the angel of the LORD called unto him out of heaven, and said, Abraham, Abraham! And he said, Here am I. And he said, Lay not thine hand upon the lad, neither do thou any thing unto him: for now I know that thou fearest God, seeing thou hast not withheld thy son, thine only son from me. And Abraham lifted up his eyes, and looked, and behold behind him a ram caught in a thicket by his horns: and Abraham went and took the ram, and offered him up for a burnt offering in the stead of his son. And Abraham called the name of that place Jehovah-jireh: as it is said to this day, In the mount of the LORD it shall be seen.</p>
+    `
+  },
+  bethel: {
+    label: 'Genesis 28:10 &mdash; 22',
+    title: `Genesis 28:10 &ndash; 22 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
+    content: `
+      <p><span class="verse-num">28:10-12</span>And Jacob went out from Beersheba, and went toward Haran. And he lighted upon a certain place, and tarried there all night, because the sun was set; and he took of the stones of that place, and put them for his pillows, and lay down in that place to sleep. And he dreamed, and behold a ladder set up on the earth, and the top of it reached to heaven: and behold the angels of God ascending and descending on it.</p>
+      <p><span class="verse-num">28:13-15</span>And, behold, the LORD stood above it, and said, I am the LORD God of Abraham thy father, and the God of Isaac: the land whereon thou liest, to thee will I give it, and to thy seed; And thy seed shall be as the dust of the earth... and in thy seed shall all the families of the earth be blessed. And, behold, I am with thee, and will keep thee in all places whither thou goest.</p>
+      <p><span class="verse-num">28:16-19</span>And Jacob awaked out of his sleep, and he said, Surely the LORD is in this place; and I knew it not. And he was afraid, and said, How dreadful is this place! this is none other but the house of God, and this is the gate of heaven. And Jacob rose up early in the morning, and took the stone that he had put for his pillows, and set it up for a pillar, and poured oil upon the top of it. And he called the name of that place Bethel.</p>
+    `
   }
 };
+
+function showChapterCompleteModal(chapterId) {
+  let modal = document.getElementById('chapter-complete-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'chapter-complete-modal';
+    modal.className = 'chapter-complete-modal';
+    document.body.appendChild(modal);
+  }
+
+  const chapterMeta = {
+    creation: { title: 'Creation Finished', next: 'eden', nextTitle: 'Eden & The Fall' },
+    eden: { title: 'Eden & The Fall Completed', next: 'cainabel', nextTitle: 'Cain & Abel' },
+    cainabel: { title: 'Cain & Abel Completed', next: 'noah', nextTitle: "Noah's Ark" },
+    noah: { title: "The Ark Rests & Covenant Sealed", next: 'babel', nextTitle: 'Tower of Babel' },
+    babel: { title: 'Tower of Babel Confounded', next: 'abram', nextTitle: 'The Call of Abram & Covenant' },
+    abram: { title: 'The Covenant of Stars Confirmed', next: 'moriah', nextTitle: 'Mount Moriah Sacrifice' },
+    moriah: { title: 'The Ram Provided on Moriah', next: 'bethel', nextTitle: "Jacob's Ladder at Bethel" },
+    bethel: { title: 'The Gate of Heaven Beheld', next: null, nextTitle: 'Return to Hub' }
+  };
+
+  const info = chapterMeta[chapterId] || { title: 'Chapter Complete', next: null, nextTitle: 'Return to Hub' };
+
+  modal.innerHTML = `
+    <div class="complete-modal-card">
+      <div class="complete-crown">👑</div>
+      <h3 class="complete-title">${info.title}</h3>
+      <p class="complete-sub">You have walked through this holy passage of scripture.</p>
+      <div class="complete-actions">
+        ${info.next ? `<button id="btn-modal-next" class="complete-btn primary">Proceed to ${info.nextTitle} &rarr;</button>` : `<button id="btn-modal-hub" class="complete-btn primary">Open Timeline Hub</button>`}
+        <button id="btn-modal-roam" class="complete-btn secondary">Explore & Free Roam</button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('show');
+
+  const nextBtn = document.getElementById('btn-modal-next');
+  if (nextBtn) {
+    nextBtn.onclick = () => {
+      modal.classList.remove('show');
+      loadScene(info.next);
+    };
+  }
+
+  const hubBtn = document.getElementById('btn-modal-hub');
+  if (hubBtn) {
+    hubBtn.onclick = () => {
+      modal.classList.remove('show');
+      if (hubPanelEl) hubPanelEl.classList.add('show');
+    };
+  }
+
+  const roamBtn = document.getElementById('btn-modal-roam');
+  if (roamBtn) {
+    roamBtn.onclick = () => {
+      modal.classList.remove('show');
+      if (window.sceneEngine && typeof window.sceneEngine.unlockControls === 'function') {
+        window.sceneEngine.unlockControls();
+      }
+    };
+  }
+}
+window.showChapterCompleteModal = showChapterCompleteModal;
 
 function setupScriptureContent(sceneName) {
   const scripture = SCRIPTURE_TEXTS[sceneName] || SCRIPTURE_TEXTS.creation;
