@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { GrassField, TreeGroup, CharacterModel, PostProcessingManager } from './src/models/index.js';
+import { stormAudio } from './src/audio/StormSoundEngine.js';
 
 export class NoahScene {
   constructor(container) {
@@ -19,6 +20,11 @@ export class NoahScene {
     this.targetYaw = Math.PI;
     this.targetPitch = 0.28;
     
+    // Zoom control
+    this.zoomLevel = 1.0;
+    this.baseFov = 55;
+    this.touchPinchDist = null;
+
     // Camera mode ('thirdPerson' or 'firstPerson')
     this.cameraMode = 'thirdPerson';
     
@@ -29,7 +35,8 @@ export class NoahScene {
     this.rainActive = false;
     this.waterRising = false;
     this.waterHeight = -6.0;
-    this.rainLines = [];
+    this.lightningTimer = null;
+    this.arkAtArarat = false;
     
     this.init();
   }
@@ -61,6 +68,10 @@ export class NoahScene {
     this.sunLight.shadow.mapSize.height = 1024;
     this.scene.add(this.sunLight);
     
+    this.lightningLight = new THREE.DirectionalLight(0xdcf2ff, 0.0);
+    this.lightningLight.position.set(-20, 150, 40);
+    this.scene.add(this.lightningLight);
+    
     // Dry Valley Terrain with central basin and a towering peak representing Ararat
     const groundGeo = new THREE.PlaneGeometry(450, 450, 60, 60);
     groundGeo.rotateX(-Math.PI / 2);
@@ -69,20 +80,7 @@ export class NoahScene {
     for (let i = 0; i < posAttr.count; i++) {
       const x = posAttr.getX(i);
       const z = posAttr.getZ(i);
-      const distFromCenter = Math.sqrt(x*x + z*z);
-      
-      let h = Math.sin(x * 0.01) * Math.cos(z * 0.01) * 3.8 + Math.sin(x*0.06)*0.6;
-      
-      // Make a tall Ararat mountain peak on the far side (x: -45, z: -35)
-      const distToPeak = Math.sqrt((x + 45)*(x + 45) + (z + 35)*(z + 35));
-      if (distToPeak < 70) {
-        h += (70 - distToPeak) * 0.4; // Mount Ararat peak
-      }
-      
-      if (distFromCenter > 35) {
-        h += (distFromCenter - 35) * 0.28;
-      }
-      posAttr.setY(i, h);
+      posAttr.setY(i, this.getTerrainHeight(x, z));
     }
     groundGeo.computeVertexNormals();
     
@@ -375,20 +373,23 @@ export class NoahScene {
     this.dove.visible = false;
     this.scene.add(this.dove);
     
-    // --- FLOOD WATER PLANE ---
-    const waterGeo = new THREE.PlaneGeometry(600, 600);
+    // --- FLOOD WATER PLANE (Boundless Ocean) ---
+    const waterGeo = new THREE.PlaneGeometry(1400, 1400, 48, 48);
     waterGeo.rotateX(-Math.PI / 2);
     this.waterMat = new THREE.MeshStandardMaterial({
-      color: 0x1d3447,
+      color: 0x0c1e2e,
       transparent: true,
-      opacity: 0.85,
-      roughness: 0.15,
-      metalness: 0.8,
+      opacity: 0.94,
+      roughness: 0.1,
+      metalness: 0.85,
       flatShading: true
     });
     this.waterPlane = new THREE.Mesh(waterGeo, this.waterMat);
     this.waterPlane.position.y = this.waterHeight;
     this.scene.add(this.waterPlane);
+    
+    // High-performance 2200-particle wind-whipped torrential rain
+    this.createRainSystem();
     
     // --- 8 FAMILY MEMBERS INSTEAD OF 4 ---
     this.familyGroup = new THREE.Group();
@@ -400,11 +401,12 @@ export class NoahScene {
       gender: 'male',
       skinTone: 0xdcb896,
       hairColor: 0xeeeeee,
-      clothesColor: 0x485c7a
+      clothesColor: 0x485c7a,
+      forwardOffset: Math.PI
     });
     this.noah = this.noahCharacter.group;
-    this.noah.position.set(18.0, this.getTerrainHeight(18.0, 10.0), 10.0);
-    this.noah.lookAt(18, this.noah.position.y, 12);
+    this.noah.position.set(14.0, this.getTerrainHeight(14.0, 6.0), 6.0);
+    this.noah.lookAt(7.0, this.noah.position.y, 0.0);
     this.familyGroup.add(this.noah);
     
     // 2. Family Members (CharacterModels)
@@ -443,16 +445,83 @@ export class NoahScene {
     this.renderer.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
+    this.renderer.domElement.addEventListener('wheel', this.onWheel.bind(this), { passive: false });
+    this.renderer.domElement.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
+    this.renderer.domElement.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
+    this.renderer.domElement.addEventListener('touchend', this.onTouchEnd.bind(this));
     
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
       if (e.code === 'KeyV' && !e.repeat) {
         this.toggleCameraMode();
+      } else if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !e.repeat) {
+        this.zoomIn();
+      } else if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !e.repeat) {
+        this.zoomOut();
+      } else if (e.code === 'Digit0' && !e.repeat) {
+        this.resetZoom();
       }
     });
     window.addEventListener('keyup', e => this.keys[e.code] = false);
   }
   
+  setZoom(level) {
+    this.zoomLevel = Math.max(0.5, Math.min(2.5, level));
+    if (this.camera) {
+      this.camera.fov = this.baseFov / this.zoomLevel;
+      this.camera.updateProjectionMatrix();
+    }
+    if (window.updateZoomUI) {
+      window.updateZoomUI(this.zoomLevel);
+    }
+  }
+
+  zoomIn(delta = 0.15) {
+    this.setZoom(this.zoomLevel + delta);
+  }
+
+  zoomOut(delta = 0.15) {
+    this.setZoom(this.zoomLevel - delta);
+  }
+
+  resetZoom() {
+    this.setZoom(1.0);
+  }
+
+  onWheel(e) {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.12 : -0.12;
+    this.setZoom(this.zoomLevel + delta);
+  }
+
+  onTouchStart(e) {
+    if (e.touches && e.touches.length === 2) {
+      this.touchPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }
+
+  onTouchMove(e) {
+    if (e.touches && e.touches.length === 2 && this.touchPinchDist) {
+      e.preventDefault();
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = currentDist / this.touchPinchDist;
+      if (Math.abs(ratio - 1.0) > 0.03) {
+        this.setZoom(this.zoomLevel * ratio);
+        this.touchPinchDist = currentDist;
+      }
+    }
+  }
+
+  onTouchEnd() {
+    this.touchPinchDist = null;
+  }
+
   toggleCameraMode() {
     this.cameraMode = (this.cameraMode === 'firstPerson') ? 'thirdPerson' : 'firstPerson';
     if (window.showCameraToast) {
@@ -471,7 +540,623 @@ export class NoahScene {
     this.doorGroup.visible = true;
     this.doorGroup.rotation.y = -Math.PI / 2.0; 
     this.ramp.visible = true;
-    this.hammer.visible = false;
+    if (this.hammer) this.hammer.visible = false;
+  }
+
+  createRainSystem() {
+    const count = 2200;
+    const positions = new Float32Array(count * 6);
+    this.rainVelocities = [];
+
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 160;
+      const y = Math.random() * 55 + 5;
+      const z = (Math.random() - 0.5) * 160;
+      const len = 1.8 + Math.random() * 0.9;
+      const slant = 0.42;
+
+      positions[i * 6 + 0] = x;
+      positions[i * 6 + 1] = y;
+      positions[i * 6 + 2] = z;
+
+      positions[i * 6 + 3] = x - len * slant;
+      positions[i * 6 + 4] = y - len;
+      positions[i * 6 + 5] = z;
+
+      this.rainVelocities.push({
+        speedY: 42.0 + Math.random() * 16.0,
+        speedX: 18.0 + Math.random() * 9.0,
+        len: len,
+        slant: slant
+      });
+    }
+
+    const rainGeo = new THREE.BufferGeometry();
+    rainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    this.rainMat = new THREE.LineBasicMaterial({
+      color: 0x86a6c4,
+      transparent: true,
+      opacity: 0.65
+    });
+    this.rainMesh = new THREE.LineSegments(rainGeo, this.rainMat);
+    this.rainMesh.visible = false;
+    this.scene.add(this.rainMesh);
+  }
+
+  triggerLightning() {
+    if (!this.rainActive) return;
+    
+    // Multi-strobe realistic lightning strike
+    gsap.timeline()
+      .to(this.lightningLight, { intensity: 6.5, duration: 0.04 })
+      .to(this.lightningLight, { intensity: 0.4, duration: 0.03 })
+      .to(this.lightningLight, { intensity: 8.5, duration: 0.06 })
+      .to(this.lightningLight, { intensity: 0.0, duration: 0.22 });
+
+    const veil = document.getElementById('veil');
+    if (veil) {
+      veil.style.transition = 'background 0.04s ease';
+      veil.style.background = 'rgba(215, 235, 255, 0.35)';
+      setTimeout(() => {
+        veil.style.transition = 'background 0.28s ease';
+        veil.style.background = 'rgba(0,0,0,0)';
+      }, 50);
+    }
+
+    // Booming thunderclap and decaying rolling rumble
+    stormAudio.playThunder(0.92);
+
+    // Schedule next strike
+    this.scheduleNextLightning();
+  }
+
+  scheduleNextLightning() {
+    if (!this.rainActive) return;
+    const delay = 3500 + Math.random() * 4000;
+    this.lightningTimer = setTimeout(() => {
+      this.triggerLightning();
+    }, delay);
+  }
+
+  animateFaunaWalk(animal, time) {
+    if (!animal) return;
+    // If mammal, swing legs (children indices 2, 3, 4, 5)
+    if (animal.children && animal.children.length >= 6) {
+      const swing = Math.sin(time * 14.0) * 0.45;
+      if (animal.children[2]) animal.children[2].rotation.x = swing;
+      if (animal.children[3]) animal.children[3].rotation.x = -swing;
+      if (animal.children[4]) animal.children[4].rotation.x = -swing;
+      if (animal.children[5]) animal.children[5].rotation.x = swing;
+    } else if (animal.children && animal.children.length >= 4) {
+      // Birds: flap wings
+      const beat = Math.sin(time * 22.0) * 0.7;
+      if (animal.children[2]) animal.children[2].rotation.x = beat;
+      if (animal.children[3]) animal.children[3].rotation.x = -beat;
+    }
+  }
+
+  animateEnterArk() {
+    this.movementEnabled = false;
+    this.completeArk();
+
+    // 1. Animals walking procession up the ramp into the Ark
+    if (this.pairInstances && this.pairInstances.length > 0) {
+      this.pairInstances.forEach((animal, i) => {
+        const rampBaseX = 9.8;
+        const rampBaseZ = (i % 2 === 0 ? -0.4 : 0.4);
+        const rampTopX = 7.0;
+        const rampTopZ = 0.0;
+        const insideX = 3.0;
+
+        const tl = gsap.timeline({
+          delay: i * 0.05,
+          onComplete: () => {
+            animal.visible = false;
+          }
+        });
+
+        // Walk to ramp base
+        tl.to(animal.position, {
+          x: rampBaseX,
+          z: rampBaseZ,
+          duration: 1.4,
+          ease: 'power1.inOut',
+          onUpdate: () => {
+            animal.position.y = this.getTerrainHeight(animal.position.x, animal.position.z);
+            animal.lookAt(rampBaseX, animal.position.y, rampBaseZ);
+            this.animateFaunaWalk(animal, gsap.ticker.time);
+          }
+        });
+
+        // Walk up ramp to doorway
+        tl.to(animal.position, {
+          x: rampTopX,
+          z: rampTopZ,
+          duration: 0.9,
+          ease: 'power1.inOut',
+          onUpdate: () => {
+            const prog = Math.min(1.0, Math.max(0.0, (rampBaseX - animal.position.x) / (rampBaseX - rampTopX)));
+            animal.position.y = this.getTerrainHeight(rampBaseX, rampBaseZ) + prog * 1.5;
+            animal.lookAt(rampTopX, animal.position.y, rampTopZ);
+            this.animateFaunaWalk(animal, gsap.ticker.time);
+          }
+        });
+
+        // Walk through doorway inside
+        tl.to(animal.position, {
+          x: insideX,
+          z: 0.0,
+          duration: 0.7,
+          ease: 'power1.inOut',
+          onUpdate: () => {
+            animal.position.y = this.getTerrainHeight(0, 0) + 1.6;
+            animal.lookAt(insideX, animal.position.y, 0.0);
+            this.animateFaunaWalk(animal, gsap.ticker.time);
+          }
+        });
+      });
+    }
+
+    // 2. Noah and 7 family members walking up the ramp into the Ark with walk animations
+    const allMembers = [];
+    if (this.familyCharacters) {
+      this.familyCharacters.forEach(fc => {
+        allMembers.push({ char: fc, group: fc.group });
+      });
+    }
+    if (this.noahCharacter && this.noah) {
+      allMembers.push({ char: this.noahCharacter, group: this.noah });
+    }
+
+    allMembers.forEach((item, index) => {
+      const char = item.char;
+      const group = item.group;
+      const rampBaseX = 9.8;
+      const rampBaseZ = (index % 2 === 0 ? -0.35 : 0.35);
+      const rampTopX = 7.0;
+      const rampTopZ = 0.0;
+      const insideX = 2.2;
+
+      const tl = gsap.timeline({
+        delay: 0.4 + index * 0.35,
+        onStart: () => {
+          if (char && char.playAnimation) {
+            char.playAnimation('walk', { loop: true });
+          }
+        },
+        onComplete: () => {
+          if (char && char.playAnimation) {
+            char.playAnimation('idle');
+          }
+          group.visible = false;
+        }
+      });
+
+      // Walk to ramp entrance
+      tl.to(group.position, {
+        x: rampBaseX,
+        z: rampBaseZ,
+        duration: 2.0,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          group.position.y = this.getTerrainHeight(group.position.x, group.position.z);
+          const angle = Math.atan2(rampBaseX - group.position.x, rampBaseZ - group.position.z);
+          group.rotation.y = angle;
+        }
+      });
+
+      // Walk up the ramp incline
+      tl.to(group.position, {
+        x: rampTopX,
+        z: rampTopZ,
+        duration: 1.2,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          const prog = Math.min(1.0, Math.max(0.0, (rampBaseX - group.position.x) / (rampBaseX - rampTopX)));
+          group.position.y = this.getTerrainHeight(rampBaseX, rampBaseZ) + prog * 1.5;
+          const angle = Math.atan2(rampTopX - group.position.x, rampTopZ - group.position.z);
+          group.rotation.y = angle;
+        }
+      });
+
+      // Step through doorway into the Ark interior
+      tl.to(group.position, {
+        x: insideX,
+        z: 0.0,
+        duration: 1.0,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          group.position.y = this.getTerrainHeight(0, 0) + 1.6;
+          const angle = Math.atan2(insideX - group.position.x, -group.position.z);
+          group.rotation.y = angle;
+        }
+      });
+    });
+
+    // Camera framed shot of the grand boarding procession
+    gsap.to(this.camera.position, {
+      x: 14.5,
+      y: 5.2,
+      z: 11.0,
+      duration: 3.5,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(6.5, 2.2, 0.0);
+      }
+    });
+  }
+
+  animateShutDoor(veilEl) {
+    if (veilEl) {
+      veilEl.style.transition = 'background 0.35s ease';
+      veilEl.style.background = 'rgba(255, 220, 150, 0.65)';
+      setTimeout(() => {
+        veilEl.style.transition = 'background 0.8s ease';
+        veilEl.style.background = 'rgba(0,0,0,0)';
+      }, 350);
+    }
+    gsap.to(this.doorGroup.rotation, { y: 0.0, duration: 1.8, ease: 'power2.inOut' });
+    gsap.to(this.ramp.position, {
+      y: -2.0,
+      duration: 1.5,
+      delay: 0.4,
+      onComplete: () => {
+        this.ramp.visible = false;
+      }
+    });
+  }
+
+  animateRain() {
+    this.rainActive = true;
+    this.waterRising = true;
+
+    // Dark tempest sky and heavy storm fog
+    gsap.to(this.sunLight, { intensity: 0.06, duration: 2.8 });
+    this.sunLight.color.setHex(0x22354c);
+    gsap.to(this.hemiLight, { intensity: 0.16, duration: 2.8 });
+    this.hemiLight.color.setHex(0x152230);
+
+    if (this.scene.fog) {
+      gsap.to(this.scene.fog.color, { r: 0.04, g: 0.06, b: 0.09, duration: 2.8 });
+      gsap.to(this.scene.fog, { density: 0.013, duration: 2.8 });
+    }
+    if (this.scene.background && this.scene.background.isColor) {
+      gsap.to(this.scene.background, { r: 0.04, g: 0.06, b: 0.09, duration: 2.8 });
+    }
+
+    // Start procedural heavy torrential rain and howling wind audio
+    stormAudio.startStorm(0.36, 0.30);
+
+    // Initial lightning strike and schedule subsequent strikes
+    setTimeout(() => {
+      this.triggerLightning();
+    }, 1500);
+
+    // Begin water rising from valley depths
+    gsap.to(this, {
+      waterHeight: 4.5,
+      duration: 8.0,
+      ease: 'power1.inOut'
+    });
+  }
+
+  animateFloodRise() {
+    this.waterRising = true;
+    // Deluge covers all high hills and mountains: 23.5 meters!
+    gsap.to(this, {
+      waterHeight: 23.5,
+      duration: 12.0,
+      ease: 'power1.inOut'
+    });
+
+    gsap.to(this.camera.position, {
+      x: -42.0,
+      y: 32.0,
+      z: 52.0,
+      duration: 10.0,
+      ease: 'power1.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(this.arkGroup.position.x, this.arkGroup.position.y + 1.5, this.arkGroup.position.z);
+      }
+    });
+  }
+
+  stopRain() {
+    this.rainActive = false;
+    this.waterRising = false;
+    stormAudio.stopStorm();
+
+    if (this.lightningTimer) {
+      clearTimeout(this.lightningTimer);
+      this.lightningTimer = null;
+    }
+    if (this.rainMesh) this.rainMesh.visible = false;
+    if (this.lightningLight) this.lightningLight.intensity = 0;
+
+    // Ensure flood height remains at high water level until Ararat
+    if (this.waterHeight < 20.0) {
+      this.waterHeight = 23.5;
+      this.waterPlane.position.y = this.waterHeight;
+    }
+
+    gsap.to(this.sunLight, { intensity: 1.4, duration: 2.5 });
+    this.sunLight.color.setHex(0xfff5ea);
+    gsap.to(this.hemiLight, { intensity: 1.25, duration: 2.5 });
+    this.hemiLight.color.setHex(0xffffff);
+
+    if (this.scene.fog) {
+      gsap.to(this.scene.fog.color, { r: 0.86, g: 0.90, b: 0.93, duration: 2.5 });
+      gsap.to(this.scene.fog, { density: 0.003, duration: 2.5 });
+    }
+    if (this.scene.background && this.scene.background.isColor) {
+      gsap.to(this.scene.background, { r: 0.86, g: 0.90, b: 0.93, duration: 2.5 });
+    }
+  }
+
+  animateWaterRecede() {
+    this.stopRain();
+    this.arkAtArarat = true;
+    const peakHeight = this.getTerrainHeight(-45, -35);
+
+    // Waters gradually sink and recede from 23.5m flood peak down to 14.5m
+    gsap.to(this, {
+      waterHeight: 14.5,
+      duration: 9.5,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.waterPlane.position.y = this.waterHeight;
+      }
+    });
+
+    // Ark gently drifts towards Mount Ararat as the mountain emerges from the receding waters
+    gsap.to(this.arkGroup.position, {
+      x: -45,
+      z: -35,
+      y: peakHeight - 0.2,
+      duration: 9.0,
+      ease: 'power2.inOut'
+    });
+    this.arkGroup.rotation.set(0, Math.PI / 4, 0);
+
+    // Camera pulls up and back to reveal Mount Ararat peak rising from the receding waters
+    gsap.to(this.camera.position, {
+      x: -22,
+      y: peakHeight + 8.5,
+      z: -14,
+      duration: 8.0,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(-40, peakHeight + 1.2, -32);
+      }
+    });
+  }
+
+  animateArarat() {
+    this.stopRain();
+    this.arkAtArarat = true;
+    const peakHeight = this.getTerrainHeight(-45, -35);
+    this.arkGroup.position.set(-45, peakHeight - 0.1, -35);
+    this.arkGroup.rotation.set(0, Math.PI / 4, 0);
+    this.waterHeight = 14.2;
+    this.waterPlane.position.y = this.waterHeight;
+
+    // Camera view elevated and clear of the Ark hull
+    gsap.to(this.camera.position, {
+      x: -22,
+      y: peakHeight + 6.5,
+      z: -15,
+      duration: 3.5,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(-38, peakHeight + 1.5, -28);
+      }
+    });
+  }
+
+  animateDove() {
+    const peakHeight = this.getTerrainHeight(-45, -35);
+    this.dove.visible = true;
+    this.dove.position.set(-42, peakHeight + 4.5, -32);
+    gsap.to(this.dove.position, {
+      x: -22,
+      y: peakHeight + 7.5,
+      z: -15,
+      duration: 3.8,
+      ease: 'power1.out',
+      onComplete: () => {
+        gsap.to(this.dove.position, {
+          x: -42,
+          y: peakHeight + 4.5,
+          z: -32,
+          duration: 3.0,
+          delay: 0.8,
+          onComplete: () => {
+            this.dove.visible = false;
+          }
+        });
+      }
+    });
+  }
+
+  animateExitArk() {
+    this.arkAtArarat = true;
+    const peakHeight = this.getTerrainHeight(-45, -35);
+    this.arkGroup.position.set(-45, peakHeight - 0.1, -35);
+    this.arkGroup.rotation.set(0, Math.PI / 4, 0);
+    this.doorGroup.rotation.y = -Math.PI / 2.0;
+    this.ramp.visible = true;
+    this.ramp.position.set(-39.5, peakHeight + 0.8, -32);
+    this.ramp.rotation.set(0, Math.PI / 4, -0.32);
+
+    // Elevated camera view framing the mountain plateau and exit ramp
+    gsap.to(this.camera.position, {
+      x: -22,
+      y: peakHeight + 5.5,
+      z: -14,
+      duration: 3.5,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(-36, peakHeight + 1.2, -28);
+      }
+    });
+
+    // Noah and family members walking off the Ark onto Mount Ararat
+    const allMembers = [];
+    if (this.familyCharacters) {
+      this.familyCharacters.forEach(fc => allMembers.push({ char: fc, group: fc.group }));
+    }
+    if (this.noahCharacter && this.noah) {
+      allMembers.unshift({ char: this.noahCharacter, group: this.noah }); // Noah leads them out!
+    }
+
+    allMembers.forEach((item, index) => {
+      const char = item.char;
+      const group = item.group;
+      group.visible = true;
+      group.position.set(-44, peakHeight + 1.4, -35); // Start inside doorway
+
+      const groundTargetX = -36 + (index % 3) * 1.8;
+      const groundTargetZ = -28 - Math.floor(index / 3) * 1.8;
+      const groundY = this.getTerrainHeight(groundTargetX, groundTargetZ);
+
+      const tl = gsap.timeline({
+        delay: 0.3 + index * 0.45,
+        onStart: () => {
+          if (char && char.playAnimation) {
+            char.playAnimation('walk', { loop: true });
+          }
+        },
+        onComplete: () => {
+          if (char && char.playAnimation) {
+            char.playAnimation('idle');
+          }
+          group.lookAt(-32.5, groundY, -24.5); // Look towards altar
+        }
+      });
+
+      // Step 1: Walk down the ramp
+      tl.to(group.position, {
+        x: -40,
+        y: peakHeight + 0.8,
+        z: -32,
+        duration: 1.6,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          const angle = Math.atan2(-40 - group.position.x, -32 - group.position.z);
+          group.rotation.y = angle;
+        }
+      });
+
+      // Step 2: Walk onto the mountain ground
+      tl.to(group.position, {
+        x: groundTargetX,
+        y: groundY,
+        z: groundTargetZ,
+        duration: 2.2,
+        ease: 'power1.inOut',
+        onUpdate: () => {
+          const angle = Math.atan2(groundTargetX - group.position.x, groundTargetZ - group.position.z);
+          group.rotation.y = angle;
+        }
+      });
+    });
+
+    // Animals also exit in pairs and rejoice on the mountain
+    if (this.pairInstances) {
+      this.pairInstances.forEach((animal, i) => {
+        if (i < 20) {
+          animal.visible = true;
+          animal.position.set(-44, peakHeight + 1.2, -35);
+          const aTargetX = -32 - (i % 5) * 2.2;
+          const aTargetZ = -38 - Math.floor(i / 5) * 2.0;
+          const aY = this.getTerrainHeight(aTargetX, aTargetZ);
+
+          gsap.timeline({ delay: 1.0 + i * 0.12 })
+            .to(animal.position, {
+              x: -39, y: peakHeight + 0.5, z: -32, duration: 1.6, ease: 'power1.inOut',
+              onUpdate: () => {
+                animal.lookAt(-39, animal.position.y, -32);
+                this.animateFaunaWalk(animal, gsap.ticker.time);
+              }
+            })
+            .to(animal.position, {
+              x: aTargetX, y: aY, z: aTargetZ, duration: 2.2, ease: 'power1.inOut',
+              onUpdate: () => {
+                animal.lookAt(aTargetX, animal.position.y, aTargetZ);
+                this.animateFaunaWalk(animal, gsap.ticker.time);
+              }
+            });
+        }
+      });
+    }
+  }
+
+  animateAltar() {
+    this.stopRain();
+    this.arkAtArarat = true;
+    this.waterHeight = 14.0;
+    this.waterPlane.position.y = 14.0;
+    this.animateExitArk();
+
+    const peakHeight = this.getTerrainHeight(-45, -35);
+    const altarX = -32.5;
+    const altarZ = -24.5;
+    const altarY = this.getTerrainHeight(altarX, altarZ);
+
+    this.altar.position.set(altarX, altarY, altarZ);
+    this.altar.visible = true;
+    gsap.to(this.altarFire.scale, { x: 1.6, y: 1.6, z: 1.6, repeat: -1, yoyo: true, duration: 0.45 });
+
+    // Noah walks to the altar and kneels in prayer
+    if (this.noah && this.noahCharacter) {
+      gsap.to(this.noah.position, {
+        x: altarX + 1.6,
+        y: altarY,
+        z: altarZ + 0.8,
+        duration: 2.4,
+        delay: 0.5,
+        ease: 'power1.inOut',
+        onStart: () => {
+          this.noahCharacter.playAnimation('walk', { loop: true });
+        },
+        onComplete: () => {
+          this.noah.lookAt(altarX, altarY + 0.6, altarZ);
+          this.noahCharacter.playAnimation('pray', { loop: true });
+        }
+      });
+    }
+
+    // Camera view showing Noah at the altar with family and ark in background
+    gsap.to(this.camera.position, {
+      x: -21,
+      y: peakHeight + 5.2,
+      z: -14,
+      duration: 3.5,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(altarX, altarY + 1.2, altarZ);
+      }
+    });
+  }
+
+  animateRainbow() {
+    const peakHeight = this.getTerrainHeight(-45, -35);
+    this.rainbow.visible = true;
+    this.rainbow.position.set(-38, peakHeight + 6.0, -32);
+    this.rainbow.scale.set(0.01, 0.01, 0.01);
+    gsap.to(this.rainbow.scale, { x: 1.2, y: 1.2, z: 1.2, duration: 3.5, ease: 'back.out(1.4)' });
+
+    // Majestic pull-back camera framing the altar, ark, and celestial rainbow
+    gsap.to(this.camera.position, {
+      x: -15,
+      y: peakHeight + 11.0,
+      z: -7,
+      duration: 6.0,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(-38, peakHeight + 5.0, -30);
+      }
+    });
   }
   
   createProceduralFauna(index, x, z) {
@@ -570,17 +1255,18 @@ export class NoahScene {
   getTerrainHeight(x, z) {
     const distFromCenter = Math.sqrt(x*x + z*z);
     
-    let h = Math.sin(x * 0.01) * Math.cos(z * 0.01) * 3.8 + Math.sin(x*0.06)*0.6;
+    let h = Math.sin(x * 0.012) * Math.cos(z * 0.012) * 2.2 + Math.sin(x * 0.05) * 0.5;
     
-    const distToPeak = Math.sqrt((x + 45)*(x + 45) + (z + 35)*(z + 35));
-    if (distToPeak < 70) {
-      h += (70 - distToPeak) * 0.4;
+    // Mount Ararat: prominent mountain peak at (-45, -35)
+    const distToPeak = Math.hypot(x + 45, z + 35);
+    if (distToPeak < 50) {
+      h += (50 - distToPeak) * 0.35;
     }
     
-    if (distFromCenter > 35) {
-      h += (distFromCenter - 35) * 0.28;
+    if (distFromCenter > 38) {
+      h += (distFromCenter - 38) * 0.14;
     }
-    return h + this.ground.position.y;
+    return h + (this.ground ? this.ground.position.y : 0);
   }
   
   onWindowResize() {
@@ -622,15 +1308,35 @@ export class NoahScene {
   }
   
   checkCollision(newX, newZ) {
-    if (newX < -6.5 && newZ < 2.0) {
-      return true; 
-    }
-    if (Math.abs(newX) < 7.8 && Math.abs(newZ) < 16.8) {
-      if (newX > 6.0 && Math.abs(newZ) < 1.6) {
-        return false;
+    // 1. World bounds
+    const distFromCenter = Math.sqrt(newX * newX + newZ * newZ);
+    if (distFromCenter > 200) return true;
+
+    // 2. Noah's house
+    const distToHouse = Math.sqrt((newX - 18.0) * (newX - 18.0) + (newZ - 12.0) * (newZ - 12.0));
+    if (distToHouse < 2.2) return true;
+
+    // 3. Ark collision (only when completed hull is present)
+    if (this.arkHull && this.arkHull.visible) {
+      // Ramp and doorway open passage: allow walking onto the ramp and through doorway
+      const isAtDoorway = (newX >= 5.8 && newX <= 11.5 && Math.abs(newZ) <= 1.8);
+      if (isAtDoorway) return false;
+
+      // Outer hull walls
+      // End walls (front & back)
+      if (Math.abs(newZ) >= 15.2 && Math.abs(newZ) <= 16.6 && Math.abs(newX) <= 7.4) {
+        return true;
       }
-      return true;
+      // Left side wall (-X)
+      if (newX >= -7.4 && newX <= -6.0 && Math.abs(newZ) <= 16.0) {
+        return true;
+      }
+      // Right side wall (+X)
+      if (newX >= 6.0 && newX <= 7.4 && Math.abs(newZ) <= 16.0) {
+        return true;
+      }
     }
+
     return false;
   }
   
@@ -640,46 +1346,83 @@ export class NoahScene {
     if (this.familyCharacters) this.familyCharacters.forEach(c => c.update(dt, elapsed));
     if (this.wickedCharacters) this.wickedCharacters.forEach(c => c.update(dt, elapsed));
     
-    // Rain lines
-    if (this.rainActive) {
-      if (this.rainLines.length < 180) {
-        const rainGeo = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(0, -1.2, 0)
-        ]);
-        const rainMat = new THREE.LineBasicMaterial({ color: 0x6b8094, opacity: 0.6, transparent: true });
-        const rainLine = new THREE.Line(rainGeo, rainMat);
-        
-        const rx = (Math.random() - 0.5) * 120 + this.camera.position.x;
-        const rz = (Math.random() - 0.5) * 120 + this.camera.position.z;
-        rainLine.position.set(rx, 30 + Math.random() * 10, rz);
-        this.scene.add(rainLine);
-        this.rainLines.push(rainLine);
-      }
-      
-      for (let i = 0; i < this.rainLines.length; i++) {
-        const line = this.rainLines[i];
-        line.position.y -= dt * 26;
-        if (line.position.y < this.getTerrainHeight(line.position.x, line.position.z)) {
-          line.position.y = 30 + Math.random() * 5;
-          line.position.x = (Math.random() - 0.5) * 120 + this.camera.position.x;
-          line.position.z = (Math.random() - 0.5) * 120 + this.camera.position.z;
+    // Torrential Wind-Whipped Rain Particles
+    if (this.rainMesh && this.rainActive) {
+      this.rainMesh.visible = true;
+      const posAttr = this.rainMesh.geometry.attributes.position;
+      const pos = posAttr.array;
+      const count = pos.length / 6;
+      const camX = this.camera.position.x;
+      const camZ = this.camera.position.z;
+
+      for (let i = 0; i < count; i++) {
+        const v = this.rainVelocities[i];
+        let y1 = pos[i * 6 + 1] - v.speedY * dt;
+        let x1 = pos[i * 6 + 0] - v.speedX * dt;
+        let z1 = pos[i * 6 + 2];
+
+        if (y1 < -2.0 || Math.abs(x1 - camX) > 85 || Math.abs(z1 - camZ) > 85) {
+          y1 = 45 + Math.random() * 10;
+          x1 = camX + (Math.random() - 0.5) * 140 + 25;
+          z1 = camZ + (Math.random() - 0.5) * 140;
         }
+
+        pos[i * 6 + 0] = x1;
+        pos[i * 6 + 1] = y1;
+        pos[i * 6 + 2] = z1;
+
+        pos[i * 6 + 3] = x1 - v.len * v.slant;
+        pos[i * 6 + 4] = y1 - v.len;
+        pos[i * 6 + 5] = z1;
       }
+      posAttr.needsUpdate = true;
     }
     
-    // Flood water rise
+    // Flood water rise & gradual submergence
     if (this.waterRising) {
-      this.waterHeight += dt * 1.6; // Rise slightly faster
-      if (this.waterHeight > 16.0) this.waterHeight = 16.0;
+      if (this.waterHeight < 21.0) {
+        this.waterHeight += dt * 1.5;
+        if (this.waterHeight > 21.0) this.waterHeight = 21.0;
+      }
       this.waterPlane.position.y = this.waterHeight;
       
-      const baseHeight = this.getTerrainHeight(0, 0) - 0.2;
-      if (this.waterHeight > baseHeight) {
-        const bob = Math.sin(elapsed * 1.5) * 0.16;
-        const driftX = Math.sin(elapsed * 0.4) * 0.15;
-        this.arkGroup.position.y = this.waterHeight + bob;
-        this.arkGroup.position.x = driftX;
+      // Submerge wicked citizens into the deep
+      if (this.waterHeight >= 0.5 && this.wickedGroup && this.wickedGroup.visible) {
+        this.wickedGroup.position.y -= dt * 2.5;
+        if (this.wickedGroup.position.y < -6.0) {
+          this.wickedGroup.visible = false;
+        }
+      }
+
+      // Submerge Noah's house
+      if (this.waterHeight >= 3.5 && this.houseGroup && this.houseGroup.visible) {
+        this.houseGroup.position.y -= dt * 3.5;
+        if (this.houseGroup.position.y < -10.0) {
+          this.houseGroup.visible = false;
+        }
+      }
+
+      // Submerge wicked city towers and hillside trees
+      if (this.waterHeight >= 12.0) {
+        if (this.cityGroup && this.cityGroup.visible) {
+          this.cityGroup.position.y -= dt * 4.0;
+          if (this.cityGroup.position.y < -18.0) {
+            this.cityGroup.visible = false;
+          }
+        }
+        if (this.hillsideTrees && this.hillsideTrees.visible) {
+          this.hillsideTrees.visible = false;
+        }
+      }
+
+      // Ark floating buoyant mechanics
+      const arkBase = this.getTerrainHeight(0, 0) - 0.2;
+      if (!this.arkAtArarat && this.waterHeight > arkBase) {
+        const waveBob = Math.sin(elapsed * 1.5) * 0.28;
+        this.arkGroup.position.y = (this.waterHeight - 0.75) + waveBob;
+        this.arkGroup.position.x = Math.sin(elapsed * 0.35) * 0.7;
+        this.arkGroup.rotation.z = Math.sin(elapsed * 0.9) * 0.04;
+        this.arkGroup.rotation.x = Math.cos(elapsed * 0.7) * 0.03;
       }
     }
     
@@ -746,11 +1489,22 @@ export class NoahScene {
         const newX = this.noah.position.x + move.x;
         const newZ = this.noah.position.z + move.z;
         
+        let moved = false;
         if (!this.checkCollision(newX, newZ)) {
           this.noah.position.x = newX;
           this.noah.position.z = newZ;
-          let targetY = this.getTerrainHeight(newX, newZ);
-          const distToHouse = Math.sqrt((newX - 18.0) * (newX - 18.0) + (newZ - 12.0) * (newZ - 12.0));
+          moved = true;
+        } else if (!this.checkCollision(newX, this.noah.position.z)) {
+          this.noah.position.x = newX;
+          moved = true;
+        } else if (!this.checkCollision(this.noah.position.x, newZ)) {
+          this.noah.position.z = newZ;
+          moved = true;
+        }
+
+        if (moved) {
+          let targetY = this.getTerrainHeight(this.noah.position.x, this.noah.position.z);
+          const distToHouse = Math.sqrt((this.noah.position.x - 18.0) * (this.noah.position.x - 18.0) + (this.noah.position.z - 12.0) * (this.noah.position.z - 12.0));
           if (distToHouse < 3.2) {
             targetY = Math.max(targetY, this.getTerrainHeight(18.0, 12.0) + 0.2);
           }
@@ -805,7 +1559,7 @@ export class NoahScene {
         this.camera.lookAt(lookTarget);
       } else {
         this.noah.visible = true;
-        const springArmDist = 6.8;
+        const springArmDist = 6.8 / Math.sqrt(this.zoomLevel);
         const camOffset = new THREE.Vector3(
           Math.sin(this.yaw) * Math.cos(this.pitch) * springArmDist,
           Math.sin(this.pitch) * springArmDist + 2.4, // Elevated height to stay clear of grass
@@ -821,5 +1575,13 @@ export class NoahScene {
     }
     
     this.renderer.render(this.scene, this.camera);
+  }
+
+  destroy() {
+    this.stopRain();
+    if (this.lightningTimer) {
+      clearTimeout(this.lightningTimer);
+      this.lightningTimer = null;
+    }
   }
 }

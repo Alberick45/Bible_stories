@@ -354,7 +354,7 @@ export async function loadModelAsset(keyOrUrl, options = {}) {
     console.log(`[AssetRegistry] ✅ [${isRemote ? 'ORIGINAL CDN SUCCESS' : 'LOCAL STATIC SUCCESS'}] Loaded '${keyOrUrl}'`);
     return result;
   } catch (err) {
-    if (fallbackUrl && !primaryUrl.startsWith('http')) {
+    if (fallbackUrl && fallbackUrl !== primaryUrl) {
       console.warn(`[AssetRegistry] ⚠️ [FETCH FAILED] Retrying with local static asset: ${fallbackUrl}`, err);
       try {
         const fallbackPromise = executeModelLoad(fallbackUrl, keyOrUrl, isFbx, fbxScale, onProgress, timeoutMs);

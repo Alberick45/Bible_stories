@@ -594,53 +594,125 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
           camPos.set(-5, 4.2, 17);
           sceneEngine.camera.lookAt(0, 1.3, 0);
         }
-        if (sceneEngine.arkPreBuilt) sceneEngine.arkPreBuilt.visible = true;
-        if (sceneEngine.arkPostBuilt) sceneEngine.arkPostBuilt.visible = false;
+        if (typeof sceneEngine.completeArk === 'function') {
+          // Keep ark in skeleton state until building completes
+          sceneEngine.arkSkeleton.visible = true;
+          sceneEngine.arkHull.visible = false;
+          sceneEngine.arkRoof.visible = false;
+          sceneEngine.doorGroup.visible = false;
+          sceneEngine.ramp.visible = false;
+        }
         if (sceneEngine.noah) {
           sceneEngine.noah.visible = true;
-          sceneEngine.noah.position.set(-1.0, sceneEngine.getTerrainHeight(-1.0, 6.0), 6.0);
+          sceneEngine.noah.position.set(14.0, sceneEngine.getTerrainHeight(14.0, 6.0), 6.0);
+          sceneEngine.noah.lookAt(7.0, sceneEngine.noah.position.y, 0.0);
         }
       }, null, 0);
     }
-    else if (id === 87 || id === 88 || text.includes('thus did noah')) { // Ark Building Complete
+    else if (id === 87 || id === 88 || id === 128 || text.includes('thus did noah') || text.includes('come thou and all thy house')) { // Ark Building Complete
       tl.call(() => {
         if (camPos) {
           gsap.to(camPos, {
-            x: 10, y: 7.2, z: 12, duration: 6.0,
+            x: 10, y: 7.2, z: 12, duration: 4.0,
             onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 2.5, 0); }
           });
         }
-        if (sceneEngine.arkPreBuilt) sceneEngine.arkPreBuilt.visible = false;
-        if (sceneEngine.arkPostBuilt) sceneEngine.arkPostBuilt.visible = true;
+        if (typeof sceneEngine.completeArk === 'function') {
+          sceneEngine.completeArk();
+        }
+        if (sceneEngine.noah) {
+          sceneEngine.noah.visible = true;
+          sceneEngine.noah.position.set(14.0, sceneEngine.getTerrainHeight(14.0, 6.0), 6.0);
+          sceneEngine.noah.lookAt(7.0, sceneEngine.noah.position.y, 0.0);
+        }
       }, null, 0);
     }
-    else if (id === 93 || text.includes('fountains of the great deep')) { // Flood Rain starts
+    else if (text.includes('went in') || text.includes('waters of the flood')) { // Noah & animals enter Ark
+      tl.call(() => {
+        if (typeof sceneEngine.animateEnterArk === 'function') {
+          sceneEngine.animateEnterArk();
+        }
+        if (camPos) {
+          gsap.to(camPos, {
+            x: 14.5, y: 5.0, z: 11.5, duration: 2.2,
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(5.5, 2.2, 0.0); }
+          });
+        }
+      }, null, 0);
+    }
+    else if (text.includes('shut him in')) { // Door closed by God
+      tl.call(() => {
+        if (typeof sceneEngine.animateShutDoor === 'function') {
+          sceneEngine.animateShutDoor(veilEl);
+        }
+      }, null, 0);
+    }
+    else if (text.includes('fountains of the great deep') || text.includes('forty days and forty nights')) { // Flood Rain starts
       tl.call(() => {
         sceneEngine.movementEnabled = false;
         if (typeof sceneEngine.animateRain === 'function') sceneEngine.animateRain();
       }, null, 0);
     }
-    else if (id === 95 || text.includes('flood was forty days')) { // Flood Rise
+    else if (text.includes('flood was forty days') || text.includes('waters increased') || text.includes('face of the waters')) { // Flood Rise
       tl.call(() => {
         if (typeof sceneEngine.animateFloodRise === 'function') sceneEngine.animateFloodRise();
       }, null, 0);
     }
-    else if (id === 97 || text.includes('god remembered noah')) { // God remembered Noah
+    else if (text.includes('god remembered noah')) { // Floating on boundless ocean
       tl.call(() => {
-        if (typeof sceneEngine.stopRain === 'function') sceneEngine.stopRain();
+        if (sceneEngine) {
+          if (sceneEngine.waterHeight < 20.0) {
+            sceneEngine.waterHeight = 20.5;
+            if (sceneEngine.waterPlane) sceneEngine.waterPlane.position.y = 20.5;
+          }
+          if (sceneEngine.wickedGroup) sceneEngine.wickedGroup.visible = false;
+          if (sceneEngine.houseGroup) sceneEngine.houseGroup.visible = false;
+          if (sceneEngine.cityGroup) sceneEngine.cityGroup.visible = false;
+          if (sceneEngine.hillsideTrees) sceneEngine.hillsideTrees.visible = false;
+          if (typeof sceneEngine.stopRain === 'function') sceneEngine.stopRain();
+        }
+        if (camPos) {
+          gsap.to(camPos, {
+            x: -38.0, y: 26.0, z: 46.0, duration: 4.0, ease: 'power2.inOut',
+            onUpdate: () => {
+              if (sceneEngine.camera && sceneEngine.arkGroup) {
+                sceneEngine.camera.lookAt(sceneEngine.arkGroup.position.x, sceneEngine.arkGroup.position.y + 1.5, sceneEngine.arkGroup.position.z);
+              }
+            }
+          });
+        }
       }, null, 0);
     }
-    else if (id === 99 || text.includes('mountains of ararat')) { // Mount Ararat mountain transition
+    else if (text.includes('rain from heaven was restrained') || text.includes('waters returned')) { // Waters recede gradually
+      tl.call(() => {
+        if (typeof sceneEngine.animateWaterRecede === 'function') {
+          sceneEngine.animateWaterRecede();
+        } else if (typeof sceneEngine.stopRain === 'function') {
+          sceneEngine.stopRain();
+        }
+      }, null, 0);
+    }
+    else if (text.includes('mountains of ararat')) { // Mount Ararat mountain transition
       tl.call(() => {
         if (typeof sceneEngine.animateArarat === 'function') sceneEngine.animateArarat();
       }, null, 0);
     }
-    else if (id === 100 || text.includes('sent forth a dove')) { // Dove released
+    else if (text.includes('sent forth a dove') || text.includes('olive leaf')) { // Dove released
       tl.call(() => {
         if (typeof sceneEngine.animateDove === 'function') sceneEngine.animateDove();
       }, null, 0);
     }
-    else if (id === 104 || text.includes('bow in the cloud')) { // Rainbow Covenant
+    else if (text.includes('went forth')) { // Noah and family exit on Ararat
+      tl.call(() => {
+        if (typeof sceneEngine.animateExitArk === 'function') sceneEngine.animateExitArk();
+      }, null, 0);
+    }
+    else if (text.includes('altar')) { // Altar of thanksgiving
+      tl.call(() => {
+        if (typeof sceneEngine.animateAltar === 'function') sceneEngine.animateAltar();
+      }, null, 0);
+    }
+    else if (text.includes('bow in the cloud') || text.includes('no more become a flood')) { // Rainbow Covenant
       tl.call(() => {
         if (typeof sceneEngine.animateRainbow === 'function') sceneEngine.animateRainbow();
       }, null, 0);
@@ -652,48 +724,40 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
   // ==========================================
   else if (scene.chapterId === 'babel') {
     const text = (scene.text || '').toLowerCase();
-    const id = scene.id;
 
-    if (id === 106 || text.includes('whole earth was of one language')) { // Shinar plain view
+    if (text.includes('whole earth was of one language') || text.includes('one speech')) { // Shinar plain view of united people
       tl.call(() => {
         if (veilEl) {
           veilEl.style.transition = 'background 1.5s ease';
           veilEl.style.background = 'rgba(0,0,0,0)';
         }
         if (camPos) {
-          camPos.set(-18, 3.2, 18);
-          sceneEngine.camera.lookAt(0.0, 1.0, 0.0);
+          camPos.set(0, 7.5, 36.0);
+          sceneEngine.camera.lookAt(0, 8.0, 0);
+        }
+        if (typeof sceneEngine.prepareInteractiveBabel === 'function') {
+          sceneEngine.prepareInteractiveBabel();
         }
       }, null, 0);
     }
-    else if (id === 107 || text.includes('let us build us a city')) { // Construction time lapse starts
+    else if (text.includes('let us build us a city') || text.includes('brick for stone') || text.includes('top may reach')) { // Construction in progress
       tl.call(() => {
         if (camPos) {
           gsap.to(camPos, {
-            x: -12.0, y: 8.5, z: 12.0, duration: 7.5,
-            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 3.0, 0); }
+            x: -16.0, y: 16.0, z: 32.0, duration: 8.0, ease: 'power1.inOut',
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 12.0, 0); }
           });
         }
-        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(0);
       }, null, 0);
-
-      tl.call(() => {
-        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(1);
-      }, null, 2.5);
-
-      tl.call(() => {
-        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(2);
-      }, null, 5.0);
     }
-    else if (id === 110 || text.includes('lord came down to see')) { // Divine Intervention
+    else if (text.includes('lord came down to see') || text.includes('people is one')) { // Divine Intervention
       tl.call(() => {
         if (camPos) {
           gsap.to(camPos, {
-            x: 0.1, y: 16.0, z: 5.5, duration: 4.5,
-            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 11.5, 0); }
+            x: 0, y: 22.0, z: 28.0, duration: 5.0, ease: 'power2.inOut',
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 16.0, 0); }
           });
         }
-        if (typeof sceneEngine.growTowerTier === 'function') sceneEngine.growTowerTier(3);
         
         if (veilEl) {
           veilEl.style.transition = 'background 0.15s ease';
@@ -705,24 +769,24 @@ export function buildTimeline(scene, durationSec, sceneEngine) {
         }
       }, null, 0.5);
     }
-    else if (id === 112 || text.includes('δόξα') || text.includes('quid agis') || text.includes('baga bo pi do')) { // Language confusion starts
+    else if (text.includes('confound their language') || text.includes('δόξα') || text.includes('quid agis') || text.includes('baga bo pi do') || text.includes('confound the language')) { // Confounding of tongues
       tl.call(() => {
         if (camPos) {
           gsap.to(camPos, {
-            x: -4.5, y: 2.2, z: 5.0, duration: 4.5,
-            onUpdate: () => { if (sceneEngine.camera && sceneEngine.builder) sceneEngine.camera.lookAt(sceneEngine.builder.position); }
+            x: 0, y: 5.5, z: 26.0, duration: 4.0, ease: 'power2.inOut',
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 2.5, 14.0); }
           });
         }
         if (typeof sceneEngine.confoundLanguages === 'function') sceneEngine.confoundLanguages();
       }, null, 0);
     }
-    else if (id === 116 || text.includes('scattered them abroad')) { // Fleeing and scattering
+    else if (text.includes('scattered them abroad') || text.includes('left off to build')) { // Fleeing and scattering
       tl.call(() => {
         if (typeof sceneEngine.scatterWorkers === 'function') sceneEngine.scatterWorkers();
         if (camPos) {
           gsap.to(camPos, {
-            x: 0, y: 14.0, z: 22.0, duration: 4.5,
-            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 4.0, 0); }
+            x: 0, y: 14.0, z: 38.0, duration: 5.5, ease: 'power1.inOut',
+            onUpdate: () => { if (sceneEngine.camera) sceneEngine.camera.lookAt(0, 12.0, 0); }
           });
         }
       }, null, 0);

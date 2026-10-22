@@ -8,6 +8,7 @@ import { CainAbelScene } from '../cain-abel-scene.js';
 import { NoahScene } from '../noah-scene.js';
 import { BabelScene } from '../babel-scene.js';
 import { preloadSceneAssets } from './models/index.js';
+import { stormAudio } from './audio/StormSoundEngine.js';
 import gsap from 'gsap';
 
 // Global variables for backward compatibility
@@ -201,6 +202,7 @@ function destroyActiveScene() {
   soundIntervals.forEach(id => clearInterval(id));
   soundIntervals = [];
   clearInterval(interactiveInterval);
+  stormAudio.stopStorm();
 
   window.enableBirdSounds = false;
   window.enableAnimalSounds = false;
@@ -215,6 +217,9 @@ function destroyActiveScene() {
   if (scriptureLabelEl) scriptureLabelEl.classList.remove('show');
 
   if (window.sceneEngine) {
+    if (typeof window.sceneEngine.destroy === 'function') {
+      try { window.sceneEngine.destroy(); } catch (_) {}
+    }
     window.removeEventListener('resize', window.sceneEngine.onWindowResize);
     window.sceneEngine.scene.traverse(node => {
       if (node.isMesh) {
@@ -236,9 +241,10 @@ function destroyActiveScene() {
   }
 }
 
-function loadScriptureScroll(title, contentHTML) {
-  scrollTitleEl.innerHTML = title;
-  scrollContentEl.innerHTML = contentHTML;
+function loadScriptureScroll(title, contentHTML, labelText) {
+  if (scrollTitleEl) scrollTitleEl.innerHTML = title;
+  if (scrollContentEl) scrollContentEl.innerHTML = contentHTML;
+  if (scriptureLabelEl && labelText) scriptureLabelEl.innerHTML = labelText;
 }
 
 // ==========================================
@@ -339,6 +345,12 @@ async function loadScene(sceneName) {
   }
 
   if (window.sceneEngine) {
+    if (typeof window.sceneEngine.setZoom === 'function') {
+      window.sceneEngine.setZoom(globalZoomLevel);
+    } else if (window.sceneEngine.camera) {
+      window.sceneEngine.camera.fov = 55 / globalZoomLevel;
+      window.sceneEngine.camera.updateProjectionMatrix();
+    }
     window.sceneEngine.update(0, 0.016);
     requestAnimationFrame(tick);
 
@@ -428,24 +440,121 @@ function setupInteractiveGameplay(scene) {
     }, 150);
   } 
   else if (scene.chapterId === 'noah') {
-    window.sceneEngine.unlockControls();
+    if (window.sceneEngine) {
+      if (typeof window.sceneEngine.completeArk === 'function') {
+        window.sceneEngine.completeArk();
+      }
+      if (window.sceneEngine.noah) {
+        const nPos = window.sceneEngine.noah.position;
+        if (Math.abs(nPos.x) < 7.5 && Math.abs(nPos.z) < 16.5) {
+          nPos.set(14.0, window.sceneEngine.getTerrainHeight(14.0, 6.0), 6.0);
+          window.sceneEngine.noah.lookAt(7.0, nPos.y, 0.0);
+        }
+      }
+      window.sceneEngine.unlockControls();
+    }
     movementHintEl.classList.add('show');
     scriptureLabelEl.classList.add('show');
 
     interactiveInterval = setInterval(() => {
-      if (!window.sceneEngine) return;
-      // Wait until all animals are herded into the Ark
-      if (window.sceneEngine.animalPairs && window.sceneEngine.animalPairs.every(p => p.herded)) {
+      if (!window.sceneEngine || !window.sceneEngine.noah) return;
+      const nPos = window.sceneEngine.noah.position;
+      const distToAnimals = Math.sqrt((nPos.x - 10.0) * (nPos.x - 10.0) + nPos.z * nPos.z);
+      if (distToAnimals < 4.8) {
         clearInterval(interactiveInterval);
         movementHintEl.classList.remove('show');
+        if (window.sceneEngine) {
+          window.sceneEngine.movementEnabled = false;
+          if (window.sceneEngine.keys) window.sceneEngine.keys = {};
+          if (window.sceneEngine.joystickVector) window.sceneEngine.joystickVector.set(0, 0);
+          if (window.sceneEngine.noahCharacter && window.sceneEngine.noahCharacter.playAnimation) {
+            window.sceneEngine.noahCharacter.playAnimation('idle');
+          }
+        }
         orchestrator.next();
       }
     }, 150);
   } 
   else if (scene.chapterId === 'babel') {
-    window.sceneEngine.unlockControls();
+    if (window.sceneEngine && typeof window.sceneEngine.prepareInteractiveBabel === 'function') {
+      window.sceneEngine.prepareInteractiveBabel();
+    } else if (window.sceneEngine) {
+      window.sceneEngine.unlockControls();
+    }
+
     movementHintEl.classList.add('show');
     scriptureLabelEl.classList.add('show');
+
+    // Keep next button visible so user is never blocked
+    if (nextBtn) {
+      nextBtn.classList.add('show');
+      nextBtn.style.opacity = '1';
+      nextBtn.style.pointerEvents = 'auto';
+    }
+
+    let visitedCount = 0;
+    const requiredCount = 3;
+    const instructionEl = document.getElementById('tutorial-instruction');
+    if (instructionEl) {
+      instructionEl.innerHTML = `<span class="goal-tag">🎯 GOAL</span> Walk among the builders of Shinar at the foundation of the Tower (<span id="babel-count">0</span>/${requiredCount}). Approach 3 builders to hear their confounded tongues.`;
+    }
+
+    interactiveInterval = setInterval(() => {
+      if (!window.sceneEngine) return;
+      const player = window.sceneEngine.player || window.sceneEngine.builder || window.sceneEngine.nimrod;
+      if (!player) return;
+
+      const workers = window.sceneEngine.workers || [];
+      const pPos = player.position;
+
+      for (let i = 0; i < workers.length; i++) {
+        const w = workers[i];
+        if (!w || !w.visible || w.userData.hasInteracted) continue;
+
+        const dist = Math.hypot(pPos.x - w.position.x, pPos.z - w.position.z);
+        if (dist < 5.0) {
+          w.userData.hasInteracted = true;
+          visitedCount++;
+
+          const countSpan = document.getElementById('babel-count');
+          if (countSpan) countSpan.textContent = visitedCount;
+
+          // Turn worker to face player and show speech bubble
+          w.lookAt(pPos.x, w.position.y, pPos.z);
+          bubbleTargetObject = w;
+          if (speechBubbleEl) {
+            speechBubbleEl.innerHTML = `<strong>Builder of Shinar (${w.userData.lang || 'Confounded'})</strong><br><em>"${w.userData.phrase || 'Quid agis?!'}"</em>`;
+            speechBubbleEl.style.display = 'block';
+            setTimeout(() => {
+              if (bubbleTargetObject === w && speechBubbleEl) {
+                speechBubbleEl.style.display = 'none';
+                bubbleTargetObject = null;
+              }
+            }, 3500);
+          }
+
+          if (window.showCameraToast) {
+            window.showCameraToast(`Confounded tongue heard! (${visitedCount}/${requiredCount})`);
+          }
+
+          if (visitedCount >= requiredCount) {
+            clearInterval(interactiveInterval);
+            if (window.showCameraToast) {
+              window.showCameraToast('✨ All tongues confounded! The people scatter abroad.');
+            }
+            setTimeout(() => {
+              movementHintEl.classList.remove('show');
+              if (window.sceneEngine) {
+                window.sceneEngine.movementEnabled = false;
+                if (window.sceneEngine.keys) window.sceneEngine.keys = {};
+              }
+              orchestrator.next();
+            }, 2500);
+            break;
+          }
+        }
+      }
+    }, 150);
   }
 }
 
@@ -558,6 +667,7 @@ function createInstructionBanner() {
 
 const SCRIPTURE_TEXTS = {
   creation: {
+    label: 'Genesis 1:1 &mdash; 2:7',
     title: `Genesis 1:1 &ndash; 2:7 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     content: `
       <p><span class="verse-num">1:1</span>In the beginning God created the heaven and the earth.</p>
@@ -570,6 +680,7 @@ const SCRIPTURE_TEXTS = {
     `
   },
   eden: {
+    label: 'Genesis 2:8 &mdash; 3:24',
     title: `Genesis 2:8 &ndash; 3:24 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     content: `
       <p><span class="verse-num">2:8-9</span>And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed. And out of the ground made the LORD God to grow every tree that is pleasant to the sight, and good for food; the tree of life also in the midst of the garden, and the tree of knowledge of good and evil.</p>
@@ -580,6 +691,7 @@ const SCRIPTURE_TEXTS = {
     `
   },
   cainabel: {
+    label: 'Genesis 4:1 &mdash; 16',
     title: `Genesis 4:1 &ndash; 16 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     content: `
       <p><span class="verse-num">4:1-2</span>And Adam knew Eve his wife; and she conceived, and bare Cain... And she again bare his brother Abel. And Abel was a keeper of sheep, but Cain was a tiller of the ground.</p>
@@ -589,6 +701,7 @@ const SCRIPTURE_TEXTS = {
     `
   },
   noah: {
+    label: 'Genesis 6:5 &mdash; 9:17',
     title: `Genesis 6:5 &ndash; 9:17 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     content: `
       <p><span class="verse-num">6:5-8</span>And God saw that the wickedness of man was great in the earth... But Noah found grace in the eyes of the LORD.</p>
@@ -599,6 +712,7 @@ const SCRIPTURE_TEXTS = {
     `
   },
   babel: {
+    label: 'Genesis 11:1 &mdash; 9',
     title: `Genesis 11:1 &ndash; 9 <span style="font-weight:400;opacity:.6">(KJV)</span>`,
     content: `
       <p><span class="verse-num">11:1-4</span>And the whole earth was of one language, and of one speech... And they said, Go to, let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name, lest we be scattered abroad upon the face of the whole earth.</p>
@@ -610,7 +724,7 @@ const SCRIPTURE_TEXTS = {
 
 function setupScriptureContent(sceneName) {
   const scripture = SCRIPTURE_TEXTS[sceneName] || SCRIPTURE_TEXTS.creation;
-  loadScriptureScroll(scripture.title, scripture.content);
+  loadScriptureScroll(scripture.title, scripture.content, scripture.label);
 }
 
 // ==========================================
@@ -1418,8 +1532,76 @@ function initActionBarListeners() {
   });
 }
 
+let globalZoomLevel = 1.0;
+
+window.updateZoomUI = function(level) {
+  globalZoomLevel = level;
+  const zoomText = document.getElementById('zoom-value-text');
+  if (zoomText) {
+    zoomText.textContent = `${Math.round(level * 100)}%`;
+  }
+};
+
+window.setZoom = function(level) {
+  globalZoomLevel = Math.max(0.5, Math.min(2.5, level));
+  if (window.sceneEngine && typeof window.sceneEngine.setZoom === 'function') {
+    window.sceneEngine.setZoom(globalZoomLevel);
+  } else if (window.sceneEngine && window.sceneEngine.camera) {
+    window.sceneEngine.camera.fov = 55 / globalZoomLevel;
+    window.sceneEngine.camera.updateProjectionMatrix();
+  }
+  window.updateZoomUI(globalZoomLevel);
+};
+
+window.zoomIn = function(delta = 0.15) {
+  window.setZoom(globalZoomLevel + delta);
+};
+
+window.zoomOut = function(delta = 0.15) {
+  window.setZoom(globalZoomLevel - delta);
+};
+
+window.resetZoom = function() {
+  window.setZoom(1.0);
+};
+
+function initZoomControls() {
+  const zoomInBtn = document.getElementById('zoom-in-btn');
+  const zoomOutBtn = document.getElementById('zoom-out-btn');
+  const zoomIndicatorBtn = document.getElementById('zoom-indicator-btn');
+
+  if (zoomInBtn) zoomInBtn.addEventListener('click', (e) => { e.stopPropagation(); window.zoomIn(); });
+  if (zoomOutBtn) zoomOutBtn.addEventListener('click', (e) => { e.stopPropagation(); window.zoomOut(); });
+  if (zoomIndicatorBtn) zoomIndicatorBtn.addEventListener('click', (e) => { e.stopPropagation(); window.resetZoom(); });
+
+  // Mouse wheel zoom across canvas
+  window.addEventListener('wheel', (e) => {
+    const target = e.target;
+    if (target && (target.closest('#canvas-wrap') || target.tagName === 'CANVAS')) {
+      if (!target.closest('#hub-panel') && !target.closest('#scroll-panel')) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.12 : -0.12;
+        window.setZoom(globalZoomLevel + delta);
+      }
+    }
+  }, { passive: false });
+
+  // Keyboard zoom shortcuts
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !e.repeat) {
+      window.zoomIn();
+    } else if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !e.repeat) {
+      window.zoomOut();
+    } else if (e.code === 'Digit0' && !e.repeat) {
+      window.resetZoom();
+    }
+  });
+}
+
 window.addEventListener('load', () => {
   initAmbientDust();
   initTouchControls();
   initActionBarListeners();
+  initZoomControls();
 });

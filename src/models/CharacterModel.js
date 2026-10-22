@@ -209,16 +209,24 @@ export class CharacterModel {
   async loadAnimation(keyOrUrl) {
     const key = keyOrUrl.toLowerCase();
     if (this.actions[key]) return this.actions[key];
+    if (!this.failedAnimations) this.failedAnimations = new Map();
+    const lastFailed = this.failedAnimations.get(key);
+    // Cool down for 6 seconds before retrying a failed animation load
+    if (lastFailed && (Date.now() - lastFailed < 6000)) {
+      return null;
+    }
 
     try {
       const clip = await loadAnimationClip(keyOrUrl);
       this.clips[key] = clip;
+      this.failedAnimations.delete(key);
       if (this.mixer) {
         const action = this.mixer.clipAction(clip);
         this.actions[key] = action;
         return action;
       }
     } catch (err) {
+      this.failedAnimations.set(key, Date.now());
       console.warn(`[CharacterModel] Could not load animation '${keyOrUrl}':`, err);
     }
     return null;
@@ -282,6 +290,9 @@ export class CharacterModel {
 
     if (!this.mixer) {
       this.pendingAnimation = { name, options };
+      if (this.isProcedural) {
+        this.activeActionName = lowerName;
+      }
       return;
     }
 
@@ -453,17 +464,45 @@ export class CharacterModel {
     const safeDt = (typeof dt === 'number' && dt > 0 && dt < 0.5) ? dt : 0.016;
     if (this.mixer) {
       this.mixer.update(safeDt);
-    } else if (this.isProcedural && this.joints.hip) {
-      // Procedural sway
-      const breath = Math.sin(elapsed * 2.2) * 0.015;
-      this.joints.hip.position.y = 0.95 + breath;
+    } else if (this.isProcedural) {
+      const isWalking = (this.activeActionName === 'walk' || this.activeActionName === 'run');
+      if (isWalking) {
+        const walkFreq = (this.activeActionName === 'run') ? 13.0 : 8.5;
+        const swing = Math.sin(elapsed * walkFreq) * 0.45;
+        const armSwing = -swing * 0.75;
 
-      if (this.joints.head) {
-        this.joints.head.rotation.y = Math.sin(elapsed * 0.7) * 0.08;
-      }
-      if (this.joints.shoulderLeft && this.joints.shoulderRight) {
-        this.joints.shoulderLeft.rotation.z = Math.sin(elapsed * 1.4) * 0.03;
-        this.joints.shoulderRight.rotation.z = -Math.sin(elapsed * 1.4) * 0.03;
+        if (this.joints.hipLeft) this.joints.hipLeft.rotation.x = swing;
+        if (this.joints.hipRight) this.joints.hipRight.rotation.x = -swing;
+        if (this.joints.shoulderLeft) this.joints.shoulderLeft.rotation.x = armSwing;
+        if (this.joints.shoulderRight) this.joints.shoulderRight.rotation.x = -armSwing;
+
+        // Knee flex on back stride
+        if (this.joints.kneeLeft) this.joints.kneeLeft.rotation.x = Math.max(0, -swing * 0.65);
+        if (this.joints.kneeRight) this.joints.kneeRight.rotation.x = Math.max(0, swing * 0.65);
+
+        // Gentle vertical hip bounce
+        if (this.joints.hip) {
+          this.joints.hip.position.y = 0.95 + Math.abs(Math.sin(elapsed * walkFreq)) * 0.04;
+        }
+      } else {
+        // Procedural idle sway
+        if (this.joints.hip) {
+          const breath = Math.sin(elapsed * 2.2) * 0.015;
+          this.joints.hip.position.y = 0.95 + breath;
+        }
+        if (this.joints.head) {
+          this.joints.head.rotation.y = Math.sin(elapsed * 0.7) * 0.08;
+        }
+        if (this.joints.shoulderLeft && this.joints.shoulderRight) {
+          this.joints.shoulderLeft.rotation.z = Math.sin(elapsed * 1.4) * 0.03;
+          this.joints.shoulderRight.rotation.z = -Math.sin(elapsed * 1.4) * 0.03;
+          this.joints.shoulderLeft.rotation.x *= 0.85;
+          this.joints.shoulderRight.rotation.x *= 0.85;
+        }
+        if (this.joints.hipLeft) this.joints.hipLeft.rotation.x *= 0.85;
+        if (this.joints.hipRight) this.joints.hipRight.rotation.x *= 0.85;
+        if (this.joints.kneeLeft) this.joints.kneeLeft.rotation.x *= 0.85;
+        if (this.joints.kneeRight) this.joints.kneeRight.rotation.x *= 0.85;
       }
     }
   }
